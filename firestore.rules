@@ -6,10 +6,12 @@ service cloud.firestore {
     function isTeacher() { return signed() && me().role == 'teacher'; }
     function asg(aid) { return get(/databases/$(db)/documents/assignments/$(aid)).data; }
     function inClass(cid) { return signed() && me().classIds.hasAny([cid]); }
+    function lessonOf(lid) { return get(/databases/$(db)/documents/lessons/$(lid)).data; }
+    function liveOk(aid) { return asg(aid).get('guest', false) == true || inClass(asg(aid).classId); }
     match /users/{uid} {
       allow read: if signed() && (request.auth.uid == uid || resource.data.teacherId == request.auth.uid);
       allow create: if signed() && ((request.auth.uid == uid && request.resource.data.role == 'teacher' && request.resource.data.teacherId == uid) || (isTeacher() && request.resource.data.role == 'student' && request.resource.data.teacherId == request.auth.uid));
-      allow update: if signed() && resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId && request.resource.data.role == resource.data.role;
+      allow update: if signed() && ((resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId && request.resource.data.role == resource.data.role) || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pw'])));
     }
     match /classes/{cid} {
       allow read: if signed() && (resource.data.teacherId == request.auth.uid || inClass(cid));
@@ -17,34 +19,40 @@ service cloud.firestore {
       allow update, delete: if signed() && resource.data.teacherId == request.auth.uid;
     }
     match /lessons/{lid} {
-      allow read: if signed() && (resource.data.teacherId == request.auth.uid || resource.data.classIds.hasAny(me().classIds));
+      allow read: if signed() && (resource.data.teacherId == request.auth.uid || resource.data.get('guestOpen', false) == true || resource.data.classIds.hasAny(me().classIds));
       allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
       allow update, delete: if signed() && resource.data.teacherId == request.auth.uid;
       match /parts/{p} {
-        allow read: if signed() && (get(/databases/$(db)/documents/lessons/$(lid)).data.teacherId == request.auth.uid || get(/databases/$(db)/documents/lessons/$(lid)).data.classIds.hasAny(me().classIds));
-        allow write: if signed() && get(/databases/$(db)/documents/lessons/$(lid)).data.teacherId == request.auth.uid;
+        allow read: if signed() && (lessonOf(lid).teacherId == request.auth.uid || lessonOf(lid).get('guestOpen', false) == true || lessonOf(lid).classIds.hasAny(me().classIds));
+        allow write: if signed() && lessonOf(lid).teacherId == request.auth.uid;
       }
     }
     match /assignments/{aid} {
-      allow read: if signed() && (resource.data.teacherId == request.auth.uid || inClass(resource.data.classId));
+      allow read: if signed() && (resource.data.teacherId == request.auth.uid || resource.data.get('guest', false) == true || inClass(resource.data.classId));
       allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
       allow update, delete: if signed() && resource.data.teacherId == request.auth.uid;
       match /results/{uid} {
         allow read, delete: if signed() && (request.auth.uid == uid || asg(aid).teacherId == request.auth.uid);
-        allow create, update: if signed() && request.auth.uid == uid && inClass(asg(aid).classId);
+        allow create, update: if signed() && request.auth.uid == uid && liveOk(aid);
       }
     }
     match /live/{aid} {
-      allow read: if signed() && (asg(aid).teacherId == request.auth.uid || inClass(asg(aid).classId));
+      allow read: if signed() && (asg(aid).teacherId == request.auth.uid || liveOk(aid));
       allow write: if signed() && asg(aid).teacherId == request.auth.uid;
       match /ink/{k} {
-        allow read: if signed() && (asg(aid).teacherId == request.auth.uid || inClass(asg(aid).classId));
-        allow write: if signed() && (asg(aid).teacherId == request.auth.uid || (inClass(asg(aid).classId) && k.matches('^[0-9]+_' + request.auth.uid + '$') && request.auth.uid in get(/databases/$(db)/documents/live/$(aid)).data.draw));
+        allow read: if signed() && (asg(aid).teacherId == request.auth.uid || liveOk(aid));
+        allow write: if signed() && (asg(aid).teacherId == request.auth.uid || (liveOk(aid) && k.matches('^[0-9]+_' + request.auth.uid + '$') && request.auth.uid in get(/databases/$(db)/documents/live/$(aid)).data.draw));
       }
       match /who/{uid} {
         allow read: if signed() && asg(aid).teacherId == request.auth.uid;
-        allow write: if signed() && request.auth.uid == uid && inClass(asg(aid).classId);
+        allow write: if signed() && request.auth.uid == uid && liveOk(aid);
       }
+    }
+    match /notices/{id} {
+      allow read: if signed() && (resource.data.to == request.auth.uid || resource.data.teacherId == request.auth.uid);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update: if signed() && resource.data.to == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if signed() && (resource.data.to == request.auth.uid || resource.data.teacherId == request.auth.uid);
     }
   }
 }
