@@ -532,10 +532,10 @@ ACT.login=async()=>{const u=$("lu").value,p=$("lp").value;if(!u.trim()||!p){$("l
  $("lgo").disabled=true;$("lmsg").textContent="Đang đăng nhập…";try{await DB.signIn(toEmail(u),p)}catch(e){$("lmsg").textContent=authErr(e);$("lgo").disabled=false}};
 ACT.tsign=()=>{$("app").innerHTML=`<div class="wrap narrow"><h1>Tạo tài khoản giáo viên</h1><p class="sub">Dùng email để đăng nhập sau này.</p><div class="panel">
  <label class="l">Họ tên</label><input id="sn" autocomplete="name"><label class="l">Email</label><input id="se" type="email" autocomplete="email">
- <label class="l">Mật khẩu (ít nhất 6 ký tự)</label><input id="sp" type="password" autocomplete="new-password">
+ <label class="l">Mật khẩu (ít nhất 6 ký tự)</label><input id="spw" type="password" autocomplete="new-password">
  <div class="row" style="margin-top:14px"><button data-act="tsign2" id="sgo">Tạo tài khoản</button><button class="sec" data-act="tback">Quay lại</button><span class="note" id="smsg"></span></div></div></div>`};
 ACT.tback=viewLogin;
-ACT.tsign2=async()=>{const n=$("sn").value.trim(),e=$("se").value.trim().toLowerCase(),p=$("sp").value;if(!n||!e.includes("@")||p.length<6){$("smsg").textContent="Nhập đủ họ tên, email, mật khẩu (≥ 6 ký tự).";return}
+ACT.tsign2=async()=>{const n=$("sn").value.trim(),e=$("se").value.trim().toLowerCase(),p=$("spw").value;if(!n||!e.includes("@")||p.length<6){$("smsg").textContent="Nhập đủ họ tên, email, mật khẩu (≥ 6 ký tự).";return}
  $("sgo").disabled=true;SIGNUP_BUSY=true;try{const uid=await DB.signUp(e,p);UID=uid;ME={id:uid,role:"teacher",name:n,teacherId:uid,classIds:[],createdAt:Date.now()};await DB.set("users/"+uid,ME);SIGNUP_BUSY=false;boot({uid})}
  catch(er){SIGNUP_BUSY=false;$("smsg").textContent=authErr(er);$("sgo").disabled=false}};
 ACT.logout=async()=>{stopPlayer(true);stopQS();await DB.signOut()};
