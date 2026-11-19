@@ -40,7 +40,18 @@ th{font-size:13px;color:var(--mu);font-weight:700;white-space:nowrap}td.n,th.n{t
 #pl .hd{display:flex;gap:10px;align-items:center;padding:6px 12px;font-size:14px}
 #pl .hd button{padding:5px 10px;font-size:13px}#pl .pb{flex:1;max-width:360px}
 #pl .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-#pl .stage .sld{width:min(100vw,calc((100vh - 170px)*1.7777));border-radius:8px;background:#fff}
+.slw{position:relative;width:min(100vw,calc((100vh - 170px)*1.7777))}#pl.host .slw{width:min(100vw,calc((100vh - 232px)*1.7777))}
+.slw .sld{width:100%;border-radius:8px;background:#fff}.slw svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.slw svg.on{pointer-events:auto;touch-action:none;cursor:crosshair}
+#pl .hd{flex-wrap:wrap}.tb{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:2px 12px 6px;font-size:13px}.tb button{padding:4px 9px;font-size:14px;background:#ffffff22;color:#fff;border:1px solid #ffffff33;border-radius:8px}.tb button.on{background:#2563eb;border-color:#93c5fd}.tb button:disabled{opacity:.35}
+.tb .cd{width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff6}.tb .cd.on{border-color:#fff;box-shadow:0 0 0 2px #2563eb}.tb .sep{width:1px;height:22px;background:#fff4;margin:0 3px}
+#sp{position:absolute;top:52px;right:0;bottom:0;width:310px;max-width:92vw;background:#111a33;border-left:1px solid #fff3;z-index:5;display:flex;flex-direction:column;overflow:hidden}
+#sp .sph{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #fff2}#sp .spb{padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #fff2}
+#sp .spl{flex:1;overflow:auto;padding:6px 8px}.srow{display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:1px solid #fff1;font-size:14px}.srow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .sm{padding:3px 7px;font-size:12px}.dot{width:9px;height:9px;border-radius:50%;background:#64748b;flex:none}.dot.on{background:#22c55e}
+#rname{font-size:20px;text-align:center;min-height:28px;color:#fde68a}.callbox{margin:8px 12px;padding:10px;border-radius:12px;background:#1e3a8a;display:flex;flex-direction:column;gap:6px;font-size:14px}
+#printroot{display:none}
+@media print{@page{size:297mm 167mm;margin:0}html,body{background:#fff!important;margin:0!important;padding:0!important}body>*:not(#printroot){display:none!important}#printroot{display:block}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #printroot .pg{width:297mm;height:167mm;overflow:hidden;position:relative;page-break-after:always;break-after:page}#printroot .pg:last-child{page-break-after:auto;break-after:auto}#printroot .slw{width:297mm}#printroot .sld{border-radius:0}}
 #pl .ft{padding:8px 12px;display:flex;flex-direction:column;gap:8px;min-height:92px;justify-content:center}
 #pl .hst{font-size:15px;text-align:center}
 .opts{display:grid;grid-template-columns:repeat(var(--n,4),1fr);gap:8px}
@@ -50,7 +61,7 @@ th{font-size:13px;color:var(--mu);font-weight:700;white-space:nowrap}td.n,th.n{t
 .nav button{background:#ffffff22}.nav button.go{background:var(--pr)}
 .msgl{text-align:center;font-weight:700;min-height:22px}.msgl.ok{color:#58e08f}.msgl.no{color:#ff8585}
 .dw{font-size:13px;opacity:.85;white-space:nowrap}
-@media (max-width:640px){.opts{grid-template-columns:1fr 1fr}#pl .stage .sld{width:100vw}}
+@media (max-width:640px){.opts{grid-template-columns:1fr 1fr}.slw{width:100vw!important}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head><body>
@@ -277,18 +288,20 @@ function layoutSlide(s, th, ctx) {
   const vis = s.visual;
   if (s.layout === "qimg" && vis) {
     const hasA = !!s.answer; let ansH2 = 0, afs = 16;
-    if (hasA) { afs = fitFs("Đáp án: " + s.answer, 8.7, 1.0, [18, 16, 14, 12]); ansH2 = Math.max(0.5, est("Đáp án: " + s.answer, 8.7, afs).h + 0.22); }
+    if (hasA) { afs = fitFs("Đáp án: " + s.answer, 4.2, 1.0, [18, 16, 14, 12]); ansH2 = Math.max(0.5, est("Đáp án: " + s.answer, 4.2, afs).h + 0.22); }
     const aw = 9.0, ah = BOTTOM - TOP - (hasA ? ansH2 + 0.12 : 0), ratio = vis.ratio || 1.5;
     let iw = aw - 0.16, ih = iw / ratio; if (ih > ah - 0.16) { ih = ah - 0.16; iw = ih * ratio; }
     const bx = L + (aw - iw - 0.16) / 2;
     add({ k: "round", name: "khunghinh", x: bx, y: TOP, w: iw + 0.16, h: ih + 0.16, fill: "FFFFFF", line: th.cardLine[0], lw: 1, step: -1 });
     add({ k: "img", name: "hinh", x: bx + 0.08, y: TOP + 0.08, w: iw, h: ih, src: vis.src, step: -1, field: { f: "visual" } });
-    if (hasA) add({ k: "round", name: "dapan", x: L, y: BOTTOM - ansH2, w: aw, h: ansH2, fill: th.ansFill, line: null, text: "Đáp án: " + s.answer, fs: afs, b: true, c: th.ansText, al: "l", va: "m", field: { f: "answer" }, step: 0 });
+    if (hasA) add({ k: "round", name: "dapan", x: L, y: BOTTOM - ansH2, w: 4.5, h: ansH2, fill: th.ansFill, line: null, text: "Đáp án: " + s.answer, fs: afs, b: true, c: th.ansText, al: "l", va: "m", field: { f: "answer" }, step: 0 });
     return o;
   }
-  const wide = !!vis && (vis.ratio || 1.33) > 2.1;
-  const colW = vis && !wide ? 5.45 : 9.0;
-  if (vis && !wide) {
+  const isQuiz0 = s.layout === "quiz" && s.bullets.length > 0;
+  const OW = 4.5; // đáp án trắc nghiệm / ô Đáp án: tối đa nửa chiều ngang slide
+  const wide = !isQuiz0 && !!vis && (vis.ratio || 1.33) > 2.1;
+  const colW = isQuiz0 ? 9.0 : (vis && !wide ? 5.45 : 9.0);
+  if (vis && !wide && !isQuiz0) {
     const vx = L + colW + 0.25, vw = SW - 0.5 - vx, vh = 3.75;
     let iw, ih;
     const ratio = vis.ratio || 4 / 3;
@@ -303,7 +316,8 @@ function layoutSlide(s, th, ctx) {
   const isQuiz = s.layout === "quiz" && nSteps > 0;
   const ci = isQuiz ? correctIdx(s) : -1;
   let ansH = 0, ansFs = 16;
-  if (hasAns) { ansFs = fitFs("Đáp án: " + s.answer, colW - 0.3, 1.3, [18, 16, 14, 12]); ansH = Math.max(0.5, est("Đáp án: " + s.answer, colW - 0.3, ansFs).h + 0.22); }
+  const ansW = isQuiz0 ? OW : colW;
+  if (hasAns) { ansFs = fitFs("Đáp án: " + s.answer, ansW - 0.3, 1.3, [18, 16, 14, 12]); ansH = Math.max(0.5, est("Đáp án: " + s.answer, ansW - 0.3, ansFs).h + 0.22); }
   if (s.problem) {
     const maxP = nSteps ? 1.9 : (hasAns ? 3.0 : 3.6);
     const pfs = fitFs(s.problem, colW - 0.35, maxP - 0.25, [18, 16, 15, 14, 13, 12, 11]);
@@ -318,8 +332,16 @@ function layoutSlide(s, th, ctx) {
     add({ k: "img", name: "hinh", x: bx + 0.08, y: y + 0.08, w: iw, h: ih, src: vis.src, step: -1, field: { f: "visual" } });
     y += ih + 0.16 + 0.12;
   }
+  if (isQuiz0 && vis) {
+    const vx = L + OW + 0.3, vw = SW - 0.5 - vx, vh = BOTTOM - y, ratio = vis.ratio || 4 / 3;
+    let iw, ih; if ((vw - 0.16) / (vh - 0.16) > ratio) { ih = vh - 0.16; iw = ih * ratio; } else { iw = vw - 0.16; ih = iw / ratio; }
+    const bx = vx + (vw - iw - 0.16) / 2, by = y + (vh - ih - 0.16) / 2;
+    add({ k: "round", name: "khunghinh", x: bx, y: by, w: iw + 0.16, h: ih + 0.16, fill: th.visBg, line: th.cardLine[0], lw: 1, step: -1 });
+    add({ k: "img", name: "hinh", x: bx + 0.08, y: by + 0.08, w: iw, h: ih, src: vis.src, step: -1, field: { f: "visual" } });
+  }
+  const ow = isQuiz ? OW : colW;
   const avail = BOTTOM - y - (hasAns ? ansH + 0.12 : 0);
-  const gap = 0.1, cw = colW - 0.45 - 0.3 - (isQuiz ? 1.5 : 0);
+  const gap = 0.1, cw = ow - 0.45 - 0.3 - (isQuiz ? 1.4 : 0);
   let fsStep = 11, hs = [];
   for (const fs of [17, 16, 15, 14, 13, 12, 11]) {
     hs = s.bullets.map(b => Math.max(0.46, est(b, cw, fs).h + 0.18));
@@ -331,13 +353,13 @@ function layoutSlide(s, th, ctx) {
   s.bullets.forEach((b, j) => {
     const h = hs[j];
     add({ k: "ellipse", name: "buoc" + j + "_so", x: L, y: y + (h - 0.36) / 2, w: 0.36, h: 0.36, fill: mix(th.badge, j), text: s.layout === "quiz" ? String.fromCharCode(65 + j) : String(j + 1), fs: 12, b: true, c: th.badgeText, al: "c", va: "m", step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined });
-    add({ k: "round", name: "buoc" + j + "_the", x: L + 0.45, y, w: colW - 0.45, h, fill: mix(th.card, j), line: mix(th.cardLine, j), lw: 1.25, text: b, fs: fsStep, c: th.text, al: "l", va: "m", field: { f: "step", j }, step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined, mr: isQuiz ? 112 : undefined });
-    if (isQuiz && ci >= 0) add({ k: "round", name: "opt" + j + "_fb", x: L + colW - 1.55, y: y + 0.07, w: 1.45, h: Math.max(0.3, h - 0.14), fill: j === ci ? "27AE60" : "EB5757", line: null, text: j === ci ? "✓ Đúng rồi!" : "✗ Chưa đúng", fs: 12, b: true, c: "FFFFFF", al: "c", va: "m", fb: j, trigger: "buoc" + j + "_the", step: -2 });
+    add({ k: "round", name: "buoc" + j + "_the", x: L + 0.45, y, w: ow - 0.45, h, fill: mix(th.card, j), line: mix(th.cardLine, j), lw: 1.25, text: b, fs: fsStep, c: th.text, al: "l", va: "m", field: { f: "step", j }, step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined, mr: isQuiz ? 100 : undefined });
+    if (isQuiz && ci >= 0) add({ k: "round", name: "opt" + j + "_fb", x: L + ow - 1.45, y: y + 0.07, w: 1.35, h: Math.max(0.3, h - 0.14), fill: j === ci ? "27AE60" : "EB5757", line: null, text: j === ci ? "✓ Đúng rồi!" : "✗ Chưa đúng", fs: 12, b: true, c: "FFFFFF", al: "c", va: "m", fb: j, trigger: "buoc" + j + "_the", step: -2 });
     y += h + gap;
   });
   if (hasAns) {
     const ay = Math.min(y + 0.02, BOTTOM - ansH);
-    add({ k: "round", name: "dapan", x: L, y: ay, w: colW, h: ansH, fill: th.ansFill, line: null, text: "Đáp án: " + s.answer, fs: ansFs, b: true, c: th.ansText, al: "l", va: "m", field: { f: "answer" }, step: isQuiz ? 0 : nSteps });
+    add({ k: "round", name: "dapan", x: L, y: ay, w: ansW, h: ansH, fill: th.ansFill, line: null, text: "Đáp án: " + s.answer, fs: ansFs, b: true, c: th.ansText, al: "l", va: "m", field: { f: "answer" }, step: isQuiz ? 0 : nSteps });
   }
   return o;
 }
@@ -552,26 +574,131 @@ ACT.saveinbox=async()=>{if(!INBOX)return;const title=prompt("Tên bài giảng:"
  try{await publishLesson(INBOX,title.trim(),(i,n)=>{const m=$("lmsg2");if(m)m.textContent=`Đang lưu vào kho ${i}/${n}…`});INBOX=null;toast("Đã lưu vào kho bài giảng.");tabBai()}catch(e){alert(authErr(e));if(b)b.disabled=false}};
 ACT.dropinbox=()=>{INBOX=null;tabBai()};
 
+
+/* ===== Viết vẽ trên slide (giáo viên + học sinh được cho phép) ===== */
+const INK={docs:{}},inkTimers={};
+const INKS={tool:"none",c:"#e11d48",w:6,sel:new Set(),cur:null,er:false,drag:null,marq:null,undo:[]};
+const COLS=["#e11d48","#1d4ed8","#15803d","#111827","#ea580c","#7c3aed"];
+const inkAid=()=>H?H.a.id:(P&&P.live?P.a.id:null);
+const inkSlide=()=>H?H.cur:(P?P.cur:0);
+const inkMe=()=>H?"T":(P&&P.live&&P.canDraw?UID:null);
+function strokePath(p){if(p.length<4)return`M${p[0]} ${p[1]}l0.1 0.1`;let d=`M${p[0]} ${p[1]}`;for(let i=2;i<p.length-2;i+=2)d+=`Q${p[i]} ${p[i+1]} ${(p[i]+p[i+2])/2} ${(p[i+1]+p[i+3])/2}`;return d+`L${p[p.length-2]} ${p[p.length-1]}`}
+function inkList(slide,docs){docs=docs||INK.docs;const out=[];Object.keys(docs).sort().forEach(k=>{const d=docs[k];if(d.slide!==slide)return;(d.strokes||[]).forEach(s=>out.push({k,s}))});return out}
+const sPathEl=s=>`<path d="${strokePath(s.p)}" fill="none" stroke="${s.c}" stroke-width="${s.w}" stroke-linecap="round" stroke-linejoin="round"${s.k==="hl"?' stroke-opacity=".35"':""}/>`;
+function inkSvg(slide,docs){return inkList(slide,docs).map(x=>sPathEl(x.s)).join("")}
+const bbox=l=>{let a=1e9,b=1e9,c=-1e9,d=-1e9;l.forEach(s=>{for(let i=0;i<s.p.length;i+=2){a=Math.min(a,s.p[i]);c=Math.max(c,s.p[i]);b=Math.min(b,s.p[i+1]);d=Math.max(d,s.p[i+1])}const r=s.w/2;a-=r;b-=r;c+=r;d+=r});return[a,b,c,d]};
+const selStrokes=()=>inkList(inkSlide()).filter(x=>INKS.sel.has(x.k+"|"+x.s.id));
+function inkRender(){const e=$("ink");if(!e)return;let h=inkSvg(inkSlide());if(INKS.cur)h+=sPathEl(INKS.cur);
+ const sl=selStrokes();if(sl.length){const[a,b,c,d]=bbox(sl.map(x=>x.s));h+=`<rect x="${a-6}" y="${b-6}" width="${c-a+12}" height="${d-b+12}" fill="#2563eb10" stroke="#2563eb" stroke-width="3" stroke-dasharray="12 8"/>`}
+ if(INKS.marq){const m=INKS.marq;h+=`<rect x="${Math.min(m[0],m[2])}" y="${Math.min(m[1],m[3])}" width="${Math.abs(m[2]-m[0])}" height="${Math.abs(m[3]-m[1])}" fill="#2563eb18" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>`}
+ e.innerHTML=h;const role=H?"host":(P&&P.live&&P.canDraw?"stu":"");e.classList.toggle("on",!!role&&(role==="stu"||INKS.tool!=="none"))}
+function inkIngest(list){const seen={};for(const d of list){seen[d.id]=1;const l=INK.docs[d.id];if(l&&(inkTimers[d.id]||l.t>d.t))continue;INK.docs[d.id]={slide:d.slide,by:d.by,name:d.name,strokes:d.strokes||[],t:d.t||0}}
+ for(const k in INK.docs)if(!seen[k]&&!inkTimers[k])delete INK.docs[k];inkRender()}
+function inkSave(k){clearTimeout(inkTimers[k]);inkTimers[k]=setTimeout(()=>{delete inkTimers[k];const d=INK.docs[k],aid=inkAid();if(!d||!aid)return;d.t=Date.now();
+ DB.set(`live/${aid}/ink/${k}`,{slide:d.slide,by:d.by,name:d.name,strokes:d.strokes,t:d.t}).catch(e=>toast("Chưa lưu được nét vẽ: "+authErr(e)))},250)}
+function inkDoc(by){const s=inkSlide(),k=s+"_"+by;if(!INK.docs[k])INK.docs[k]={slide:s,by,name:by==="T"?"Cô giáo":ME.name,strokes:[],t:0};return[k,INK.docs[k]]}
+function inkPush(){const s=inkSlide(),snap={};Object.keys(INK.docs).forEach(k=>{if(INK.docs[k].slide===s)snap[k]=JSON.stringify(INK.docs[k].strokes)});INKS.undo.push({s,snap});if(INKS.undo.length>60)INKS.undo.shift()}
+function inkUndo(){const u=INKS.undo.pop();if(!u)return;const me=inkMe();Object.keys(INK.docs).forEach(k=>{const d=INK.docs[k];if(d.slide!==u.s)return;if(!H&&!k.endsWith("_"+me))return;d.strokes=u.snap[k]?JSON.parse(u.snap[k]):[];inkSave(k)});
+ Object.keys(u.snap).forEach(k=>{if(!INK.docs[k]){INK.docs[k]={slide:u.s,by:k.split("_")[1],name:"",strokes:JSON.parse(u.snap[k]),t:0};inkSave(k)}});INKS.sel.clear();inkRender();inkTb()}
+const dseg=(p,x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,l=dx*dx+dy*dy;let t=l?((p[0]-x1)*dx+(p[1]-y1)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-(x1+t*dx),p[1]-(y1+t*dy))};
+function near(s,p){const r=Math.max(12,s.w/2+8),q=s.p;if(q.length<4)return Math.hypot(p[0]-q[0],p[1]-q[1])<=r;for(let i=0;i<q.length-2;i+=2)if(dseg(p,q[i],q[i+1],q[i+2],q[i+3])<=r)return true;return false}
+function hitAt(p){const L=inkList(inkSlide()),me=inkMe();for(let i=L.length-1;i>=0;i--){const x=L[i];if(!H&&!x.k.endsWith("_"+me))continue;if(near(x.s,p))return x}return null}
+function expandGroup(keys){const L=inkList(inkSlide()),gs=new Set();L.forEach(x=>{if(keys.has(x.k+"|"+x.s.id)&&x.s.g)gs.add(x.s.g)});L.forEach(x=>{if(x.s.g&&gs.has(x.s.g))keys.add(x.k+"|"+x.s.id)});return keys}
+function simplify(p){const o=[p[0],p[1]];for(let i=2;i<p.length-2;i+=2){if(Math.hypot(p[i]-o[o.length-2],p[i+1]-o[o.length-1])>=3)o.push(p[i],p[i+1])}o.push(p[p.length-2],p[p.length-1]);return o}
+const ptXY=(e,svg)=>{const r=svg.getBoundingClientRect();return[Math.round((e.clientX-r.left)/r.width*1600),Math.round((e.clientY-r.top)/r.height*900)]};
+function eraseAt(p){const x=hitAt(p);if(!x)return;const d=INK.docs[x.k];d.strokes=d.strokes.filter(s=>s.id!==x.s.id);INKS.sel.delete(x.k+"|"+x.s.id);inkSave(x.k);inkRender()}
+document.addEventListener("pointerdown",e=>{const svg=e.target.closest&&e.target.closest("#ink");if(!svg||!svg.classList.contains("on"))return;e.preventDefault();try{svg.setPointerCapture(e.pointerId)}catch(x){}
+ const p=ptXY(e,svg),tool=H?INKS.tool:(INKS.tool==="er"?"er":"pen");
+ if(tool==="pen"||tool==="hl"){INKS.cur={id:nid(),c:INKS.c,w:tool==="hl"?26:INKS.w,k:tool,p:[p[0],p[1]]}}
+ else if(tool==="er"){inkPush();INKS.er=true;eraseAt(p)}
+ else if(tool==="select"&&H){const h=hitAt(p),sl=selStrokes(),inSel=sl.length&&(()=>{const b=bbox(sl.map(x=>x.s));return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3]})();
+  if(h&&!INKS.sel.has(h.k+"|"+h.s.id)&&!inSel){const ks=e.shiftKey?new Set(INKS.sel):new Set();ks.add(h.k+"|"+h.s.id);INKS.sel=expandGroup(ks)}
+  if(h||inSel){inkPush();INKS.drag={x0:p[0],y0:p[1],moved:false,orig:selStrokes().map(x=>({k:x.k,s:x.s,p:x.s.p.slice()}))}}
+  else{INKS.sel=new Set();INKS.marq=[p[0],p[1],p[0],p[1]]}inkTb()}
+ inkRender()});
+document.addEventListener("pointermove",e=>{if(!INKS.cur&&!INKS.er&&!INKS.drag&&!INKS.marq)return;const svg=$("ink");if(!svg)return;const p=ptXY(e,svg);
+ if(INKS.cur){const q=INKS.cur.p;if(Math.hypot(p[0]-q[q.length-2],p[1]-q[q.length-1])>=2)q.push(p[0],p[1])}
+ else if(INKS.er)eraseAt(p);
+ else if(INKS.drag){const dx=p[0]-INKS.drag.x0,dy=p[1]-INKS.drag.y0;if(Math.abs(dx)+Math.abs(dy)>3)INKS.drag.moved=true;INKS.drag.orig.forEach(o=>{o.s.p=o.p.map((v,i)=>v+(i%2?dy:dx))})}
+ else if(INKS.marq){INKS.marq[2]=p[0];INKS.marq[3]=p[1]}
+ inkRender()});
+function inkUp(){const me=inkMe();
+ if(INKS.cur){const s=INKS.cur;INKS.cur=null;s.p=simplify(s.p);const aid=inkAid();if(me&&aid){inkPush();const[k,d]=inkDoc(me);if(JSON.stringify(d.strokes).length>850000){toast("Slide này nhiều nét quá, cô xóa bớt nhé.");INKS.undo.pop()}else{d.strokes.push(s);inkSave(k)}}}
+ if(INKS.er){INKS.er=false}
+ if(INKS.drag){const d=INKS.drag;INKS.drag=null;if(d.moved){new Set(d.orig.map(o=>o.k)).forEach(inkSave)}else INKS.undo.pop()}
+ if(INKS.marq){const m=INKS.marq;INKS.marq=null;const r=[Math.min(m[0],m[2]),Math.min(m[1],m[3]),Math.max(m[0],m[2]),Math.max(m[1],m[3])],ks=new Set();
+  inkList(inkSlide()).forEach(x=>{const b=bbox([x.s]);if(b[2]>=r[0]&&b[0]<=r[2]&&b[3]>=r[1]&&b[1]<=r[3])ks.add(x.k+"|"+x.s.id)});INKS.sel=expandGroup(ks);inkTb()}
+ inkRender()}
+document.addEventListener("pointerup",inkUp);document.addEventListener("pointercancel",inkUp);
+function inkEditSel(fn){const sl=selStrokes();if(!sl.length)return;inkPush();fn(sl);new Set(sl.map(x=>x.k)).forEach(inkSave);inkRender();inkTb()}
+ACT.tool=d=>{INKS.tool=d.t;if(d.t!=="select")INKS.sel.clear();inkRender();inkTb()};
+ACT.icol=d=>{INKS.c=d.c;if(H&&INKS.tool==="select"&&INKS.sel.size)inkEditSel(sl=>sl.forEach(x=>x.s.c=d.c));else inkTb()};
+ACT.iw=d=>{INKS.w=+d.w;if(H&&INKS.tool==="select"&&INKS.sel.size)inkEditSel(sl=>sl.forEach(x=>{if(x.s.k==="pen")x.s.w=+d.w}));else inkTb()};
+ACT.iundo=inkUndo;
+ACT.igroup=()=>inkEditSel(sl=>{const g=nid();sl.forEach(x=>x.s.g=g)});
+ACT.iungroup=()=>inkEditSel(sl=>sl.forEach(x=>{delete x.s.g}));
+ACT.idel=()=>{inkEditSel(sl=>{sl.forEach(x=>{const d=INK.docs[x.k];d.strokes=d.strokes.filter(s=>s.id!==x.s.id)})});INKS.sel.clear();inkRender();inkTb()};
+ACT.iclr=()=>{if(!confirm("Xóa tất cả nét viết vẽ trên slide này?"))return;inkPush();const s=inkSlide();Object.keys(INK.docs).forEach(k=>{if(INK.docs[k].slide===s){INK.docs[k].strokes=[];inkSave(k)}});INKS.sel.clear();inkRender();inkTb()};
+function inkTb(){const colors=COLS.map(c=>`<button class="cd ${INKS.c===c?"on":""}" style="background:${c}" data-act="icol" data-c="${c}"></button>`).join("");
+ if(H){const T=[["none","🖱","Trình chiếu (Esc)"],["pen","✏️","Bút (P)"],["hl","🖍","Dạ quang (H)"],["er","🧽","Tẩy nét (E)"],["select","⬚","Chọn · gom · di chuyển (S)"]];const n=INKS.sel.size,gs=selStrokes().some(x=>x.s.g);
+  const e=$("tb");if(e)e.innerHTML=T.map(x=>`<button class="${INKS.tool===x[0]?"on":""}" title="${x[2]}" data-act="tool" data-t="${x[0]}">${x[1]} ${x[2].split(" (")[0]}</button>`).join("")+`<span class="sep"></span>${colors}<span class="sep"></span>`+[3,6,12].map(w=>`<button class="${INKS.w===w?"on":""}" data-act="iw" data-w="${w}" title="Nét ${w}"><span style="display:inline-block;width:${w+6}px;height:${w+6}px;border-radius:50%;background:#fff;vertical-align:middle"></span></button>`).join("")+`<span class="sep"></span><button data-act="iundo" title="Hoàn tác (Ctrl+Z)">↩ Hoàn tác</button>`
+   +(INKS.tool==="select"?`<span class="sep"></span><span class="dw">${n?`Đã chọn ${n} nét`:"Kéo khung để chọn nhiều nét"}</span><button data-act="igroup" ${n>1?"":"disabled"}>🔗 Gom</button><button data-act="iungroup" ${gs?"":"disabled"}>Bỏ gom</button><button data-act="idel" ${n?"":"disabled"}>🗑 Xóa nét chọn</button>`:"")+`<button data-act="iclr" style="margin-left:auto">Xóa hết slide</button>`}
+ const s=$("stb");if(s)s.innerHTML=`<span class="dw">✍ Em được cô cho phép viết lên slide:</span><button class="${INKS.tool!=="er"?"on":""}" data-act="tool" data-t="pen">✏️ Bút</button><button class="${INKS.tool==="er"?"on":""}" data-act="tool" data-t="er">🧽 Tẩy</button>${colors}<button data-act="iundo">↩</button>`}
+
+/* ===== Xuất PDF bài dạy (kèm nét viết vẽ) ===== */
+async function printLesson(a,L,docs){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const map={};docs.forEach(x=>map[x.id]=x);let h="";
+ for(let i=0;i<L.slides.length;i++)h+=`<section class="pg"><div class="slw"><div class="sld">${slideHtml(i,clicks(i))}</div><svg viewBox="0 0 1600 900" preserveAspectRatio="none">${inkSvg(i,map)}</svg></div></section>`;
+ const old=$("printroot");if(old)old.remove();const r=document.createElement("div");r.id="printroot";r.innerHTML=h;document.body.appendChild(r);
+ await Promise.all([...r.querySelectorAll("img")].map(im=>im.complete?1:new Promise(z=>{im.onload=im.onerror=z})));
+ const t0=document.title;document.title=(a.title||"bai-day").replace(/[\\/:*?"<>|]+/g," ");const done=()=>{r.remove();document.title=t0;removeEventListener("afterprint",done)};addEventListener("afterprint",done);
+ if(window.__NOPRINT)return r;setTimeout(()=>print(),200)}
+ACT.pdf=async d=>{toast("Đang chuẩn bị PDF… cô chọn “Lưu dưới dạng PDF” ở hộp in nhé.");try{const a=await DB.get("assignments/"+d.id),L=await loadLesson(a.lessonId),docs=await DB.list(`live/${a.id}/ink`);await printLesson(a,L,docs)}catch(e){alert("Chưa tạo được PDF: "+authErr(e))}};
+
+/* ===== Bảng điều khiển lớp: gieo tên, gọi lên bảng, cho viết, mời ra ===== */
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+const isOnline=id=>H&&H.who[id]&&Date.now()-H.who[id]<50000&&!H.kick.includes(id);
+function hostPanel(){const e=$("sp");if(!e||!H)return;const c=H.call,rn=$("rname"),keep=rn?rn.innerHTML:"";
+ const rows=H.studs.slice().sort((a,b)=>a.name.localeCompare(b.name,"vi")).map(s=>{const k=H.kick.includes(s.id),on=isOnline(s.id),dr=H.draw.includes(s.id);
+  return`<div class="srow"><i class="dot ${on?"on":""}"></i><span title="${esc(s.name)}">${esc(s.name)}${c&&c.uid===s.id?" 🙋":""}</span>`+(k?`<button class="sec sm" data-act="sunkick" data-u="${s.id}">Cho vào lại</button>`:`<button class="sm" data-act="scall" data-u="${s.id}" ${on?"":"disabled"}>Gọi</button><button class="sm ${dr?"go":"sec"}" title="Cho phép viết lên slide" data-act="sdraw" data-u="${s.id}">✍</button><button class="red sm" title="Mời ra khỏi buổi học" data-act="skick" data-u="${s.id}">🚪</button>`)+`</div>`}).join("");
+ const on=H.studs.filter(s=>isOnline(s.id)).length;
+ e.innerHTML=`<div class="sph"><b>👥 ${esc(H.a.className)} · ${on}/${H.studs.length} online</b><button class="sec sm" data-act="spclose">✕</button></div>
+ <div class="spb"><button data-act="spin" class="go">🎲 Gieo tên ngẫu nhiên</button><label style="font-size:13px"><input type="checkbox" id="nore" ${H.nore===false?"":"checked"}> Không gọi lại em đã được gọi (${H.called.length})</label><div id="rname">${keep}</div></div>
+ ${c?`<div class="callbox"><b>🙋 Đang lên bảng: ${esc(c.name)}</b><div class="row" style="margin:0"><button class="sm ${H.draw.includes(c.uid)?"go":""}" data-act="sdraw" data-u="${c.uid}">${H.draw.includes(c.uid)?"✍ Đang cho viết · thu lại":"✍ Cho phép viết lên slide"}</button><button class="sec sm" data-act="sdone">Xong, mời em về chỗ</button></div></div>`:""}
+ <div class="spl">${rows||'<p class="note">Lớp chưa có học sinh.</p>'}</div>`}
+ACT.spanel=()=>{if(!H)return;H.panel=!H.panel;const e=$("sp");if(e)e.style.display=H.panel?"flex":"none";if(H.panel)hostPanel()};
+ACT.spclose=()=>{if(H){H.panel=false;const e=$("sp");if(e)e.style.display="none"}};
+ACT.spin=()=>{if(!H)return;H.nore=$("nore")?$("nore").checked:true;let pool=H.studs.filter(s=>isOnline(s.id));const all=pool.length;if(H.nore)pool=pool.filter(s=>!H.called.includes(s.id));
+ const rn=$("rname");if(!all){rn.textContent="Chưa có em nào đang online.";return}if(!pool.length){H.called=[];pool=H.studs.filter(s=>isOnline(s.id));toast("Cả lớp đã được gọi một lượt – bắt đầu vòng mới.")}
+ let n=0;const iv=setInterval(()=>{rn.textContent=pool[rnd(pool.length)].name;if(++n>=16){clearInterval(iv);const w=pool[rnd(pool.length)];ACT.scall({u:w.id});$("rname").innerHTML="🎉 <b>"+esc(w.name)+"</b>"}},90)};
+ACT.scall=d=>{if(!H)return;const s=H.studs.find(x=>x.id===d.u);if(!s)return;H.call={uid:s.id,name:s.name,t:Date.now()};if(!H.called.includes(s.id))H.called.push(s.id);hostPush();hostPanel()};
+ACT.sdraw=d=>{if(!H)return;const i=H.draw.indexOf(d.u);if(i>=0)H.draw.splice(i,1);else H.draw.push(d.u);hostPush();hostPanel()};
+ACT.sdone=()=>{if(!H||!H.call)return;H.draw=H.draw.filter(x=>x!==H.call.uid);H.call=null;hostPush();hostPanel()};
+ACT.skick=d=>{if(!H)return;const s=H.studs.find(x=>x.id===d.u);if(!s||!confirm("Mời “"+s.name+"” ra khỏi buổi học trực tiếp?"))return;if(!H.kick.includes(d.u))H.kick.push(d.u);H.draw=H.draw.filter(x=>x!==d.u);if(H.call&&H.call.uid===d.u)H.call=null;hostPush();hostPanel()};
+ACT.sunkick=d=>{if(!H)return;H.kick=H.kick.filter(x=>x!==d.u);hostPush();hostPanel()};
+
 /* ===== Chiếu trực tiếp (giáo viên) – đồng bộ cả lớp qua Firestore ===== */
 let H=null;
 ACT.golive=async d=>{toast("Đang mở phòng chiếu…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const us=await DB.list("users",[["teacherId","==",UID]]);
   startHost(a,L,us.filter(u=>u.role==="student"&&(u.classIds||[]).includes(a.classId)))}catch(e){alert("Không mở được: "+authErr(e))}};
-function startHost(a,L,studs){if(H)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";H={a,n:L.slides.length,cur:0,st:0,studs,res:[],t0:Date.now()};
+function startHost(a,L,studs){if(H)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";H={a,n:L.slides.length,cur:0,st:0,studs,res:[],t0:Date.now(),draw:[],kick:[],call:null,who:{},called:[],panel:false,nore:true};INK.docs={};INKS.tool="none";INKS.sel=new Set();INKS.undo=[];
  const o=document.createElement("div");o.id="pl";o.className="host";document.body.appendChild(o);document.body.style.overflow="hidden";
  H.unsub=DB.onList(`assignments/${a.id}/results`,null,rs=>{if(H){H.res=rs;hostStats()}},()=>{});
+ H.unInk=DB.onList(`live/${a.id}/ink`,null,inkIngest,()=>{});H.unWho=DB.onList(`live/${a.id}/who`,null,l=>{if(!H)return;H.who={};l.forEach(x=>H.who[x.id]=x.t||0);if(H.panel)hostPanel()},()=>{});H.iv=setInterval(()=>{if(H&&H.panel)hostPanel()},8000);
  addEventListener("keydown",hostKey);addEventListener("beforeunload",hostBye);hostPush();hostDraw()}
-function hostPush(){if(!H)return;DB.set("live/"+H.a.id,{on:true,cur:H.cur,st:H.st,n:H.n,t:Date.now()}).catch(e=>toast("Chưa gửi được cho học sinh: "+authErr(e)))}
-function hostBye(){if(H)try{DB.set("live/"+H.a.id,{on:false,ended:true,t:Date.now()})}catch(e){}}
-function hostKey(e){if(!H||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();hostNext()}else if(e.key==="ArrowLeft"){e.preventDefault();hostPrev()}}
-function hostNext(){if(!H)return;if(H.st<clicks(H.cur))H.st++;else if(H.cur<H.n-1){H.cur++;H.st=0}else{toast("Đã đến slide cuối.");return}hostPush();hostDraw()}
-function hostPrev(){if(!H)return;if(H.cur>0){H.cur--;H.st=0;hostPush();hostDraw()}}
+function hostPush(){if(!H)return;DB.set("live/"+H.a.id,{on:true,cur:H.cur,st:H.st,n:H.n,t:Date.now(),draw:H.draw,kick:H.kick,call:H.call}).catch(e=>toast("Chưa gửi được cho học sinh: "+authErr(e)))}
+function hostBye(){if(H)try{DB.set("live/"+H.a.id,{on:false,ended:true,t:Date.now(),draw:[],kick:H.kick,call:null})}catch(e){}}
+function hostKey(e){if(!H||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();hostNext()}else if(e.key==="ArrowLeft"){e.preventDefault();hostPrev()}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();inkUndo()}else if(e.key==="Escape")ACT.tool({t:"none"});else if(e.key==="Delete"||e.key==="Backspace"){if(INKS.sel.size)ACT.idel()}
+ else if(!e.ctrlKey&&!e.metaKey){const m={p:"pen",h:"hl",e:"er",s:"select"}[e.key.toLowerCase()];if(m)ACT.tool({t:m})}}
+function hostNext(){if(!H)return;INKS.sel.clear();if(H.st<clicks(H.cur))H.st++;else if(H.cur<H.n-1){H.cur++;H.st=0}else{toast("Đã đến slide cuối.");return}hostPush();hostDraw()}
+function hostPrev(){if(!H)return;if(H.cur>0){INKS.sel.clear();H.cur--;H.st=0;hostPush();hostDraw()}}
 ACT.hnext=hostNext;ACT.hprev=hostPrev;
-ACT.hend=async()=>{if(!H)return;if(!confirm("Kết thúc buổi học trực tiếp? Học sinh sẽ được thoát ra."))return;const h=H;H=null;removeEventListener("keydown",hostKey);removeEventListener("beforeunload",hostBye);h.unsub&&h.unsub();
- try{await DB.set("live/"+h.a.id,{on:false,ended:true,t:Date.now()})}catch(e){}const o=$("pl");if(o)o.remove();document.body.style.overflow="";toast("Đã kết thúc buổi học. Kết quả của học sinh ở mục Bài đã giao.");T.tab="giao";tabs();showTab("giao")};
+ACT.hend=async()=>{if(!H)return;if(!confirm("Kết thúc buổi học trực tiếp? Học sinh sẽ được thoát ra."))return;const h=H;Object.keys(inkTimers).forEach(k=>{clearTimeout(inkTimers[k]);delete inkTimers[k];const d=INK.docs[k];if(d){d.t=Date.now();DB.set(`live/${h.a.id}/ink/${k}`,{slide:d.slide,by:d.by,name:d.name,strokes:d.strokes,t:d.t}).catch(()=>{})}});H=null;removeEventListener("keydown",hostKey);removeEventListener("beforeunload",hostBye);h.unsub&&h.unsub();h.unInk&&h.unInk();h.unWho&&h.unWho();clearInterval(h.iv);INKS.tool="none";
+ try{await DB.set("live/"+h.a.id,{on:false,ended:true,t:Date.now(),draw:[],kick:h.kick,call:null})}catch(e){}const o=$("pl");if(o)o.remove();document.body.style.overflow="";toast("Đã kết thúc buổi học. Kết quả của học sinh ở mục Bài đã giao.");T.tab="giao";tabs();showTab("giao")};
 function hostDraw(){const o=$("pl");if(!o||!H)return;const last=H.cur===H.n-1&&H.st>=clicks(H.cur);
- o.innerHTML=`<div class="hd"><button data-act="hend" class="red">■ Kết thúc</button><b style="flex:none">${esc(H.a.title)}</b><span class="chip wa">Đang chiếu cho ${esc(H.a.className)}</span><span class="grow"></span><span class="dw">Slide ${H.cur+1}/${H.n}</span></div>
- <div class="stage"><div class="sld" id="psl">${slideHtml(H.cur,H.st)}</div></div>
- <div class="ft"><div class="hst" id="hst"></div><div class="nav"><button data-act="hprev" ${H.cur===0?"disabled":""}>◀ Trước</button><span class="dw">← → hoặc phím cách để chuyển</span><button class="go" data-act="hnext" ${last?"disabled":""}>Tiếp ▶</button></div></div>`;hostStats()}
+ o.innerHTML=`<div class="hd"><button data-act="hend" class="red">■ Kết thúc</button><b style="flex:none">${esc(H.a.title)}</b><span class="chip wa">Đang chiếu cho ${esc(H.a.className)}</span><span class="grow"></span><button class="sec sm" data-act="spanel">👥 Lớp · gọi HS</button><button class="sec sm" data-act="pdf" data-id="${H.a.id}">⬇ PDF bài dạy</button><span class="dw">Slide ${H.cur+1}/${H.n}</span></div><div class="tb" id="tb"></div>
+ <div class="stage"><div class="slw"><div class="sld" id="psl">${slideHtml(H.cur,H.st)}</div><svg id="ink" viewBox="0 0 1600 900" preserveAspectRatio="none"></svg></div></div>
+ <div class="ft"><div class="hst" id="hst"></div><div class="nav"><button data-act="hprev" ${H.cur===0?"disabled":""}>◀ Trước</button><span class="dw">← → hoặc phím cách để chuyển slide</span><button class="go" data-act="hnext" ${last?"disabled":""}>Tiếp ▶</button></div></div><div id="sp" style="display:${H.panel?"flex":"none"}"></div>`;inkTb();inkRender();hostStats();if(H.panel)hostPanel()}
 function hostStats(){const e=$("hst");if(!e||!H)return;const T0=H.studs.length,rs=H.res.filter(r=>r.lastAt>=H.t0),joined=rs.length,i=H.cur,it=interactiveOf(i);
  let h=`Đã vào học: <b>${joined}/${T0}</b>`;
  if(it){const ans=rs.filter(r=>r.slides&&r.slides[i]&&(r.slides[i].ok||r.slides[i].gave)),ok=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].ok),tried=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].tries>0&&!r.slides[i].ok&&!r.slides[i].gave);
@@ -631,7 +758,7 @@ ACT.assign=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.
   try{const aid=nid();await DB.set("assignments/"+aid,{teacherId:UID,classId:cid,className:c.name,lessonId:l.id,lessonTitle:l.title,title:$("at").value.trim()||l.title,mode:$("am").value,due,slideCount:l.slideCount,createdAt:Date.now()});
    if(!(l.classIds||[]).includes(cid))await DB.update("lessons/"+l.id,{classIds:[...(l.classIds||[]),cid]});const lv=$("am").value==="live";o.remove();toast("Đã giao bài.");if(lv){ACT.golive({id:aid});return}T.tab="giao";tabs();showTab("giao")}catch(e){alert(authErr(e));$("ago").disabled=false}}};
 async function tabGiao(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';const as=await DB.list("assignments",[["teacherId","==",UID]]);as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
- v.innerHTML=`<h2>Bài đã giao</h2>`+(as.length?`<div class="cards">${as.map(a=>`<div class="card"><b>${esc(a.title)}</b><span class="note">${esc(a.className)} · ${a.slideCount} slide</span><div class="row"><span class="chip ${a.mode==="live"?"wa":"pr"}">${a.mode==="live"?"Học trực tiếp":"Bài tập về nhà"}</span>${a.due?`<span class="chip">Hạn ${fmtDay(a.due)}</span>`:""}</div><div class="row">${a.mode==="live"&&window.liveHost?`<button class="sm" data-act="golive" data-id="${a.id}">▶ Chiếu trực tiếp</button>`:""}<button class="sec sm" data-act="results" data-id="${a.id}">Xem kết quả</button><button class="red sm" data-act="delassign" data-id="${a.id}">Xóa</button></div></div>`).join("")}</div>`:'<div class="panel">Cô chưa giao bài nào. Vào tab Bài giảng, bấm “Giao bài”.</div>')}
+ v.innerHTML=`<h2>Bài đã giao</h2>`+(as.length?`<div class="cards">${as.map(a=>`<div class="card"><b>${esc(a.title)}</b><span class="note">${esc(a.className)} · ${a.slideCount} slide</span><div class="row"><span class="chip ${a.mode==="live"?"wa":"pr"}">${a.mode==="live"?"Học trực tiếp":"Bài tập về nhà"}</span>${a.due?`<span class="chip">Hạn ${fmtDay(a.due)}</span>`:""}</div><div class="row">${a.mode==="live"&&window.liveHost?`<button class="sm" data-act="golive" data-id="${a.id}">▶ Chiếu trực tiếp</button>`:""}${a.mode==="live"?`<button class="sec sm" data-act="pdf" data-id="${a.id}">⬇ PDF bài dạy</button>`:""}<button class="sec sm" data-act="results" data-id="${a.id}">Xem kết quả</button><button class="red sm" data-act="delassign" data-id="${a.id}">Xóa</button></div></div>`).join("")}</div>`:'<div class="panel">Cô chưa giao bài nào. Vào tab Bài giảng, bấm “Giao bài”.</div>')}
 ACT.delassign=async d=>{if(!confirm("Xóa bài đã giao? Kết quả của học sinh cũng mất."))return;const rs=await DB.list(`assignments/${d.id}/results`);for(const r of rs)await DB.del(`assignments/${d.id}/results/${r.id}`);await DB.del("assignments/"+d.id);tabGiao()};
 ACT.results=async d=>{const v=$("tv");v.innerHTML='<p class="note">Đang tải kết quả…</p>';const [a,rs,us]=await Promise.all([DB.get("assignments/"+d.id),DB.list(`assignments/${d.id}/results`),DB.list("users",[["teacherId","==",UID]])]);
  const stu=us.filter(u=>u.role==="student"&&(u.classIds||[]).includes(a.classId)).sort((x,y)=>x.name.localeCompare(y.name,"vi"));const R={};rs.forEach(r=>R[r.id]=r);
@@ -661,18 +788,22 @@ async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds
 
 /* ===== Trình học bài (học sinh làm bài về nhà) ===== */
 let P=null;
-ACT.joinlive=async d=>{toast("Đang vào lớp…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev,true)}catch(e){alert("Không vào được lớp: "+authErr(e))}};
+ACT.joinlive=async d=>{toast("Đang vào lớp…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const lv=await DB.get("live/"+a.id);if(lv&&(lv.kick||[]).includes(UID)){alert("Cô đã mời em ra khỏi buổi học này.");return}const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev,true)}catch(e){alert("Không vào được lớp: "+authErr(e))}};
 function onLive(d){if(!P||!P.live)return;
+ if(d&&(d.kick||[]).includes(UID)){toast("Cô đã mời em ra khỏi buổi học.");alert("Cô đã mời em ra khỏi buổi học trực tiếp.");stopPlayer(false);return}
  if(!d||!d.on){const was=P.wait;P.wait=true;P.over=!!(d&&d.ended);if(P.over&&!was){toast("Cô đã kết thúc buổi học.");stopPlayer(false);return}draw();return}
  const was=P.wait;P.wait=false;P.over=false;const c=Math.min(d.cur||0,P.n-1),s=P.sl[c],st=(s.ok||s.gave)?clicks(c):(d.st||0);
- if(was||c!==P.cur||st!==P.st){P.cur=c;P.st=st;P.msg="";P.msgc="";P.dirty=true;draw();savePlayer(true)}}
+ const cd=(d.draw||[]).includes(UID),callNew=d.call||null,callChanged=JSON.stringify(callNew)!==JSON.stringify(P.call);
+ const permChanged=cd!==P.canDraw;P.canDraw=cd;P.call=callNew;if(permChanged){INKS.tool=cd?"pen":"none";toast(cd?"✍ Cô cho em viết lên slide!":"Cô đã thu lại quyền viết.")}
+ if(callChanged&&callNew&&callNew.uid===UID)toast("🙋 Cô gọi em lên bảng!");
+ if(was||c!==P.cur||st!==P.st||permChanged){P.cur=c;P.st=st;P.msg="";P.msgc="";P.dirty=true;draw();savePlayer(true)}else if(callChanged)updHead()}
 ACT.play=async d=>{toast("Đang mở bài…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev)}catch(e){alert("Không mở được bài: "+authErr(e))}};
-function startPlayer(a,L,prev,live){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const n=L.slides.length;
+function startPlayer(a,L,prev,live){INK.docs={};INKS.tool="none";INKS.sel=new Set();INKS.undo=[];LESSON=L;STY=(L.form&&L.form.sty)||"sang";const n=L.slides.length;
  const sl=[];for(let i=0;i<n;i++){const it=interactiveOf(i),o=prev&&prev.slides&&prev.slides[i]||{};sl.push({it,ms:o.ms||0,seen:!!o.seen,tries:o.tries||0,ok:!!o.ok,gave:!!o.gave,pts:o.pts||0,wrong:[]})}
- P={a,n,sl,cur:Math.min(prev&&prev.last||0,n-1),st:0,startedAt:(prev&&prev.startedAt)||Date.now(),completedAt:(prev&&prev.completedAt)||null,totalMs:(prev&&prev.totalMs)||0,dirty:true,lastSave:0,msg:"",tick:null,live:!!live,wait:!!live,over:false,unsub:null};
+ P={a,n,sl,cur:Math.min(prev&&prev.last||0,n-1),st:0,startedAt:(prev&&prev.startedAt)||Date.now(),completedAt:(prev&&prev.completedAt)||null,totalMs:(prev&&prev.totalMs)||0,dirty:true,lastSave:0,msg:"",tick:null,live:!!live,wait:!!live,over:false,unsub:null,canDraw:false,call:null,unInk:null,hb:0};
  if(P.sl[P.cur].ok||P.sl[P.cur].gave)P.st=clicks(P.cur);
  const o=document.createElement("div");o.id="pl";document.body.appendChild(o);document.body.style.overflow="hidden";
- if(live)P.unsub=DB.onDoc("live/"+a.id,onLive,e=>toast("Không nối được phòng học: "+authErr(e)));P.tick=setInterval(playerTick,1000);document.addEventListener("visibilitychange",onVis);addEventListener("beforeunload",onUnload);addEventListener("keydown",onKey);draw();savePlayer()}
+ if(live){P.unsub=DB.onDoc("live/"+a.id,onLive,e=>toast("Không nối được phòng học: "+authErr(e)));P.unInk=DB.onList(`live/${a.id}/ink`,null,inkIngest,()=>{});const hb=()=>DB.set(`live/${a.id}/who/${UID}`,{name:ME.name,t:Date.now()}).catch(()=>{});hb();P.hb=setInterval(hb,20000)}P.tick=setInterval(playerTick,1000);document.addEventListener("visibilitychange",onVis);addEventListener("beforeunload",onUnload);addEventListener("keydown",onKey);draw();savePlayer()}
 function onVis(){if(document.visibilityState==="hidden")savePlayer(true)}function onUnload(){savePlayer(true)}
 function onKey(e){if(!P||P.live||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();nextStep()}else if(e.key==="ArrowLeft")prevSlide()}
 function playerTick(){if(!P||P.wait)return;if(document.visibilityState!=="visible")return;const s=P.sl[P.cur];s.ms+=1000;P.totalMs+=1000;if(!s.seen&&s.ms>=SEEN_MS){s.seen=true;P.dirty=true;toast("✓ Đã học xong slide này");updHead()}updDw();
@@ -683,19 +814,19 @@ async function savePlayer(quiet){if(!P)return;const S=stats();if(!P.completedAt&
  const sl={};P.sl.forEach((s,i)=>{sl[i]={ms:s.ms,seen:s.seen,q:!!s.it,tries:s.tries,ok:s.ok,gave:s.gave,pts:s.pts}});
  const doc={uid:UID,name:ME.name,aid:P.a.id,classId:P.a.classId,startedAt:P.startedAt,lastAt:Date.now(),completedAt:P.completedAt||null,totalMs:P.totalMs,last:P.cur,slideCount:P.n,...S,slides:sl};
  P.dirty=false;P.lastSave=Date.now();try{await DB.set(`assignments/${P.a.id}/results/${UID}`,doc)}catch(e){P.dirty=true;if(!quiet)toast("Chưa lưu được kết quả: "+authErr(e))}}
-function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);if(P.unsub)P.unsub();document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
+function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);if(P.unsub)P.unsub();if(P.unInk)P.unInk();if(P.hb){clearInterval(P.hb);DB.set(`live/${P.a.id}/who/${UID}`,{name:ME.name,t:0}).catch(()=>{})}INKS.tool="none";document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
  if(!noSave){P=p;savePlayer(true).finally(()=>{P=null;if(ME&&ME.role==="student")studentHome()})}}
 ACT.pexit=()=>stopPlayer(false);
-function updHead(){if(!P)return;const S=stats(),e=$("phd");if(e)e.innerHTML=`<button data-act="pexit">← Thoát</button><b style="flex:none">${esc(P.a.title)}</b><div class="bar pb"><i style="width:${S.pct}%"></i></div><span class="dw">${S.pct}% đã học</span><span class="dw">Điểm ${S.score}/${S.maxScore}</span>`}
+function updHead(){if(!P)return;const S=stats(),e=$("phd");if(e)e.innerHTML=`<button data-act="pexit">← Thoát</button><b style="flex:none">${esc(P.a.title)}</b><div class="bar pb"><i style="width:${S.pct}%"></i></div><span class="dw">${S.pct}% đã học</span><span class="dw">Điểm ${S.score}/${S.maxScore}</span>${P.live&&P.call?`<span class="chip wa">🙋 ${esc(P.call.uid===UID?"Cô gọi em lên bảng!":P.call.name+" đang lên bảng")}</span>`:""}`}
 function updDw(){const e=$("pdw");if(!e||!P)return;const s=P.sl[P.cur];e.textContent=s.seen?"✓ Đã học":"⏱ Còn "+Math.max(0,Math.ceil((SEEN_MS-s.ms)/1000))+"s để tính là đã học"}
 function draw(){const o=$("pl");if(!o||!P)return;const s=P.sl[P.cur],it=s.it,solved=s.ok||s.gave;const last=P.cur===P.n-1;
  let ctl="";if(it&&!solved){if(it.kind==="mc")ctl=`<div class="opts" style="--n:${it.opts.length}">${it.opts.map((x,i)=>`<button class="o${i}${s.wrong.includes(i)?" x":""}" data-act="pick" data-i="${i}" ${s.wrong.includes(i)?"disabled":""}>${String.fromCharCode(65+i)}</button>`).join("")}</div>`;
   else ctl=`<div class="row" style="flex-wrap:nowrap"><input id="pans" placeholder="Nhập đáp án của em…" autocomplete="off" style="font-size:20px"><button data-act="psend">Gửi</button></div>`;
   if(s.tries>=2)ctl+=`<div style="text-align:center"><button class="sec sm" data-act="pgive" style="color:#fff;border-color:#fff8">Xem lời giải (không tính điểm)</button></div>`}
  if(P.live&&P.wait){o.innerHTML=`<div class="hd" id="phd"></div><div class="stage"><div style="text-align:center;padding:24px"><div style="font-size:54px">${P.over?"👋":"⏳"}</div><h2 style="color:#fff">${P.over?"Buổi học đã kết thúc":"Đang chờ cô bắt đầu…"}</h2><p class="note" style="color:#cbd5e1">${P.over?"Em bấm Thoát để về trang chính.":"Cô chiếu là slide tự hiện ra, em cứ để màn hình này nhé."}</p></div></div>`;updHead();return}
- o.innerHTML=`<div class="hd" id="phd"></div><div class="stage"><div class="sld" id="psl">${slideHtml(P.cur,P.st)}</div></div><div class="ft">${ctl}<div class="msgl ${P.msgc||""}" id="pmsg">${esc(P.msg||"")}</div>
+ o.innerHTML=`<div class="hd" id="phd"></div><div class="stage"><div class="slw"><div class="sld" id="psl">${slideHtml(P.cur,P.st)}</div><svg id="ink" viewBox="0 0 1600 900" preserveAspectRatio="none"></svg></div></div><div class="ft">${P.live&&P.canDraw?'<div class="tb" id="stb"></div>':""}${ctl}<div class="msgl ${P.msgc||""}" id="pmsg">${esc(P.msg||"")}</div>
  ${P.live?`<div class="nav"><span class="dw" id="pdw"></span><span class="dw">Slide ${P.cur+1}/${P.n} · cô đang chiếu</span></div>`:`<div class="nav"><button data-act="pprev" ${P.cur===0?"disabled":""}>◀ Trước</button><span class="dw" id="pdw"></span><span class="dw">Slide ${P.cur+1}/${P.n}</span><button class="go" data-act="pnext">${last&&P.st>=clicks(P.cur)?"Hoàn thành ✓":"Tiếp ▶"}</button></div>`}</div>`;
- updHead();updDw();const inp=$("pans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.psend()};inp.focus()}}
+ updHead();updDw();inkTb();inkRender();const inp=$("pans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.psend()};inp.focus()}}
 function say(m,c){P.msg=m;P.msgc=c||"";const e=$("pmsg");if(e){e.textContent=m;e.className="msgl "+(c||"")}}
 function answer(v){const s=P.sl[P.cur],it=s.it;if(!it||s.ok||s.gave)return;s.tries++;P.dirty=true;
  if(it.kind==="mc"&&it.correct==null){s.ok=true;s.pts=0;P.st=clicks(P.cur);P.msg="Đã ghi nhận đáp án của em.";P.msgc="";draw();savePlayer(true);return}

@@ -37,8 +37,12 @@ service cloud.firestore {
     match /live/{aid} {
       allow read: if signed() && (asg(aid).teacherId == request.auth.uid || inClass(asg(aid).classId));
       allow write: if signed() && asg(aid).teacherId == request.auth.uid;
-      match /answers/{uid} {
-        allow read: if signed() && (request.auth.uid == uid || asg(aid).teacherId == request.auth.uid);
+      match /ink/{k} {
+        allow read: if signed() && (asg(aid).teacherId == request.auth.uid || inClass(asg(aid).classId));
+        allow write: if signed() && (asg(aid).teacherId == request.auth.uid || (inClass(asg(aid).classId) && k.matches('^[0-9]+_' + request.auth.uid + '$') && request.auth.uid in get(/databases/$(db)/documents/live/$(aid)).data.draw));
+      }
+      match /who/{uid} {
+        allow read: if signed() && asg(aid).teacherId == request.auth.uid;
         allow write: if signed() && request.auth.uid == uid && inClass(asg(aid).classId);
       }
     }
