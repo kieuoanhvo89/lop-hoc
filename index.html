@@ -784,7 +784,10 @@ function hostWrong(rs,i,it){const e=$("hwr"),bt=$("hwb");if(!e||!H)return;const 
 
 /* ===== Email phụ huynh (EmailJS) + thông báo trong app ===== */
 const mailCfg=()=>{const c=ME&&ME.emailjs;return c&&c.s&&c.t&&c.k?c:null};
-async function sendMail(cfg,p){const r=await fetch("https://api.emailjs.com/api/v1.0/email/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({service_id:cfg.s,template_id:cfg.t,user_id:cfg.k,template_params:{to_email:p.to,subject:p.subject,message:p.message,student_name:p.name||"",from_name:"Lớp Toán tư duy cô Oanh"}})});if(!r.ok)throw new Error((await r.text()).slice(0,160)||"Không gửi được email")}
+const isCoOanh=()=>!!(ME&&ME.emailjs&&ME.emailjs.s==="service_j3ofeni");
+const brand=()=>(ME&&ME.brand)||(isCoOanh()?"Lớp Toán tư duy cô Oanh":"Lớp của "+(ME?ME.name:""));
+const signer=()=>(ME&&ME.sign)||(isCoOanh()?"Cô Oanh – Lớp Toán tư duy":(ME?ME.name:""));
+async function sendMail(cfg,p){const r=await fetch("https://api.emailjs.com/api/v1.0/email/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({service_id:cfg.s,template_id:cfg.t,user_id:cfg.k,template_params:{to_email:p.to,subject:p.subject,message:p.message,student_name:p.name||"",from_name:p.brand||brand()}})});if(!r.ok)throw new Error((await r.text()).slice(0,160)||"Không gửi được email")}
 const appUrl=()=>location.href.split("?")[0].split("#")[0];
 async function classStudents(cid){const us=await DB.list("users",[["teacherId","==",UID]]);return us.filter(u=>u.role==="student"&&(u.classIds||[]).includes(cid)).sort((a,b)=>a.name.localeCompare(b.name,"vi"))}
 async function notify(list,a,kind,text){let n=0;for(const s of list){try{await DB.set("notices/"+nid(),{to:s.id,teacherId:UID,aid:a.id,title:a.title,text,kind,createdAt:Date.now(),read:false});n++}catch(e){}}return n}
@@ -945,18 +948,173 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
 
 /* ===== Giáo viên ===== */
 function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" id="tv"></div>`;tabs();showTab(T.tab)}
-function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"]];$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
+function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"]];$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
-function showTab(t){({lop:tabLop,bai:tabBai,giao:tabGiao})[t]()}
+/* ===== Báo cáo, biểu đồ & nhận xét ===== */
+const RP={cid:null,per:"4w",from:"",to:"",sel:{},name:"",data:null,cmt:{}};
+const PERS=[["2w","2 tuần gần đây",14],["4w","4 tuần gần đây",28],["8w","2 tháng gần đây",61],["12w","3 tháng gần đây",92],["all","Toàn bộ các bài đã giao",0],["topic","Theo chuyên đề (tự chọn các bài)",0],["custom","Khoảng ngày tự chọn",0]];
+const pc=x=>x==null?"–":Math.round(x)+"%";
+const given=n=>String(n||"").trim().split(/\s+/).slice(-1)[0]||String(n||"");
+const scol=v=>v==null?"var(--mu)":v>=80?"var(--ok)":v>=50?"var(--wa)":"var(--no)";
+const avgOf=l=>l.length?l.reduce((x,y)=>x+y,0)/l.length:null;
+const cut=(t,n)=>{t=String(t||"");return t.length>n?t.slice(0,n-1)+"…":t};
+
+/* Biểu đồ cột SVG: items=[{l,v:[..],m?,t?}], cols = màu từng chuỗi */
+function colChart(items,cols){const W=Math.max(520,items.length*64+50),H=236,pl=30,pb=54,pt=16,iw=W-pl-8,ih=H-pb-pt,gw=iw/Math.max(1,items.length);
+ const y=v=>pt+ih*(1-Math.max(0,Math.min(100,v))/100);
+ let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:420px;max-width:${Math.round(W*1.25)}px;height:auto;display:block;margin:0 auto" role="img">`;
+ [0,50,100].forEach(g=>{s+=`<line x1="${pl}" x2="${W-8}" y1="${y(g)}" y2="${y(g)}" style="stroke:var(--bd)"/><text x="${pl-5}" y="${y(g)+4}" font-size="10" text-anchor="end" style="fill:var(--mu)">${g}</text>`});
+ items.forEach((it,i)=>{const cx=pl+gw*i+gw/2,n=it.v.length,bw=Math.min(30,gw/(n+.6));
+  it.v.forEach((v,k)=>{if(v==null)return;const x=cx-n*bw/2+k*bw,yy=y(v);s+=`<rect x="${x+1}" y="${yy}" width="${bw-2}" height="${Math.max(1,y(0)-yy)}" rx="3" style="fill:${cols[k]}"/>`;if(bw>=15)s+=`<text x="${x+bw/2}" y="${yy-3}" font-size="9" text-anchor="middle" style="fill:var(--tx)">${Math.round(v)}</text>`});
+  if(it.m!=null)s+=`<line x1="${cx-gw*.42}" x2="${cx+gw*.42}" y1="${y(it.m)}" y2="${y(it.m)}" style="stroke:var(--no)" stroke-width="2" stroke-dasharray="4 3"/>`;
+  s+=`<text x="${cx}" y="${H-pb+14}" font-size="10" text-anchor="middle" style="fill:var(--tx)"><title>${esc(it.t||it.l)}</title>${esc(cut(it.l,gw<70?9:13))}</text>`});
+ return s+"</svg>"}
+const legend=(a)=>`<div class="row" style="gap:14px;margin:4px 0 2px">${a.map(x=>`<span class="note"><i style="display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px;${x[2]?"background:none;border-top:2px dashed "+x[1]+";height:0":"background:"+x[1]}"></i>${x[0]}</span>`).join("")}</div>`;
+const hbar=(v,c)=>`<div class="bar" style="width:100%;min-width:60px"><i style="width:${Math.max(0,Math.min(100,v||0))}%;background:${c||"var(--pr)"}"></i></div>`;
+
+/* Chỉ số học tập của 1 học sinh trên các bài A (đã sắp theo ngày giao) */
+function rpMetrics(S,A,R){
+ const per=A.map(a=>{const r=(R[a.id]||{})[S.id]||null;return{a,r,sc:r&&r.maxScore?r.score/r.maxScore*100:null,learn:r?(r.pct||0):0,done:!!(r&&r.completedAt),acc:r&&r.qTotal?r.qOk/r.qTotal*100:null}});
+ const st=per.filter(p=>p.r),sc=per.filter(p=>p.sc!=null);let qOk=0,qT=0,ms=0,tries=0,qn=0,gave=0;
+ st.forEach(p=>{qOk+=p.r.qOk||0;qT+=p.r.qTotal||0;ms+=p.r.totalMs||0;Object.values(p.r.slides||{}).forEach(s=>{if(s&&s.q){qn++;tries+=s.tries||0;if(s.gave)gave++}})});
+ let trend=null;if(sc.length>=4){const h=Math.floor(sc.length/2),d=avgOf(sc.slice(h).map(p=>p.sc))-avgOf(sc.slice(0,h).map(p=>p.sc));trend=d>=10?1:d<=-10?-1:0}
+ return{S,per,nA:per.length,nStart:st.length,nDone:per.filter(p=>p.done).length,learn:per.length?avgOf(per.map(p=>p.learn)):0,score:avgOf(sc.map(p=>p.sc)),acc:qT?qOk/qT*100:null,qOk,qT,ms,msPerQ:qT?ms/qT:null,tries:qn?tries/qn:null,gave,trend}}
+
+/* Khung nhận xét tự động (theo quy tắc từ số liệu học tập – giáo viên chỉnh sửa trước khi gửi) */
+function autoComment(m,ctx){const n=given(m.S.name),out=[];
+ out.push(`Trong ${ctx.label} (${m.nA} bài), em ${n} đã hoàn thành ${m.nDone}/${m.nA} bài, trung bình học ${pc(m.learn)} nội dung`+(m.score!=null?` và đạt ${pc(m.score)} số điểm ở các câu hỏi (${m.qOk}/${m.qT} câu đúng).`:"."));
+ if(!m.nStart){out.push(`Em chưa bắt đầu làm bài nào trong giai đoạn này. Mong phụ huynh nhắc em vào học đều đặn để theo kịp lớp.`);return out.join(" ")}
+ const s=m.score;
+ if(s!=null){out.push(s>=85?"Kết quả rất tốt: em nắm vững kiến thức và làm bài chắc chắn.":s>=70?"Kết quả khá tốt, em hiểu bài và làm đúng phần lớn các câu.":s>=50?"Kết quả ở mức trung bình khá: em hiểu bài nhưng còn nhầm lẫn ở một số câu.":"Em còn nhiều chỗ chưa vững, cần được ôn lại kiến thức và làm thêm bài tập cơ bản.")}
+ const sc=m.per.filter(p=>p.sc!=null&&p.done).sort((a,b)=>b.sc-a.sc);
+ if(sc.length>=2){const b=sc[0],w=sc[sc.length-1];if(b.sc>=70)out.push(`Em làm tốt nhất ở bài “${cut(b.a.title,50)}” (${pc(b.sc)}).`);if(w.sc<70&&w.a.id!==b.a.id)out.push(`Cần ôn thêm bài “${cut(w.a.title,50)}” (${pc(w.sc)}).`)}
+ const miss=m.per.filter(p=>!p.done);if(miss.length){out.push(`Em chưa hoàn thành ${miss.length} bài${miss.length<=3?": "+miss.map(p=>"“"+cut(p.a.title,40)+"”").join(", "):""}; mong phụ huynh nhắc em hoàn thành.`)}
+ if(m.tries!=null&&m.tries>=1.6)out.push("Em thường phải thử nhiều lần mới ra đáp án đúng – nên đọc kỹ đề và suy nghĩ trước khi chọn.");
+ if(m.gave>0)out.push(`Có ${m.gave} câu em chọn xem lời giải; nên tự suy nghĩ thêm một lúc trước khi xem.`);
+ if(m.msPerQ&&ctx.msPerQ){if(m.msPerQ>ctx.msPerQ*1.6)out.push("Em làm bài khá chậm so với mặt bằng lớp; có thể luyện thêm tốc độ với các bài quen thuộc.");else if(m.msPerQ<ctx.msPerQ*.6&&m.acc!=null&&m.acc<70)out.push("Em làm rất nhanh nhưng độ chính xác chưa cao – nên chậm lại và kiểm tra kỹ trước khi trả lời.")}
+ if(m.trend===1)out.push("Điểm số của em đang tiến bộ rõ rệt so với các bài đầu – rất đáng khen!");else if(m.trend===-1)out.push("Điểm số các bài gần đây thấp hơn các bài đầu; phụ huynh nên động viên và hỏi xem em gặp khó khăn ở phần nào.");
+ if(ctx.avgScore!=null&&s!=null)out.push(s>=ctx.avgScore+8?"So với trung bình lớp, em đang ở nhóm trên.":s<=ctx.avgScore-8?"So với trung bình lớp, em đang thấp hơn một chút và cần được hỗ trợ thêm.":"So với trung bình lớp, em ở mức tương đương.");
+ return out.join(" ")}
+
+/* Nội dung email báo cáo (chữ thuần, có thanh ██░░ thay biểu đồ) */
+const durTxt=ms=>{const m=Math.round((ms||0)/60000);return m<1?"dưới 1 phút":m<60?m+" phút":Math.floor(m/60)+" giờ "+(m%60)+" phút"};
+const tbar=v=>{const k=Math.max(0,Math.min(10,Math.round((v||0)/10)));return "█".repeat(k)+"░".repeat(10-k)};
+function rpEmail(m,ctx,cmt,note){const L=[`Kính gửi phụ huynh em ${m.S.name},`,"",`${brand()} xin gửi báo cáo học tập của em ${given(m.S.name)} – ${ctx.label}${ctx.range?" ("+ctx.range+")":""}.`,"","TỔNG QUAN",
+ `• Hoàn thành: ${m.nDone}/${m.nA} bài`,`• Đã học trung bình: ${pc(m.learn)} nội dung`,`• Điểm trung bình: ${pc(m.score)}${ctx.avgScore!=null?" (trung bình lớp "+pc(ctx.avgScore)+")":""}`,`• Câu đúng: ${m.qOk}/${m.qT}`,`• Tổng thời gian học: ${durTxt(m.ms)}`,"","KẾT QUẢ TỪNG BÀI"];
+ m.per.forEach((p,i)=>L.push(`${i+1}. ${cut(p.a.title,45)}`,"    "+(p.sc!=null?tbar(p.sc)+" "+pc(p.sc)+(p.done?"":" (chưa xong)"):"░░░░░░░░░░ chưa làm")));
+ L.push("","NHẬN XÉT",cmt.trim());if(note&&note.trim())L.push("","LƯU Ý RIÊNG TỪ GIÁO VIÊN",note.trim());L.push("","Trân trọng,",signer());return L.join("\n")}
+
+/* ---------- Giao diện tab Báo cáo ---------- */
+async function tabBao(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';
+ const cl=await DB.list("classes",[["teacherId","==",UID]]);cl.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+ if(!cl.length){v.innerHTML='<div class="panel">Tạo lớp và giao bài trước, rồi quay lại đây xem báo cáo nhé.</div>';return}
+ if(!RP.cid||!cl.find(c=>c.id===RP.cid))RP.cid=cl[0].id;
+ RP.as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>!a.quizOnly&&a.classId===RP.cid).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+ v.innerHTML=`<h2>📊 Báo cáo &amp; nhận xét học tập</h2><div class="panel"><div class="row"><div class="grow"><label class="l">Lớp</label><select id="rc">${cl.map(c=>`<option value="${c.id}" ${c.id===RP.cid?"selected":""}>${esc(c.name)}</option>`).join("")}</select></div>
+ <div class="grow"><label class="l">Kỳ báo cáo</label><select id="rp">${PERS.map(x=>`<option value="${x[0]}" ${x[0]===RP.per?"selected":""}>${x[1]}</option>`).join("")}</select></div></div><div id="rx"></div>
+ <label class="l">Tên kỳ báo cáo (không bắt buộc – hiện trong thư gửi phụ huynh)</label><input id="rn" value="${esc(RP.name)}" placeholder="VD: Chuyên đề Nguyên lý Dirichlet / Tháng 11">
+ <div class="row" style="margin-top:12px"><button id="rgo">Xem báo cáo</button><span class="note">${RP.as.length} bài đã giao cho lớp này.</span></div></div><div id="rout"></div>`;
+ $("rc").onchange=e=>{RP.cid=e.target.value;RP.data=null;tabBao()};$("rp").onchange=e=>{RP.per=e.target.value;rpExtra()};$("rn").oninput=e=>RP.name=e.target.value;$("rgo").onclick=rpRun;rpExtra();if(RP.data&&RP.data.cid===RP.cid)rpRender()}
+function rpExtra(){const e=$("rx");if(!e)return;
+ if(RP.per==="topic")e.innerHTML=RP.as.length?`<label class="l">Chọn các bài thuộc chuyên đề</label><div style="max-height:200px;overflow:auto;border:1px solid var(--bd);border-radius:11px;padding:8px">${RP.as.map(a=>`<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" style="width:auto" data-rsel="${a.id}" ${RP.sel[a.id]?"checked":""}> ${esc(a.title)} <span class="note">${fmtDay(a.createdAt)}</span></label>`).join("")}</div>`:'<p class="note">Lớp chưa có bài nào.</p>';
+ else if(RP.per==="custom")e.innerHTML=`<div class="row"><div class="grow"><label class="l">Từ ngày</label><input type="date" id="rf" value="${RP.from}"></div><div class="grow"><label class="l">Đến ngày</label><input type="date" id="rt" value="${RP.to}"></div></div>`;
+ else e.innerHTML="";
+ e.querySelectorAll("[data-rsel]").forEach(c=>c.onchange=()=>{RP.sel[c.dataset.rsel]=c.checked});const f=$("rf"),t=$("rt");if(f)f.onchange=()=>RP.from=f.value;if(t)t.onchange=()=>RP.to=t.value}
+function rpPick(){const p=PERS.find(x=>x[0]===RP.per);let A=RP.as,label=p[1];
+ if(RP.per==="topic"){A=A.filter(a=>RP.sel[a.id]);label="chuyên đề"}
+ else if(RP.per==="custom"){const f=RP.from?new Date(RP.from+"T00:00:00").getTime():0,t=RP.to?new Date(RP.to+"T23:59:59").getTime():Date.now();A=A.filter(a=>a.createdAt>=f&&a.createdAt<=t);label="giai đoạn "+(RP.from?fmtDay(f):"đầu")+" – "+(RP.to?fmtDay(t):"nay")}
+ else if(p[2]){const f=Date.now()-p[2]*864e5;A=A.filter(a=>a.createdAt>=f)}
+ if(RP.name.trim())label=RP.name.trim();return{A,label}}
+async function rpRun(){const {A,label}=rpPick(),o=$("rout");if(!A.length){o.innerHTML='<div class="panel">Chưa có bài nào được giao trong kỳ này. Thầy/cô đổi kỳ báo cáo hoặc chọn bài khác nhé.</div>';return}
+ o.innerHTML='<p class="note">Đang tổng hợp kết quả…</p>';
+ try{const [stu,notes,res]=await Promise.all([classStudents(RP.cid),DB.list("notes",[["teacherId","==",UID]]).catch(()=>[]),Promise.all(A.map(a=>DB.list(`assignments/${a.id}/results`).catch(()=>[])))]);
+  const R={};A.forEach((a,i)=>{R[a.id]={};res[i].forEach(r=>R[a.id][r.id]=r)});const N={};notes.forEach(n=>N[n.id]=n);
+  const M=stu.map(s=>rpMetrics(s,A,R)),tm=M.reduce((x,m)=>x+m.ms,0),tq=M.reduce((x,m)=>x+m.qT,0),sc=M.filter(m=>m.score!=null).map(m=>m.score);
+  const ts=A.map(a=>a.createdAt),range=fmtDay(Math.min(...ts))+" – "+fmtDay(Math.max(...ts));
+  RP.data={cid:RP.cid,A,R,M,N,stu,ctx:{label,range,msPerQ:tq?tm/tq:null,avgScore:avgOf(sc)}};RP.cmt={};rpRender()}catch(e){o.innerHTML='<div class="panel">Chưa tải được: '+esc(authErr(e))+'</div>'}}
+const needFlags=(m,n)=>{const f=[];if(m.nStart===0)f.push("chưa làm bài nào");else{if(m.score!=null&&m.score<50)f.push("điểm thấp");if(m.nStart<m.nA*.5)f.push("bỏ nhiều bài");if(m.trend===-1)f.push("đang sa sút")}if(n&&n.text)f.push("📝 có ghi chú");return f};
+function rpRender(){const D=RP.data,o=$("rout");if(!D||!o)return;const {A,R,M,N,ctx}=D,nS=M.length;
+ const items=A.map(a=>{const sc=M.map(m=>m.per.find(p=>p.a.id===a.id).sc).filter(x=>x!=null);return{l:a.title,t:a.title+" – "+fmtDay(a.createdAt),v:[avgOf(sc),M.length?avgOf(M.map(m=>m.per.find(p=>p.a.id===a.id).learn)):0]}});
+ const ds=M.filter(m=>m.score!=null).length,done=M.reduce((x,m)=>x+m.nDone,0);
+ o.innerHTML=`<div class="panel"><div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">${esc(ctx.label)} <span class="note">${esc(ctx.range)} · ${A.length} bài · ${nS} học sinh</span></h2></div>
+ <div class="row"><span class="chip ok">Điểm TB lớp ${pc(ctx.avgScore)}</span><span class="chip pr">Hoàn thành ${done}/${A.length*nS} lượt bài</span><span class="chip">${ds}/${nS} em đã có điểm</span></div>
+ <h3 style="margin:14px 0 2px;font-size:16px">Kết quả theo từng bài (cả lớp)</h3>${legend([["Điểm trung bình các câu hỏi (%)","var(--pr)"],["% nội dung đã học","var(--mu)"]])}<div style="overflow:auto">${colChart(items,["var(--pr)","var(--mu)"])}</div></div>
+ <div class="panel" style="overflow:auto"><div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Từng học sinh</h2><button class="sec sm" data-act="rptcsv">Tải CSV</button><button class="sm" data-act="rptall">✉ Gửi báo cáo cho phụ huynh…</button></div>
+ <table><tr><th>Học sinh</th><th class="n">Hoàn thành</th><th>% đã học</th><th class="n">Điểm TB</th><th class="n">Đúng</th><th class="n">Thời gian</th><th>Xu hướng</th><th>Lưu ý</th><th></th></tr>
+ ${M.map(m=>{const n=N[m.S.id],f=needFlags(m,n);return`<tr><td>${esc(m.S.name)}</td><td class="n">${m.nDone}/${m.nA}</td><td style="min-width:110px">${pc(m.learn)}${hbar(m.learn)}</td><td class="n" style="color:${scol(m.score)};font-weight:700">${pc(m.score)}</td><td class="n">${m.qOk}/${m.qT}</td><td class="n">${fmtT(m.ms)}</td><td>${m.trend===1?"📈 tiến bộ":m.trend===-1?"📉 giảm":m.trend===0?"➡ ổn định":'<span class="note">chưa đủ bài</span>'}</td><td>${f.map(x=>`<span class="chip ${x[0]==="📝"?"":"wa"}">${esc(x)}</span>`).join(" ")}</td><td class="n"><button class="sm" data-act="rptstu" data-u="${m.S.id}">Báo cáo</button></td></tr>`}).join("")}</table>
+ ${nS?"":'<p class="note">Lớp chưa có học sinh.</p>'}</div>`}
+ACT.rptcsv=()=>{const D=RP.data;if(!D)return;dl("bao-cao-"+slug(D.ctx.label)+".csv","﻿Họ tên,Hoàn thành,Tổng bài,% đã học,Điểm TB %,Câu đúng,Tổng câu,Thời gian (giây),Xu hướng,Email phụ huynh\n"+D.M.map(m=>[m.S.name,m.nDone,m.nA,Math.round(m.learn),m.score==null?"":Math.round(m.score),m.qOk,m.qT,Math.round(m.ms/1000),m.trend==null?"":m.trend>0?"tiến bộ":m.trend<0?"giảm":"ổn định",m.S.parentEmail||""].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n"),"text/csv")};
+const rpMsg=(m)=>{const D=RP.data,n=D.N[m.S.id]||{};return rpEmail(m,D.ctx,RP.cmt[m.S.id]!=null?RP.cmt[m.S.id]:autoComment(m,D.ctx),n.text||"")};
+async function rpSaveNote(sid,text,extra){const D=RP.data,old=D.N[sid]||{},doc={...old,teacherId:UID,text:text.trim(),...(extra||{})};delete doc.id;await DB.set("notes/"+sid,doc);D.N[sid]={id:sid,...doc}}
+ACT.rptstu=d=>{const D=RP.data,m=D.M.find(x=>x.S.id===d.u);if(!m)return;const n=D.N[m.S.id]||{};if(RP.cmt[m.S.id]==null)RP.cmt[m.S.id]=autoComment(m,D.ctx);
+ const items=m.per.map(p=>({l:p.a.title,t:p.a.title+" – "+fmtDay(p.a.createdAt),v:[p.sc,p.learn],m:avgOf(D.M.map(x=>x.per.find(q=>q.a.id===p.a.id).sc).filter(x=>x!=null))}));
+ const o=modal(`<div class="row"><h2 class="grow" style="margin:0">${esc(m.S.name)} <span class="note">${esc(D.ctx.label)}</span></h2><button class="sec sm" onclick="closeModal()">Đóng</button></div>
+ <div class="row" style="margin:10px 0"><span class="chip ok">Hoàn thành ${m.nDone}/${m.nA}</span><span class="chip pr">Điểm TB ${pc(m.score)}</span><span class="chip">Đúng ${m.qOk}/${m.qT}</span><span class="chip">${fmtT(m.ms)}</span>${m.trend===1?'<span class="chip ok">📈 tiến bộ</span>':m.trend===-1?'<span class="chip wa">📉 giảm</span>':""}</div>
+ ${legend([["Điểm các câu hỏi (%)","var(--pr)"],["% nội dung đã học","var(--mu)"],["TB cả lớp (điểm)","var(--no)",1]])}<div style="overflow:auto">${colChart(items,["var(--pr)","var(--mu)"])}</div>
+ <label class="l">Nhận xét tự động (thầy/cô sửa tự do trước khi gửi)</label><textarea id="rcm" style="min-height:150px">${esc(RP.cmt[m.S.id])}</textarea>
+ <div class="row" style="margin-top:6px"><button class="sec sm" id="rre">↻ Tạo lại nhận xét tự động</button></div>
+ <label class="l">📝 Ghi chú riêng của giáo viên (lưu lại; sẽ kèm vào thư cho phụ huynh)</label><textarea id="rnt" placeholder="VD: Em hay mất tập trung đầu giờ; nhờ phụ huynh nhắc em ôn lại phần phân số…">${esc(n.text||"")}</textarea>
+ <div class="row" style="margin-top:10px"><button class="sm" id="rsv">Lưu ghi chú</button><button class="sm" id="rsd" ${m.S.parentEmail&&mailCfg()?"":"disabled"}>✉ Gửi email cho phụ huynh</button><button class="sec sm" id="rcp">📋 Sao chép (gửi qua Zalo…)</button></div>
+ <p class="note" id="rmsg">${m.S.parentEmail?"Email phụ huynh: "+esc(m.S.parentEmail):"Em chưa có email phụ huynh – thêm ở tab Lớp học → Sửa."}${mailCfg()?"":" Chưa cài EmailJS nên chưa gửi email được."}${n.last?" Lần gửi gần nhất: "+fmtD(n.last.at)+" ("+esc(n.last.label)+")":""}</p>`);
+ o.querySelector(".box").style.maxWidth="860px";o.querySelector(".box").style.width="95vw";
+ const cm=$("rcm"),nt=$("rnt");cm.oninput=()=>RP.cmt[m.S.id]=cm.value;
+ $("rre").onclick=()=>{cm.value=RP.cmt[m.S.id]=autoComment(m,D.ctx)};
+ $("rsv").onclick=async()=>{try{await rpSaveNote(m.S.id,nt.value);toast("Đã lưu ghi chú.")}catch(e){alert("Chưa lưu được: "+authErr(e))}};
+ $("rcp").onclick=()=>cpy(rpEmail(m,D.ctx,cm.value,nt.value),"Đã sao chép nội dung báo cáo.");
+ $("rsd").onclick=async()=>{const b=$("rsd");b.disabled=true;try{const msg=rpEmail(m,D.ctx,cm.value,nt.value);await sendMail(mailCfg(),{to:m.S.parentEmail,name:m.S.name,subject:"["+brand()+"] Báo cáo học tập của "+given(m.S.name)+" – "+D.ctx.label,message:msg});await rpSaveNote(m.S.id,nt.value,{last:{at:Date.now(),label:D.ctx.label}});$("rmsg").textContent="✓ Đã gửi email cho phụ huynh lúc "+fmtD(Date.now())+".";rpRender()}catch(e){alert("Chưa gửi được: "+(e.message||e));b.disabled=false}}};
+ACT.rptall=()=>{const D=RP.data;if(!D)return;const ok=D.M.filter(m=>m.S.parentEmail&&m.nA),no=D.M.length-ok.length;
+ if(!mailCfg()){alert("Thầy/cô cài EmailJS ở tab Lớp học trước nhé (có hướng dẫn từng bước).");return}
+ const o=modal(`<h2>✉ Gửi báo cáo cho phụ huynh</h2><p class="note">Mỗi phụ huynh nhận 1 email gồm: tổng quan, điểm từng bài (thanh ██░░), nhận xét tự động (hoặc bản thầy/cô đã chỉnh ở nút “Báo cáo”) và ghi chú riêng nếu có. ${no?no+" em chưa có email phụ huynh nên không có trong danh sách.":""}</p>
+ <div class="row" style="margin:6px 0"><button class="sec sm" id="ra1">Chọn tất cả</button><button class="sec sm" id="ra0">Bỏ chọn</button></div>
+ <div style="max-height:40vh;overflow:auto;border:1px solid var(--bd);border-radius:11px;padding:8px">${ok.map(m=>`<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" style="width:auto" data-rs="${m.S.id}" checked> ${esc(m.S.name)} <span class="note">${esc(m.S.parentEmail)}</span></label>`).join("")||'<p class="note">Chưa em nào có email phụ huynh.</p>'}</div>
+ <p class="note" id="rcount"></p><div class="row" style="margin-top:8px"><button id="rgo2" ${ok.length?"":"disabled"}>Gửi</button><button class="sec" onclick="closeModal()">Hủy</button></div><p class="note" id="rpg"></p>`);
+ const boxes=()=>[...o.querySelectorAll("[data-rs]")],upd=()=>{$("rcount").textContent="Sẽ gửi "+boxes().filter(c=>c.checked).length+" email (trừ vào hạn mức 200 email/tháng của EmailJS thầy/cô)."};
+ o.addEventListener("change",upd);upd();$("ra1").onclick=()=>{boxes().forEach(c=>c.checked=true);upd()};$("ra0").onclick=()=>{boxes().forEach(c=>c.checked=false);upd()};
+ $("rgo2").onclick=async()=>{const ids=boxes().filter(c=>c.checked).map(c=>c.dataset.rs);if(!ids.length)return;$("rgo2").disabled=true;let sent=0,bad=[];
+  for(const id of ids){const m=D.M.find(x=>x.S.id===id);$("rpg").textContent="Đang gửi "+(sent+bad.length+1)+"/"+ids.length+" – "+m.S.name+"…";
+   try{await sendMail(mailCfg(),{to:m.S.parentEmail,name:m.S.name,subject:"["+brand()+"] Báo cáo học tập của "+given(m.S.name)+" – "+D.ctx.label,message:rpMsg(m)});sent++;rpSaveNote(id,(D.N[id]||{}).text||"",{last:{at:Date.now(),label:D.ctx.label}}).catch(()=>{})}catch(e){bad.push(m.S.name+" ("+(e.message||"lỗi")+")")}
+   await new Promise(r=>setTimeout(r,700))}
+  $("rpg").innerHTML="Đã gửi "+sent+"/"+ids.length+" email."+(bad.length?"<br>Chưa gửi được: "+esc(bad.join("; ")):"");rpRender()}};
+
+/* ---------- Biểu đồ cho từng bài (trong trang Xem kết quả) ---------- */
+async function rsCharts(a,rows){const box=$("rch");if(!box)return;const R=rows.filter(x=>x.r&&!x.g).map(x=>x.r);if(!R.length){box.innerHTML="";return}
+ let L=null;try{L=await loadLesson(a.lessonId)}catch(e){}
+ const sc=R.filter(r=>r.maxScore).map(r=>r.score/r.maxScore*100),bins=[["85–100%",x=>x>=85,"var(--ok)"],["70–84%",x=>x>=70&&x<85,"var(--pr)"],["50–69%",x=>x>=50&&x<70,"var(--wa)"],["dưới 50%",x=>x<50,"var(--no)"]];
+ const nQ={},ok={},tr={};R.forEach(r=>Object.entries(r.slides||{}).forEach(([i,s])=>{if(!s||!s.q)return;if(!(s.tries>0||s.ok||s.gave))return;nQ[i]=(nQ[i]||0)+1;if(s.ok)ok[i]=(ok[i]||0)+1;tr[i]=(tr[i]||0)+(s.tries||0)}));
+ const ids=Object.keys(nQ).map(Number).sort((x,y)=>x-y),rate=i=>(ok[i]||0)/nQ[i]*100,ttl=i=>{const s=L&&L.slides[i];return s?(s.title||s.problem||"").toString().replace(/\s+/g," ").slice(0,70):""};
+ const items=ids.map((i,k)=>({l:"Câu "+(k+1),t:"Câu "+(k+1)+" (slide "+(i+1)+") "+ttl(i),v:[rate(i)]})),hard=ids.map((i,k)=>({i,k,r:rate(i)})).filter(x=>x.r<70).sort((x,y)=>x.r-y.r).slice(0,3);
+ box.innerHTML=`<div class="panel"><h2>📊 Biểu đồ bài này</h2><div class="row" style="align-items:flex-start;gap:24px"><div style="flex:1;min-width:240px"><b>Phân bố điểm của lớp</b><div style="margin-top:8px">${bins.map(b=>{const n=sc.filter(b[1]).length;return`<div class="row" style="flex-wrap:nowrap;margin:5px 0"><span style="width:78px;font-size:13px">${b[0]}</span><div style="flex:1">${hbar(sc.length?n/sc.length*100:0,b[2])}</div><b style="width:34px;text-align:right">${n}</b></div>`}).join("")}</div><p class="note">${sc.length} em đã làm · điểm TB ${pc(avgOf(sc))}</p></div>
+ <div style="flex:2;min-width:300px"><b>Tỉ lệ làm đúng từng câu</b>${items.length?`<div style="overflow:auto">${colChart(items,["var(--ok)"])}</div>`:'<p class="note">Bài này chưa có câu hỏi hoặc chưa có em nào làm.</p>'}${hard.length?`<p style="margin:6px 0 0"><b>Câu nhiều bạn làm sai nhất:</b> ${hard.map(x=>`câu ${x.k+1} (slide ${x.i+1}, ${Math.round(x.r)}% đúng${ttl(x.i)?" – “"+esc(cut(ttl(x.i),40))+"”":""})`).join("; ")}.</p>`:""}</div></div></div>`}
+
+function showTab(t){({lop:tabLop,bai:tabBai,giao:tabGiao,bao:tabBao})[t]()}
 async function tabLop(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';
  if(T.cid)return classView(T.cid);
  const [cl,us]=await Promise.all([DB.list("classes",[["teacherId","==",UID]]),DB.list("users",[["teacherId","==",UID]])]);
  const st=us.filter(u=>u.role==="student");cl.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
- const mc=mailCfg()||{};v.innerHTML=`<div class="row"><h2 class="grow">Các lớp của cô</h2><button data-act="newclass">+ Tạo lớp</button></div>`+(cl.length?`<div class="cards">${cl.map(c=>{const n=st.filter(s=>(s.classIds||[]).includes(c.id)).length;return`<div class="card"><b style="font-size:18px">${esc(c.name)}</b><span class="note">${n} học sinh</span><div class="row"><button class="sm" data-act="openclass" data-id="${c.id}">Mở lớp</button></div></div>`}).join("")}</div>`:'<div class="panel">Cô chưa có lớp nào. Bấm “+ Tạo lớp” để bắt đầu.</div>')+`<div class="panel" style="margin-top:18px"><h2>📧 Email tự động cho phụ huynh</h2><p class="note">Khi cô giao bài và khi con hoàn thành bài, phụ huynh nhận email (cần điền email phụ huynh ở từng học sinh). Dùng dịch vụ miễn phí EmailJS (200 email/tháng). Cô điền 3 thông tin từ trang EmailJS:</p>
+ const mc=mailCfg()||{};v.innerHTML=`<div class="row"><h2 class="grow">Các lớp của cô</h2><button data-act="newclass">+ Tạo lớp</button></div>`+(cl.length?`<div class="cards">${cl.map(c=>{const n=st.filter(s=>(s.classIds||[]).includes(c.id)).length;return`<div class="card"><b style="font-size:18px">${esc(c.name)}</b><span class="note">${n} học sinh</span><div class="row"><button class="sm" data-act="openclass" data-id="${c.id}">Mở lớp</button></div></div>`}).join("")}</div>`:'<div class="panel">Cô chưa có lớp nào. Bấm “+ Tạo lớp” để bắt đầu.</div>')+`<div class="panel" style="margin-top:18px"><h2>📧 Email tự động cho phụ huynh</h2><p class="note">Khi giao bài, khi con hoàn thành bài và khi gửi báo cáo, phụ huynh nhận email (cần điền email phụ huynh ở từng học sinh). Mỗi giáo viên dùng tài khoản EmailJS miễn phí <b>của riêng mình</b> (200 email/tháng, không dùng chung với ai). Thầy/cô điền 3 thông tin từ trang EmailJS:</p>
  <div class="row"><input id="es" placeholder="Service ID" value="${esc(mc.s||"")}" class="grow"><input id="et" placeholder="Template ID" value="${esc(mc.t||"")}" class="grow"><input id="ek" placeholder="Public Key" value="${esc(mc.k||"")}" class="grow"></div>
- <div class="row" style="margin-top:8px"><button class="sm" data-act="savemail">Lưu</button><button class="sec sm" data-act="testmail">Gửi thử cho email của cô</button><span class="note">${mailCfg()?"Đang bật.":"Chưa bật."}</span></div></div>`}
+ <div class="row" style="margin-top:8px"><button class="sm" data-act="savemail">Lưu</button><button class="sec sm" data-act="testmail">Gửi thử cho email của tôi</button><button class="sec sm" data-act="mailguide">📖 Hướng dẫn cài EmailJS từng bước</button><span class="note">${mailCfg()?"Đang bật.":"Chưa bật."}</span></div>
+ <label class="l">Tên lớp / trung tâm (hiện trong tiêu đề và tên người gửi email)</label><input id="eb" value="${esc(brand())}" maxlength="60">
+ <label class="l">Chữ ký cuối email</label><input id="eg" value="${esc(signer())}" maxlength="60">
+ <div class="row" style="margin-top:8px"><button class="sm" data-act="savebrand">Lưu tên lớp & chữ ký</button></div></div>`}
+ACT.savebrand=async()=>{const b=$("eb").value.trim(),g=$("eg").value.trim();if(!b||!g){alert("Điền cả tên lớp và chữ ký nhé.");return}await DB.update("users/"+UID,{brand:b,sign:g});ME.brand=b;ME.sign=g;toast("Đã lưu.")};
+const MAIL_TPL='<div style="font-family: Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #1b2433; white-space: pre-wrap">{{message}}</div>';
+const MAIL_AI='Tôi là giáo viên, chưa biết dùng EmailJS. Hãy hướng dẫn tôi từng bước, MỖI LẦN CHỈ 1 BƯỚC rồi hỏi tôi "xong chưa" mới sang bước tiếp. Mục tiêu: (1) tạo tài khoản emailjs.com; (2) tạo Email Service kết nối Gmail của tôi và lấy Service ID; (3) tạo Email Template với To Email = {{to_email}}, From Name = {{from_name}}, Subject = {{subject}}, nội dung (Code Editor) chỉ có một dòng: '+MAIL_TPL+' rồi lấy Template ID; (4) lấy Public Key ở Account > General. Cuối cùng tôi sẽ dán 3 mã đó vào trang web lớp học của tôi. Nếu tôi gửi ảnh chụp màn hình thì hãy chỉ cho tôi bấm vào đâu. Hãy nói tiếng Việt, đơn giản.';
+const cpy=async(t,msg)=>{try{await navigator.clipboard.writeText(t);toast(msg||"Đã sao chép.")}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast(msg||"Đã sao chép.")}catch(x){alert("Chưa sao chép được – thầy/cô bôi đen và Ctrl+C nhé.")}a.remove()}};
+ACT.cpytpl=()=>cpy(MAIL_TPL,"Đã sao chép mẫu nội dung email.");ACT.cpyai=()=>cpy(MAIL_AI,"Đã sao chép. Dán vào Claude (hoặc ChatGPT) để được hướng dẫn từng bước.");
+ACT.mailguide=()=>modal(`<div class="row"><h2 class="grow">📖 Cài EmailJS để gửi email cho phụ huynh</h2><button class="sec sm" onclick="closeModal()">Đóng</button></div>
+ <p class="note">Mất khoảng 10 phút, chỉ làm một lần. Miễn phí, 200 email/tháng, gửi từ chính Gmail của thầy/cô.</p>
+ <div style="background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:10px 0"><b>🤖 Muốn có người hướng dẫn từng bước?</b><p class="note" style="margin:6px 0">Bấm nút dưới để sao chép một “câu lệnh”, rồi dán vào <a class="lk" href="https://claude.ai" target="_blank" rel="noopener">Claude</a> hoặc ChatGPT. AI sẽ chỉ từng bước, thầy/cô có thể chụp màn hình gửi lên để hỏi khi bị kẹt.</p><button class="sm" data-act="cpyai">📋 Sao chép câu lệnh cho AI</button></div>
+ <ol style="line-height:1.75;padding-left:20px">
+ <li>Vào <a class="lk" href="https://www.emailjs.com" target="_blank" rel="noopener">emailjs.com</a> → <b>Sign Up Free</b> (có thể đăng nhập bằng Google). Xác nhận email nếu được yêu cầu.</li>
+ <li><b>Email Services</b> → <b>Add New Service</b> → chọn <b>Gmail</b> → <b>Connect Account</b>, đăng nhập Gmail dùng để gửi và tích cho phép gửi thư → <b>Create Service</b>. Chép lại <b>Service ID</b> (dạng <code>service_xxxxxxx</code>).</li>
+ <li><b>Email Templates</b> → <b>Create New Template</b>, điền:<br>• To Email: <code>{{to_email}}</code><br>• From Name: <code>{{from_name}}</code><br>• Reply To: email của thầy/cô<br>• Subject: <code>{{subject}}</code><br>• Content → <b>Edit Content</b> → <b>Code Editor</b> → xóa hết và dán mẫu bên dưới → <b>Apply</b> → <b>Save</b>. Chép lại <b>Template ID</b> (dạng <code>template_xxxxxxx</code>).<div class="row" style="margin:6px 0"><button class="sm sec" data-act="cpytpl">📋 Sao chép mẫu nội dung</button></div></li>
+ <li><b>Account</b> → <b>General</b> → chép <b>Public Key</b>.</li>
+ <li>Quay lại trang này, dán 3 mã vào 3 ô → <b>Lưu</b> → <b>Gửi thử cho email của tôi</b> và kiểm tra hộp thư (cả mục Spam).</li>
+ <li>Cuối cùng, ở từng học sinh bấm <b>Sửa</b> để điền email phụ huynh.</li></ol>
+ <p class="note">Lưu ý: nếu gửi báo cáo cho cả lớp 30 em thì mất 30 email trong hạn mức tháng.</p>`);
 ACT.savemail=async()=>{const c={s:$("es").value.trim(),t:$("et").value.trim(),k:$("ek").value.trim()};if(!(c.s&&c.t&&c.k)){if(!(c.s||c.t||c.k)&&confirm("Tắt email tự động?")){await DB.update("users/"+UID,{emailjs:null});ME.emailjs=null;toast("Đã tắt.");tabLop()}else alert("Cô điền đủ 3 ô nhé.");return}await DB.update("users/"+UID,{emailjs:c});ME.emailjs=c;toast("Đã lưu cài đặt email.");tabLop()};
-ACT.testmail=async()=>{const c={s:$("es").value.trim(),t:$("et").value.trim(),k:$("ek").value.trim()};if(!(c.s&&c.t&&c.k)){alert("Cô điền đủ 3 ô trước nhé.");return}const to=prompt("Gửi thử tới email nào?","");if(!to)return;try{await sendMail(c,{to,name:"Học sinh thử",subject:"[Lớp Toán tư duy cô Oanh] Email thử",message:"Đây là email thử từ app lớp học. Nếu cô thấy thư này là cài đặt đã đúng."});toast("Đã gửi. Cô kiểm tra hộp thư (cả mục Spam) nhé.")}catch(e){alert("Chưa gửi được: "+(e.message||e))}}
+ACT.testmail=async()=>{const c={s:$("es").value.trim(),t:$("et").value.trim(),k:$("ek").value.trim()};if(!(c.s&&c.t&&c.k)){alert("Cô điền đủ 3 ô trước nhé.");return}const to=prompt("Gửi thử tới email nào?","");if(!to)return;try{await sendMail(c,{to,name:"Học sinh thử",subject:"["+brand()+"] Email thử",message:"Đây là email thử từ app lớp học. Nếu thầy/cô thấy thư này là cài đặt đã đúng."});toast("Đã gửi. Cô kiểm tra hộp thư (cả mục Spam) nhé.")}catch(e){alert("Chưa gửi được: "+(e.message||e))}}
 ACT.newclass=async()=>{const n=await askText("Tên lớp (ví dụ: Lớp 5A – Toán tư duy):");if(!n||!n.trim())return;await DB.set("classes/"+nid(),{teacherId:UID,name:n.trim(),createdAt:Date.now()});tabLop()};
 ACT.openclass=d=>{T.cid=d.id;tabLop()};ACT.backclass=()=>{T.cid=null;tabLop()};
 async function classView(cid){const v=$("tv");const [c,us]=await Promise.all([DB.get("classes/"+cid),DB.list("users",[["teacherId","==",UID]])]);if(!c){T.cid=null;return tabLop()}
@@ -1013,7 +1171,7 @@ ACT.dellesson=async d=>{if(!confirm("Xóa bài giảng này? Các bài đã giao
 async function findAssign(lid,cid){return(await DB.list("assignments",[["teacherId","==",UID]])).find(a=>!a.quizOnly&&a.lessonId===lid&&a.classId===cid)||null}
 async function syncGuest(lid){const as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>a.lessonId===lid);try{await DB.update("lessons/"+lid,{guestOpen:as.some(a=>a.guest)})}catch(e){}}
 async function mkAssign(l,c,extra){const aid=nid(),a={teacherId:UID,classId:c.id,className:c.name,lessonId:l.id,lessonTitle:l.title,title:l.title,mode:"homework",due:null,slideCount:l.slideCount,createdAt:Date.now(),...extra};
- const mc=mailCfg();if(mc)a.mail=mc;await DB.set("assignments/"+aid,a);if(!(l.classIds||[]).includes(c.id)){l.classIds=[...(l.classIds||[]),c.id];await DB.update("lessons/"+l.id,{classIds:l.classIds})}return{id:aid,...a}}
+ const mc=mailCfg();if(mc)a.mail=mc;a.brand=brand();a.sign=signer();await DB.set("assignments/"+aid,a);if(!(l.classIds||[]).includes(c.id)){l.classIds=[...(l.classIds||[]),c.id];await DB.update("lessons/"+l.id,{classIds:l.classIds})}return{id:aid,...a}}
 const hasLive=a=>a.live||a.mode==="live";
 ACT.assignLive=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.list("classes",[["teacherId","==",UID]])]);if(!cl.length){alert("Cô tạo lớp trước nhé (tab Lớp học).");return}
  const o=modal(`<h2>Chiếu trực tiếp “${esc(l.title)}”</h2><label class="l">Cho lớp</label><select id="ac">${cl.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select><p class="note">Học sinh trong lớp và cả em chưa có tài khoản (qua link) đều vào xem và trả lời được.</p>
@@ -1029,9 +1187,9 @@ ACT.assign=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.
  $("ago").onclick=async()=>{const cid=$("ac").value,c=cl.find(x=>x.id===cid),due=$("ad").value?new Date($("ad").value+"T23:59:00").getTime():null,title=$("at").value.trim()||l.title,nt=$("an").checked,em=$("ae").checked;$("ago").disabled=true;
   try{const ex=await findAssign(l.id,cid);if(ex){o.remove();toast("Bài này đã giao cho lớp "+c.name+" rồi. Mỗi bài chỉ giao một lần cho mỗi lớp.");T.tab="giao";tabs();showTab("giao");return}
    let a;const qo=(await DB.list("assignments",[["teacherId","==",UID]])).find(x=>x.quizOnly&&x.lessonId===l.id&&x.classId===cid);
-   if(qo){const up={quizOnly:false,title,due,mode:"homework",createdAt:Date.now()};const mc=mailCfg();if(mc)up.mail=mc;await DB.update("assignments/"+qo.id,up);a={...qo,...up}}else a=await mkAssign(l,c,{title,due});o.remove();const st=await classStudents(cid);let msg="Đã giao bài.";
+   if(qo){const up={quizOnly:false,title,due,mode:"homework",createdAt:Date.now()};const mc=mailCfg();if(mc)up.mail=mc;up.brand=brand();up.sign=signer();await DB.update("assignments/"+qo.id,up);a={...qo,...up}}else a=await mkAssign(l,c,{title,due});o.remove();const st=await classStudents(cid);let msg="Đã giao bài.";
    if(nt){const n=await notify(st,a,"new","Cô giao bài mới: “"+title+"”"+(due?" (hạn "+fmtDay(due)+")":"")+".");msg+=" Đã báo "+n+" em."}
-   if(em){let ok=0,bad=0;for(const s of st.filter(x=>x.parentEmail)){try{await sendMail(mailCfg(),{to:s.parentEmail,name:s.name,subject:"[Lớp Toán tư duy cô Oanh] Bài mới của "+s.name,message:"Kính gửi phụ huynh em "+s.name+",\n\nCô vừa giao bài mới cho lớp "+c.name+": “"+title+"”"+(due?"\nHạn hoàn thành: "+fmtDay(due):"")+".\nEm đăng nhập tại: "+appUrl()+" để làm bài.\n\nTrân trọng,\nCô Oanh – Lớp Toán tư duy"});ok++}catch(e){bad++}}msg+=" Email PH: "+ok+" gửi"+(bad?", "+bad+" lỗi":"")+"."}
+   if(em){let ok=0,bad=0;for(const s of st.filter(x=>x.parentEmail)){try{await sendMail(mailCfg(),{to:s.parentEmail,name:s.name,subject:"["+brand()+"] Bài mới của "+s.name,message:"Kính gửi phụ huynh em "+s.name+",\n\nCô vừa giao bài mới cho lớp "+c.name+": “"+title+"”"+(due?"\nHạn hoàn thành: "+fmtDay(due):"")+".\nEm đăng nhập tại: "+appUrl()+" để làm bài.\n\nTrân trọng,\n"+signer()});ok++}catch(e){bad++}}msg+=" Email PH: "+ok+" gửi"+(bad?", "+bad+" lỗi":"")+"."}
    toast(msg);T.tab="giao";tabs();showTab("giao")}catch(e){alert(authErr(e));$("ago").disabled=false}}};
 const x_g=s=>/\(khách\)$/.test(s.name);
 async function tabGiao(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';const as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>!a.quizOnly);as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
@@ -1051,8 +1209,8 @@ ACT.results=async d=>{const v=$("tv");v.innerHTML='<p class="note">Đang tải k
  v.innerHTML=`<div class="row"><button class="sec sm" data-act="tab" data-t="giao">← Bài đã giao</button><h2 class="grow" style="margin:0">${esc(a.title)} · ${esc(a.className)}</h2><button class="sec sm" id="rmd">🔔 Nhắc em chưa xong</button><button class="sec sm" id="csvr">Tải CSV</button></div>
  <div class="row" style="margin:12px 0"><span class="chip ok">Hoàn thành ${done}/${stu.length}</span><span class="chip pr">Đã bắt đầu ${started}/${stu.length}</span>${a.due?`<span class="chip">Hạn ${fmtDay(a.due)}</span>`:""}</div>
  <div class="panel" style="overflow:auto"><table><tr><th>Học sinh</th><th>% đã học</th><th class="n">Câu đúng</th><th class="n">Điểm</th><th class="n">Thời gian</th><th>Hoàn thành lúc</th><th></th></tr>
- ${rows.map(({s,r})=>r?`<tr><td>${esc(s.name)}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar ${r.pct>=100?"ok":""}" style="width:90px"><i style="width:${r.pct||0}%"></i></div><span>${r.pct||0}%</span></div></td><td class="n">${r.qOk||0}/${r.qTotal||0}</td><td class="n">${r.score||0}/${r.maxScore||0}</td><td class="n">${fmtT(r.totalMs)}</td><td>${r.completedAt?'<span class="chip ok">'+fmtD(r.completedAt)+"</span>":'<span class="chip wa">Chưa xong</span>'}</td><td class="n" style="white-space:nowrap"><button class="sm sec" data-act="detail" data-a="${d.id}" data-u="${s.id}">Chi tiết</button>${!r.completedAt&&!x_g(s)?` <button class="sm sec" title="Nhắc em này" data-act="remind" data-a="${d.id}" data-u="${s.id}">🔔</button>`:""}</td></tr>`:`<tr><td>${esc(s.name)}</td><td colspan="5" class="note">Chưa bắt đầu</td><td class="n"><button class="sm sec" title="Nhắc em này" data-act="remind" data-a="${d.id}" data-u="${s.id}">🔔 Nhắc</button></td></tr>`).join("")}</table></div>`;
- window._res={a,rows};$("rmd").onclick=()=>ACT.remind({a:d.id});$("csvr").onclick=()=>dl("ket-qua-"+slug(a.title)+".csv","﻿Họ tên,% đã học,Câu đúng,Tổng câu,Điểm,Điểm tối đa,Thời gian (giây),Hoàn thành lúc\n"+rows.map(({s,r})=>[s.name,r?r.pct:0,r?r.qOk:0,r?r.qTotal:0,r?r.score:0,r?r.maxScore:0,r?Math.round(r.totalMs/1000):0,r&&r.completedAt?fmtD(r.completedAt):""].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n"),"text/csv")};
+ ${rows.map(({s,r})=>r?`<tr><td>${esc(s.name)}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar ${r.pct>=100?"ok":""}" style="width:90px"><i style="width:${r.pct||0}%"></i></div><span>${r.pct||0}%</span></div></td><td class="n">${r.qOk||0}/${r.qTotal||0}</td><td class="n">${r.score||0}/${r.maxScore||0}</td><td class="n">${fmtT(r.totalMs)}</td><td>${r.completedAt?'<span class="chip ok">'+fmtD(r.completedAt)+"</span>":'<span class="chip wa">Chưa xong</span>'}</td><td class="n" style="white-space:nowrap"><button class="sm sec" data-act="detail" data-a="${d.id}" data-u="${s.id}">Chi tiết</button>${!r.completedAt&&!x_g(s)?` <button class="sm sec" title="Nhắc em này" data-act="remind" data-a="${d.id}" data-u="${s.id}">🔔</button>`:""}</td></tr>`:`<tr><td>${esc(s.name)}</td><td colspan="5" class="note">Chưa bắt đầu</td><td class="n"><button class="sm sec" title="Nhắc em này" data-act="remind" data-a="${d.id}" data-u="${s.id}">🔔 Nhắc</button></td></tr>`).join("")}</table></div><div id="rch"></div>`;
+ window._res={a,rows};rsCharts(a,rows);$("rmd").onclick=()=>ACT.remind({a:d.id});$("csvr").onclick=()=>dl("ket-qua-"+slug(a.title)+".csv","﻿Họ tên,% đã học,Câu đúng,Tổng câu,Điểm,Điểm tối đa,Thời gian (giây),Hoàn thành lúc\n"+rows.map(({s,r})=>[s.name,r?r.pct:0,r?r.qOk:0,r?r.qTotal:0,r?r.score:0,r?r.maxScore:0,r?Math.round(r.totalMs/1000):0,r&&r.completedAt?fmtD(r.completedAt):""].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n"),"text/csv")};
 ACT.detail=async d=>{const {a,rows}=window._res;const x=rows.find(y=>y.s.id===d.u);if(!x||!x.r)return;showDetail(a,x.s.name,x.r)};
 async function showDetail(a,sname,r){let L;try{L=await loadLesson(a.lessonId)}catch(e){L={slides:[]}}
  const x={s:{name:sname},r},n=r.slideCount||L.slides.length||Object.keys(r.slides||{}).length;let tr="";
@@ -1105,7 +1263,7 @@ async function savePlayer(quiet){if(!P)return;const S=stats();let newly=false;if
  const doc={uid:UID,name:ME.name,aid:P.a.id,classId:P.a.classId,mailSent:!!P.mailSent,startedAt:P.startedAt,lastAt:Date.now(),completedAt:P.completedAt||null,totalMs:P.totalMs,last:P.cur,slideCount:P.n,...S,slides:sl};
  P.dirty=false;P.lastSave=Date.now();try{await DB.set(`assignments/${P.a.id}/results/${UID}`,doc);
   if(newly&&!P.mailSent&&P.a.mail&&ME.parentEmail&&ME.role==="student"){P.mailSent=true;const a=P.a,pe=ME.parentEmail,nm=ME.name,aid=a.id;
-   sendMail(a.mail,{to:pe,name:nm,subject:"[Lớp Toán tư duy cô Oanh] "+nm+" đã hoàn thành bài “"+a.title+"”",message:"Kính gửi phụ huynh,\n\nEm "+nm+" vừa hoàn thành bài “"+a.title+"” (lớp "+a.className+").\n\n• Đã học: "+S.pct+"% số slide\n• Câu đúng: "+S.qOk+"/"+S.qTotal+"\n• Điểm: "+S.score+"/"+S.maxScore+"\n• Thời gian học: "+fmtT(P&&P.totalMs||doc.totalMs)+"\n• Hoàn thành lúc: "+fmtD(doc.completedAt)+"\n\nTrân trọng,\nCô Oanh – Lớp Toán tư duy"}).then(()=>DB.update(`assignments/${aid}/results/${UID}`,{mailSent:true})).catch(()=>{if(P)P.mailSent=false})}
+   sendMail(a.mail,{brand:a.brand,to:pe,name:nm,subject:"["+(a.brand||"Lớp Toán tư duy cô Oanh")+"] "+nm+" đã hoàn thành bài “"+a.title+"”",message:"Kính gửi phụ huynh,\n\nEm "+nm+" vừa hoàn thành bài “"+a.title+"” (lớp "+a.className+").\n\n• Đã học: "+S.pct+"% số slide\n• Câu đúng: "+S.qOk+"/"+S.qTotal+"\n• Điểm: "+S.score+"/"+S.maxScore+"\n• Thời gian học: "+fmtT(P&&P.totalMs||doc.totalMs)+"\n• Hoàn thành lúc: "+fmtD(doc.completedAt)+"\n\nTrân trọng,\n"+(a.sign||"Cô Oanh – Lớp Toán tư duy")}).then(()=>DB.update(`assignments/${aid}/results/${UID}`,{mailSent:true})).catch(()=>{if(P)P.mailSent=false})}
  }catch(e){P.dirty=true;if(!quiet)toast("Chưa lưu được kết quả: "+authErr(e))}}
 function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);if(P.unsub)P.unsub();if(P.unInk)P.unInk();if(P.hb){clearInterval(P.hb);DB.set(`live/${P.a.id}/who/${UID}`,{name:ME.name,t:0}).catch(()=>{})}INKS.tool="none";document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
  if(!noSave){P=p;savePlayer(true).finally(()=>{P=null;if(ME&&ME.role==="student")studentHome();else if(ME&&ME.role==="guest")guestHome()})}else if(ME&&ME.role==="guest")guestHome()}

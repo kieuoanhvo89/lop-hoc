@@ -29,6 +29,12 @@ service cloud.firestore {
         allow write: if signed() && lessonOf(lid).teacherId == request.auth.uid;
       }
     }
+    match /notes/{sid} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == request.auth.uid;
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
     match /assignments/{aid} {
       allow read: if signed() && (resource.data.teacherId == request.auth.uid || resource.data.get('guest', false) == true || inClass(resource.data.classId));
       allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
