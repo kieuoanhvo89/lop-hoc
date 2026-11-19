@@ -516,9 +516,9 @@ function dl(name,text,type){const a=document.createElement("a");a.href=URL.creat
 /* ===== Firebase adapter ===== */
 function fbAdapter(){firebase.initializeApp(FB_CFG);const auth=firebase.auth(),fs=firebase.firestore();let sec=null;
  const q=(p,w)=>{let c=fs.collection(p);(w||[]).forEach(x=>c=c.where(x[0],x[1],x[2]));return c};const dd=s=>({id:s.id,...s.data()});
- return{onAuth:cb=>auth.onAuthStateChanged(u=>cb(u?{uid:u.uid,anon:u.isAnonymous,email:u.email}:null)),signIn:(e,p)=>auth.signInWithEmailAndPassword(e,p),signAnon:()=>auth.signInAnonymously(),
+ return{onAuth:cb=>auth.onAuthStateChanged(u=>cb(u?{uid:u.uid,anon:u.isAnonymous,email:u.email,verified:u.emailVerified}:null)),signIn:(e,p)=>auth.signInWithEmailAndPassword(e,p),signAnon:()=>auth.signInAnonymously(),
   async resetPw(e,cur,nw){if(!sec)sec=firebase.initializeApp(FB_CFG,"sec");const a=sec.auth();const c=await a.signInWithEmailAndPassword(e,cur);await c.user.updatePassword(nw);await a.signOut()},
-  signUp:async(e,p)=>(await auth.createUserWithEmailAndPassword(e,p)).user.uid,signOut:()=>auth.signOut(),changePw:p=>auth.currentUser.updatePassword(p),
+  signUp:async(e,p)=>{auth.languageCode="vi";return(await auth.createUserWithEmailAndPassword(e,p)).user.uid},isVerified:()=>auth.currentUser.emailVerified,sendVerify:()=>{auth.languageCode="vi";return auth.currentUser.sendEmailVerification()},async reloadUser(){await auth.currentUser.reload();await auth.currentUser.getIdToken(true);return auth.currentUser.emailVerified},signOut:()=>auth.signOut(),changePw:p=>auth.currentUser.updatePassword(p),
   async createUser(e,p){if(!sec)sec=firebase.initializeApp(FB_CFG,"sec");const a=sec.auth();const r=await a.createUserWithEmailAndPassword(e,p);await a.signOut();return r.user.uid},
   get:async p=>{const s=await fs.doc(p).get();return s.exists?dd(s):null},set:(p,d)=>fs.doc(p).set(d),update:(p,d)=>fs.doc(p).update(d),del:p=>fs.doc(p).delete(),
   list:async(p,w)=>(await q(p,w).get()).docs.map(dd),
@@ -539,7 +539,7 @@ ACT.tsign=()=>{$("app").innerHTML=`<div class="wrap narrow"><h1>Tạo tài kho�
  <p class="note" style="margin-top:12px">Dùng thử đủ chức năng 30 ngày. Bằng việc tạo tài khoản, thầy/cô đồng ý với <a class="lk" data-act="terms">Điều khoản &amp; bảo mật</a>.</p><div class="row" style="margin-top:14px"><button data-act="tsign2" id="sgo">Tạo tài khoản</button><button class="sec" data-act="tback">Quay lại</button><span class="note" id="smsg"></span></div></div></div>`};
 ACT.tback=viewLogin;
 ACT.tsign2=async()=>{const n=$("sn").value.trim(),e=$("se").value.trim().toLowerCase(),p=$("spw").value;if(!n||!e.includes("@")||p.length<6){$("smsg").textContent="Nhập đủ họ tên, email, mật khẩu (≥ 6 ký tự).";return}
- $("sgo").disabled=true;SIGNUP_BUSY=true;try{const uid=await DB.signUp(e,p);UID=uid;ME={id:uid,role:"teacher",name:n,teacherId:uid,classIds:[],createdAt:Date.now()};ME.email=e;await DB.set("users/"+uid,ME);SIGNUP_BUSY=false;boot({uid,email:e})}
+ $("sgo").disabled=true;SIGNUP_BUSY=true;try{const uid=await DB.signUp(e,p);UID=uid;ME={id:uid,role:"teacher",name:n,teacherId:uid,classIds:[],createdAt:Date.now()};ME.email=e;await DB.set("users/"+uid,ME);SIGNUP_BUSY=false;boot({uid,email:e,verified:await DB.isVerified()})}
  catch(er){SIGNUP_BUSY=false;$("smsg").textContent=authErr(er);$("sgo").disabled=false}};
 ACT.logout=async()=>{stopPlayer(true);stopQS();await DB.signOut()};
 const GL=new URLSearchParams(location.search).get("live");let GLDONE=false;
@@ -557,7 +557,7 @@ async function boot(u){if(SIGNUP_BUSY)return;if(!u){UID=null;ME=null;(GL||GQ)?vi
  UID=u.uid;if(u.anon){if(!GL&&!GQ){await DB.signOut();return}ME={id:UID,role:"guest",name:localStorage.getItem("gname")||"Khách",classIds:[]};guestShell();return}
  try{ME=await DB.get("users/"+UID)}catch(e){ME=null}
  if(!ME){$("app").innerHTML='<div class="wrap narrow"><div class="panel"><b>Tài khoản chưa được xếp vào lớp.</b><p class="note">Em nhờ cô tạo tài khoản học sinh cho em nhé.</p><button data-act="logout">Đăng xuất</button></div></div>';return}
- if(ME.role==="teacher"){ME.email=ME.email||u.email||"";IS_ADMIN=!!u.email&&u.email.toLowerCase()===ADMIN_EMAIL;loadLic().then(teacherShell)}else studentShell()}
+ if(ME.role==="teacher"){ME.email=ME.email||u.email||"";IS_ADMIN=!!u.email&&u.email.toLowerCase()===ADMIN_EMAIL;if(!IS_ADMIN&&!u.verified){VU=u;viewVerify();return}loadLic().then(teacherShell)}else studentShell()}
 
 /* ===== Lưu bài giảng lên mạng (cắt nhỏ) ===== */
 async function publishLesson(L,title,prog){const s=JSON.stringify(L),id=nid(),parts=[];for(let i=0;i<s.length;i+=CH)parts.push(s.slice(i,i+CH));
@@ -947,7 +947,7 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
  const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};qsTick()}
 
 /* ===== Giáo viên ===== */
-function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
+function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
 function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
 /* ===== Báo cáo, biểu đồ & nhận xét ===== */
@@ -1087,7 +1087,15 @@ async function rsCharts(a,rows){const box=$("rch");if(!box)return;const R=rows.f
  <div style="flex:2;min-width:300px"><b>Tỉ lệ làm đúng từng câu</b>${items.length?`<div style="overflow:auto">${colChart(items,["var(--ok)"])}</div>`:'<p class="note">Bài này chưa có câu hỏi hoặc chưa có em nào làm.</p>'}${hard.length?`<p style="margin:6px 0 0"><b>Câu nhiều bạn làm sai nhất:</b> ${hard.map(x=>`câu ${x.k+1} (slide ${x.i+1}, ${Math.round(x.r)}% đúng${ttl(x.i)?" – “"+esc(cut(ttl(x.i),40))+"”":""})`).join("; ")}.</p>`:""}</div></div></div>`}
 
 /* ===== Dùng thử, nâng cấp, quản trị, góp ý, sao lưu ===== */
-const ADMIN_EMAIL="kieuoanhvo89@gmail.com";
+const ADMIN_EMAIL="kieuoanhvo89@gmail.com";let VU=null;
+const BUILD="1795118176";
+function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
+function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
+setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
+function viewVerify(){const em=ME&&ME.email||(VU&&VU.email)||"";$("app").innerHTML=`<div class="wrap narrow"><h1>Xác minh email</h1><div class="panel"><p>Để bắt đầu dùng thử, thầy/cô cần xác minh email <b>${esc(em)}</b>.</p><p class="note">Hệ thống đã gửi một thư có liên kết xác minh. Thầy/cô mở thư (nhớ xem cả mục <b>Spam</b>), bấm vào liên kết, rồi quay lại đây bấm “Tôi đã xác minh”.</p><div class="row"><button id="vok" data-act="vchk">Tôi đã xác minh</button><button class="sec" data-act="vresend">Gửi lại thư</button><button class="sec" data-act="logout">Đăng xuất</button></div><p class="note" id="vmsg"></p></div></div>`;
+ if(!sessionStorage.getItem("vs_"+(VU&&VU.uid))){sessionStorage.setItem("vs_"+(VU&&VU.uid),"1");DB.sendVerify().catch(()=>{})}}
+ACT.vchk=async()=>{const b=$("vok");b.disabled=true;try{if(await DB.reloadUser()){boot({...VU,verified:true})}else{$("vmsg").textContent="Chưa thấy xác minh. Thầy/cô bấm vào liên kết trong thư rồi thử lại nhé.";b.disabled=false}}catch(e){$("vmsg").textContent=authErr(e);b.disabled=false}};
+ACT.vresend=async()=>{try{await DB.sendVerify();$("vmsg").textContent="Đã gửi lại thư xác minh."}catch(e){$("vmsg").textContent=e&&e.code==="auth/too-many-requests"?"Gửi quá nhiều lần, thầy/cô đợi vài phút rồi thử lại.":authErr(e)}};
 let IS_ADMIN=false,LIC=null,CFG={};
 const PLAN_NAME={trial:"Dùng thử",month:"Gói tháng",year:"Gói năm",gift:"Được tặng",free:"Miễn phí vĩnh viễn",admin:"Quản trị"};
 const BANKS=[["Vietcombank","970436"],["VietinBank","970415"],["BIDV","970418"],["Agribank","970405"],["MB Bank","970422"],["Techcombank","970407"],["ACB","970416"],["VPBank","970432"],["TPBank","970423"],["Sacombank","970403"],["VIB","970441"],["SHB","970443"],["HDBank","970437"],["OCB","970448"],["MSB","970426"],["SeABank","970440"],["Eximbank","970431"],["LPBank","970449"],["Nam A Bank","970428"],["Bac A Bank","970409"]];
@@ -1096,11 +1104,17 @@ const priceOf=p=>p==="year"?(+CFG.priceY||349000):(+CFG.priceM||49000);
 async function loadLic(){try{CFG=(await DB.get("config/app"))||{}}catch(e){CFG={}}
  if(IS_ADMIN){LIC={plan:"admin",until:4102444800000};return}
  let l=null;try{l=await DB.get("licenses/"+UID)}catch(e){}
- if(!l){const days=Math.max(1,Math.min(60,+CFG.trial||30));l={name:ME.name||"",email:ME.email||"",plan:"trial",until:Date.now()+days*864e5,createdAt:Date.now()};try{await DB.set("licenses/"+UID,l)}catch(e){}}
+ if(!l){const days=Math.max(1,Math.min(60,+CFG.trial||30));let ok=true,net=false;try{await DB.set("trials/"+normEmail(ME.email),{uid:UID,at:Date.now()})}catch(e){if(e&&e.code==="permission-denied")ok=false;else net=true}
+  if(!net){l={name:ME.name||"",email:ME.email||"",plan:"trial",until:ok?Date.now()+days*864e5:Date.now()-1,createdAt:Date.now()};try{await DB.set("licenses/"+UID,l)}catch(e){}}}
  LIC=l}
 function licState(){if(!ME||ME.role!=="teacher"||IS_ADMIN)return{ok:true,admin:IS_ADMIN};const l=LIC;if(!l)return{ok:true};if(l.plan==="free")return{ok:true,plan:"free"};const left=Math.ceil((l.until-Date.now())/864e5);return{ok:left>0,left,plan:l.plan,until:l.until}}
 function needLic(){const s=licState();if(s.ok)return true;ACT.upgrade({exp:1});return false}
-function licChip(){const b=$("licb");if(!b)return;const s=licState();if(IS_ADMIN){b.style.display="none";return}
+function licChip(){const b=$("licb");if(!b)return;const s=licState(),bar=$("licbar");if(IS_ADMIN){b.style.display="none";if(bar)bar.innerHTML="";return}
+ if(bar){const l=LIC||{},tot=Math.max(1,Math.round(((l.until||0)-(l.createdAt||(l.until-30*864e5)))/864e5));let h="";const st="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 16px;";
+  if(!s.ok)h=`<div style="${st}background:#d6454522;border-bottom:1px solid var(--no)"><b style="color:var(--no)">🔒 Đã hết hạn sử dụng</b><span class="note">Các chức năng tạo lớp, giao bài, chiếu, quiz đang khóa.</span><button class="sm" data-act="upgrade">⭐ Nâng cấp ngay</button></div>`;
+  else if(s.plan==="trial"){const used=Math.max(0,Math.min(100,(tot-s.left)/tot*100));h=`<div style="${st}background:var(--card);border-bottom:1px solid var(--bd)"><b>⏳ Dùng thử miễn phí: còn ${s.left}/${tot} ngày</b><div class="bar" style="width:220px;min-width:120px"><i style="width:${used}%;background:${s.left<=7?"var(--no)":"var(--ok)"}"></i></div><span class="note">Hết hạn ${fmtDay(s.until)}</span><span class="grow"></span><button class="sm" data-act="upgrade">⭐ Nâng cấp</button></div>`}
+  else if((s.plan==="month"||s.plan==="gift")&&s.left<=7||s.plan==="year"&&s.left<=14)h=`<div style="${st}background:#c98a0022;border-bottom:1px solid var(--wa)"><b>⏳ ${PLAN_NAME[s.plan]} còn ${s.left} ngày (đến ${fmtDay(s.until)})</b><span class="grow"></span><button class="sm" data-act="upgrade">⭐ Gia hạn</button></div>`;
+  bar.innerHTML=h}
  b.className="sm "+(s.ok?(s.plan==="trial"&&s.left<=7?"":"sec"):"red");
  b.textContent=!s.ok?"🔒 Hết hạn – Nâng cấp":s.plan==="free"?"✔ Miễn phí vĩnh viễn":s.plan==="trial"?"⏳ Dùng thử còn "+s.left+" ngày":"✔ "+PLAN_NAME[s.plan]+" đến "+fmtDay(s.until)}
 const LOCKED=["newclass","addst","saveinbox","upl","duplesson","assign","assignLive","golive","quizsetup","rptall"];
