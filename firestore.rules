@@ -8,6 +8,8 @@ service cloud.firestore {
     function inClass(cid) { return signed() && me().classIds.hasAny([cid]); }
     function lessonOf(lid) { return get(/databases/$(db)/documents/lessons/$(lid)).data; }
     function liveOk(aid) { return asg(aid).get('guest', false) == true || inClass(asg(aid).classId); }
+    function qz(q) { return get(/databases/$(db)/documents/quizzes/$(q)).data; }
+    function qzOk(q) { return qz(q).get('guest', false) == true || inClass(qz(q).classId); }
     match /users/{uid} {
       allow read: if signed() && (request.auth.uid == uid || resource.data.teacherId == request.auth.uid);
       allow create: if signed() && ((request.auth.uid == uid && request.resource.data.role == 'teacher' && request.resource.data.teacherId == uid) || (isTeacher() && request.resource.data.role == 'student' && request.resource.data.teacherId == request.auth.uid));
@@ -46,6 +48,16 @@ service cloud.firestore {
       match /who/{uid} {
         allow read: if signed() && asg(aid).teacherId == request.auth.uid;
         allow write: if signed() && request.auth.uid == uid && liveOk(aid);
+      }
+    }
+    match /quizzes/{qid} {
+      allow read: if signed() && (resource.data.teacherId == request.auth.uid || resource.data.get('guest', false) == true || inClass(resource.data.classId));
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if signed() && resource.data.teacherId == request.auth.uid;
+      match /pl/{uid} {
+        allow read: if signed() && (request.auth.uid == uid || qz(qid).teacherId == request.auth.uid);
+        allow create, update: if signed() && request.auth.uid == uid && qz(qid).status != 'end' && qzOk(qid);
+        allow delete: if signed() && qz(qid).teacherId == request.auth.uid;
       }
     }
     match /notices/{id} {
