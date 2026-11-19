@@ -74,6 +74,7 @@ table.qt{color:#fff;text-align:left}table.qt th{color:#cbd5e1}table.qt td,table.
 .qhd{display:flex;gap:12px;align-items:center;justify-content:center;padding:8px}.qctl{max-width:900px;width:100%;margin:10px auto;padding:0 12px 18px;display:flex;flex-direction:column;gap:8px}
 .qmsg{text-align:center;font-weight:700;font-size:22px;padding:8px}.qmsg.ok{color:#58e08f}.qmsg.no{color:#ff8585}.qlbw{max-width:520px;margin:6px auto;width:100%;text-align:left}
 #qs .opts button{font-size:26px;min-height:64px}
+#hwr{position:absolute;right:12px;bottom:58px;max-width:min(430px,46vw);background:#1e293bf2;border:1px solid #fb923c;border-radius:12px;padding:8px 12px;font-size:14px;z-index:4;display:none;line-height:1.5}#hwr .wl{margin-top:2px}#hwr .wk{display:inline-block;min-width:24px;text-align:center;background:#dc2626;border-radius:6px;padding:0 6px;font-weight:800}
 #printroot{display:none}
 @media print{@page{size:297mm 167mm;margin:0}html,body{background:#fff!important;margin:0!important;padding:0!important}body>*:not(#printroot){display:none!important}#printroot{display:block}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
  #printroot .pg{width:297mm;height:167mm;overflow:hidden;position:relative;page-break-after:always;break-after:page}#printroot .pg:last-child{page-break-after:auto;break-after:auto}#printroot .slw{width:297mm}#printroot .sld{border-radius:0}}
@@ -378,7 +379,7 @@ function layoutSlide(s, th, ctx) {
   s.bullets.forEach((b, j) => {
     const h = hs[j];
     add({ k: "ellipse", name: "buoc" + j + "_so", x: L, y: y + (h - 0.36) / 2, w: 0.36, h: 0.36, fill: mix(th.badge, j), text: s.layout === "quiz" ? String.fromCharCode(65 + j) : String(j + 1), fs: 12, b: true, c: th.badgeText, al: "c", va: "m", step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined });
-    add({ k: "round", name: "buoc" + j + "_the", x: L + 0.45, y, w: ow - 0.45, h, fill: mix(th.card, j), line: mix(th.cardLine, j), lw: 1.25, text: b, fs: fsStep, c: th.text, al: "l", va: "m", field: { f: "step", j }, step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined, mr: isQuiz ? 100 : undefined });
+    add({ k: "round", name: "buoc" + j + "_the", x: L + 0.45, y, w: ow - 0.45, h, fill: isQuiz ? mix(th.card, j) : null, line: isQuiz ? mix(th.cardLine, j) : null, lw: 1.25, text: b, fs: fsStep, c: th.text, al: "l", va: "m", field: { f: "step", j }, step: isQuiz ? -1 : j, opt: isQuiz ? j : undefined, mr: isQuiz ? 100 : undefined });
     if (isQuiz && ci >= 0) add({ k: "round", name: "opt" + j + "_fb", x: L + ow - 1.45, y: y + 0.07, w: 1.35, h: Math.max(0.3, h - 0.14), fill: j === ci ? "27AE60" : "EB5757", line: null, text: j === ci ? "✓ Đúng rồi!" : "✗ Chưa đúng", fs: 12, b: true, c: "FFFFFF", al: "c", va: "m", fb: j, trigger: "buoc" + j + "_the", step: -2 });
     y += h + gap;
   });
@@ -755,9 +756,9 @@ ACT.hnext=hostNext;ACT.hprev=hostPrev;
 ACT.hend=async()=>{if(!H)return;if(!confirm("Kết thúc buổi học trực tiếp? Học sinh sẽ được thoát ra."))return;const h=H;Object.keys(inkTimers).forEach(k=>{clearTimeout(inkTimers[k]);delete inkTimers[k];const d=INK.docs[k];if(d){d.t=Date.now();DB.set(`live/${h.a.id}/ink/${k}`,{slide:d.slide,by:d.by,name:d.name,strokes:d.strokes,t:d.t}).catch(()=>{})}});H=null;removeEventListener("keydown",hostKey);removeEventListener("beforeunload",hostBye);h.unsub&&h.unsub();h.unInk&&h.unInk();h.unWho&&h.unWho();clearInterval(h.iv);INKS.tool="none";
  try{await DB.set("live/"+h.a.id,{on:false,ended:true,t:Date.now(),draw:[],kick:h.kick,call:null})}catch(e){}const o=$("pl");if(o)o.remove();document.body.style.overflow="";toast("Đã kết thúc buổi học. Kết quả của học sinh ở mục Bài đã giao.");T.tab="giao";tabs();showTab("giao")};
 function hostDraw(){const o=$("pl");if(!o||!H)return;const last=H.cur===H.n-1&&H.st>=clicks(H.cur);
- o.innerHTML=`<div class="hd"><button data-act="hend" class="red">■ Kết thúc</button><b style="flex:none;max-width:22vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(H.a.title)} · ${esc(H.a.className)}">${esc(H.a.title)}</b><button class="sm" data-act="ovw" title="Xem tất cả slide (G)">▦ Các slide · ${H.cur+1}/${H.n}</button><div class="tb" id="tb"></div><span class="grow"></span><button class="sec sm" id="hbtn" data-act="spanel">👥 Lớp · gọi HS</button><button class="sec sm" data-act="copylink" data-id="${H.a.id}" title="Sao chép link cho học sinh">🔗 Link HS</button><button class="sec sm" data-act="pdf" data-id="${H.a.id}">⬇ PDF</button></div>
+ o.innerHTML=`<div class="hd"><button data-act="hend" class="red">■ Kết thúc</button><b style="flex:none;max-width:22vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(H.a.title)} · ${esc(H.a.className)}">${esc(H.a.title)}</b><button class="sm" data-act="ovw" title="Xem tất cả slide (G)">▦ Các slide · ${H.cur+1}/${H.n}</button><div class="tb" id="tb"></div><span class="grow"></span><button class="sec sm" id="hwb" data-act="hwtog" title="Hiện/ẩn các đáp án sai học sinh đã chọn">❌ Đáp án sai</button><button class="sec sm" id="hbtn" data-act="spanel">👥 Lớp · gọi HS</button><button class="sec sm" data-act="copylink" data-id="${H.a.id}" title="Sao chép link cho học sinh">🔗 Link HS</button><button class="sec sm" data-act="pdf" data-id="${H.a.id}">⬇ PDF</button></div>
  <div class="stage"><div class="slw"><div class="sld" id="psl">${slideHtml(H.cur,H.st)}</div><svg id="ink" viewBox="0 0 1600 900" preserveAspectRatio="none"></svg></div></div>
- <div class="ft"><button class="nav-b" data-act="hprev" ${H.cur===0?"disabled":""} style="background:#ffffff22">◀ Trước</button><div class="hst" id="hst"></div><button class="go" data-act="hnext" ${last?"disabled":""} title="← → hoặc phím cách">Tiếp ▶</button></div><div id="sp" style="display:${H.panel?"flex":"none"}"></div>`;inkTb();inkRender();hostStats();hostBadge();if(H.panel)hostPanel()}
+ <div class="ft"><button class="nav-b" data-act="hprev" ${H.cur===0?"disabled":""} style="background:#ffffff22">◀ Trước</button><div class="hst" id="hst"></div><button class="go" data-act="hnext" ${last?"disabled":""} title="← → hoặc phím cách">Tiếp ▶</button></div><div id="hwr"></div><div id="sp" style="display:${H.panel?"flex":"none"}"></div>`;inkTb();inkRender();hostStats();hostBadge();if(H.panel)hostPanel()}
 ACT.ovw=()=>{if(!H)return;const old=$("ovw");if(old){old.remove();return}const o=document.createElement("div");o.id="ovw";
  const qn=i=>{const it=interactiveOf(i);if(!it)return"";const ok=H.res.filter(r=>r.lastAt>=H.t0&&r.slides&&r.slides[i]&&r.slides[i].ok).length;return`<span>❓ ${ok}/${H.studs.length} đúng</span>`};
  let h=`<div class="oh"><b>▦ Các slide</b><span class="note" style="color:#cbd5e1">Bấm vào slide để chiếu ngay · <span style="color:#86efac">số xanh</span> = đã chiếu · ✍ = có nét viết</span><span class="grow"></span><button class="sec sm" data-act="ovw">✕ Đóng (Esc)</button></div><div class="g">`;
@@ -769,7 +770,14 @@ function hostStats(){const e=$("hst");if(!e||!H)return;const T0=H.studs.length,r
  if(it){const ans=rs.filter(r=>r.slides&&r.slides[i]&&(r.slides[i].ok||r.slides[i].gave)),ok=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].ok),tried=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].tries>0&&!r.slides[i].ok&&!r.slides[i].gave);
   h+=` · Làm đúng: <b>${ok.length}</b> · Đang thử: <b>${tried.length}</b>`;
   const wait=H.studs.filter(s=>!ans.find(r=>r.uid===s.id)).map(s=>s.name);if(wait.length&&wait.length<=14)h+=` · <span style="color:#cbd5e1">Chưa xong: ${wait.map(esc).join(", ")}</span>`}
- e.innerHTML=h}
+ e.innerHTML=h;hostWrong(rs,i,it)}
+ACT.hwtog=()=>{if(!H)return;H.wrOff=!H.wrOff;hostStats()};
+function hostWrong(rs,i,it){const e=$("hwr"),bt=$("hwb");if(!e||!H)return;const off=!!H.wrOff;if(bt){bt.style.opacity=off?".55":"1"}
+ if(!it||off){e.style.display="none";return}const g=new Map();
+ rs.forEach(r=>{const s=r.slides&&r.slides[i];if(!s||!s.wr||!s.wr.length||s.ok)return;s.wr.forEach(w=>{const k=it.kind==="mc"?String.fromCharCode(65+(+w)):"“"+w+"”";if(!g.has(k))g.set(k,[]);g.get(k).push(r.name||"?")})});
+ const lines=[...g.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0])).slice(0,7);
+ if(!lines.length){e.style.display="none";return}
+ e.style.display="block";e.innerHTML=`<b>❌ Đáp án sai (slide này)</b>`+lines.map(([k,n])=>`<div class="wl"><span class="wk">${esc(k)}</span> <b>${n.length} em</b>: ${n.slice(0,8).map(esc).join(", ")}${n.length>8?" …+"+(n.length-8):""}</div>`).join("")}
 
 
 /* ===== Email phụ huynh (EmailJS) + thông báo trong app ===== */
@@ -1074,7 +1082,7 @@ function onLive(d){if(!P||!P.live)return;
  if(was||c!==P.cur||st!==P.st||permChanged){P.cur=c;P.st=st;P.msg="";P.msgc="";P.dirty=true;draw();savePlayer(true)}else if(callChanged)updHead()}
 ACT.play=async d=>{toast("Đang mở bài…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev)}catch(e){alert("Không mở được bài: "+authErr(e))}};
 function startPlayer(a,L,prev,live){INK.docs={};INKS.tool="none";INKS.sel=new Set();INKS.undo=[];LESSON=L;STY=(L.form&&L.form.sty)||"sang";const n=L.slides.length;
- const sl=[];for(let i=0;i<n;i++){const it=interactiveOf(i),o=prev&&prev.slides&&prev.slides[i]||{};sl.push({it,ms:o.ms||0,seen:!!o.seen,tries:o.tries||0,ok:!!o.ok,gave:!!o.gave,pts:o.pts||0,wrong:[]})}
+ const sl=[];for(let i=0;i<n;i++){const it=interactiveOf(i),o=prev&&prev.slides&&prev.slides[i]||{};sl.push({it,ms:o.ms||0,seen:!!o.seen,tries:o.tries||0,ok:!!o.ok,gave:!!o.gave,pts:o.pts||0,wrong:(it&&it.kind==="mc"&&Array.isArray(o.wr)?o.wr.slice():[]),wt:(it&&it.kind==="text"&&Array.isArray(o.wr)?o.wr.slice():[])})}
  P={mailSent:!!(prev&&prev.mailSent),a,n,sl,cur:Math.min(prev&&prev.last||0,n-1),st:0,startedAt:(prev&&prev.startedAt)||Date.now(),completedAt:(prev&&prev.completedAt)||null,totalMs:(prev&&prev.totalMs)||0,dirty:true,lastSave:0,msg:"",tick:null,live:!!live,wait:!!live,over:false,unsub:null,canDraw:false,call:null,unInk:null,hb:0};
  if(P.sl[P.cur].ok||P.sl[P.cur].gave)P.st=clicks(P.cur);
  const o=document.createElement("div");o.id="pl";document.body.appendChild(o);document.body.style.overflow="hidden";
@@ -1086,7 +1094,7 @@ function playerTick(){if(!P||P.wait)return;if(document.visibilityState!=="visibl
 function stats(){const n=P.n;let seen=0,qT=0,qOk=0,sc=0,qDone=0;P.sl.forEach(s=>{if(s.seen)seen++;if(s.it){qT++;if(s.ok)qOk++;if(s.ok||s.gave)qDone++;sc+=s.pts}});
  return{pct:Math.round(seen/n*100),qTotal:qT,qOk,qDone,score:sc,maxScore:qT*100}}
 async function savePlayer(quiet){if(!P)return;const S=stats();let newly=false;if(!P.completedAt&&S.pct>=100&&S.qDone>=S.qTotal){P.completedAt=Date.now();newly=true;if(!quiet)toast("🎉 Em đã hoàn thành bài!")}
- const sl={};P.sl.forEach((s,i)=>{sl[i]={ms:s.ms,seen:s.seen,q:!!s.it,tries:s.tries,ok:s.ok,gave:s.gave,pts:s.pts}});
+ const sl={};P.sl.forEach((s,i)=>{sl[i]={ms:s.ms,seen:s.seen,q:!!s.it,tries:s.tries,ok:s.ok,gave:s.gave,pts:s.pts,wr:s.it?(s.it.kind==="mc"?s.wrong:s.wt):[]}});
  const doc={uid:UID,name:ME.name,aid:P.a.id,classId:P.a.classId,mailSent:!!P.mailSent,startedAt:P.startedAt,lastAt:Date.now(),completedAt:P.completedAt||null,totalMs:P.totalMs,last:P.cur,slideCount:P.n,...S,slides:sl};
  P.dirty=false;P.lastSave=Date.now();try{await DB.set(`assignments/${P.a.id}/results/${UID}`,doc);
   if(newly&&!P.mailSent&&P.a.mail&&ME.parentEmail&&ME.role==="student"){P.mailSent=true;const a=P.a,pe=ME.parentEmail,nm=ME.name,aid=a.id;
@@ -1109,7 +1117,7 @@ function say(m,c){P.msg=m;P.msgc=c||"";const e=$("pmsg");if(e){e.textContent=m;e
 function answer(v){const s=P.sl[P.cur],it=s.it;if(!it||s.ok||s.gave)return;s.tries++;P.dirty=true;
  if(it.kind==="mc"&&it.correct==null){s.ok=true;s.pts=0;P.st=clicks(P.cur);P.msg="Đã ghi nhận đáp án của em.";P.msgc="";draw();savePlayer(true);return}
  if(judgeAns(it,v)){s.ok=true;s.pts=ptsOf(s.tries,false);P.st=clicks(P.cur);P.msg="✓ Đúng rồi! +"+s.pts+" điểm";P.msgc="ok";draw();savePlayer(true)}
- else{if(it.kind==="mc")s.wrong.push(v);P.msg="✗ Chưa đúng, em thử lại nhé ("+s.tries+" lần)";P.msgc="no";draw();savePlayer(true)}}
+ else{if(it.kind==="mc"){if(!s.wrong.includes(v))s.wrong.push(v)}else{const w=String(v).slice(0,40);if(!s.wt.includes(w)&&s.wt.length<8)s.wt.push(w)}P.msg="✗ Chưa đúng, em thử lại nhé ("+s.tries+" lần)";P.msgc="no";draw();savePlayer(true)}}
 ACT.pick=d=>answer(+d.i);ACT.psend=()=>{const i=$("pans");if(i&&i.value.trim())answer(i.value.trim());else if(i)say("Em nhập đáp án trước nhé.","no")};
 ACT.pgive=()=>{const s=P.sl[P.cur];s.gave=true;s.pts=0;P.st=clicks(P.cur);P.msg="Lời giải đã hiện, em xem kỹ nhé.";P.msgc="";P.dirty=true;draw();savePlayer(true)};
 function nextStep(){if(!P)return;if(P.st<clicks(P.cur)){P.st++;P.msg="";draw()}else if(P.cur<P.n-1){gotoSlide(P.cur+1)}else{toast("Em đã đến slide cuối.");stopPlayer(false)}}
