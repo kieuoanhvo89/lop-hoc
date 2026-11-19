@@ -988,7 +988,7 @@ ACT.addst=async d=>{const cid=d.id,lines=$("bulk").value.split("\n").map(s=>s.tr
  $("bulk").value=out.filter(o=>!o.ok).map(o=>o.name).join("\n");refreshStl(cid)};
 
 ACT.stuview=async d=>{const v=$("tv");v.innerHTML='<p class="note">Đang tải quá trình học…</p>';const u=await DB.get("users/"+d.u);const cids=u.classIds||[];
- const as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>cids.includes(a.classId)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+ const as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>!a.quizOnly&&cids.includes(a.classId)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
  const rs=await Promise.all(as.map(a=>DB.get(`assignments/${a.id}/results/${u.id}`).catch(()=>null)));window._stv={u,as,rs};
  const done=rs.filter(r=>r&&r.completedAt).length,tot=rs.reduce((s,r)=>s+(r?r.totalMs||0:0),0),sc=rs.reduce((s,r)=>s+(r?r.score||0:0),0),mx=rs.reduce((s,r)=>s+(r?r.maxScore||0:0),0);
  v.innerHTML=`<div class="row"><button class="sec sm" data-act="backclass">← Danh sách lớp</button><h2 class="grow" style="margin:0">${esc(u.name)}</h2><span class="note">${esc(u.username||"")}</span></div>
@@ -1028,7 +1028,8 @@ ACT.assign=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.
  <div class="row" style="margin-top:14px"><button id="ago">Giao bài</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
  $("ago").onclick=async()=>{const cid=$("ac").value,c=cl.find(x=>x.id===cid),due=$("ad").value?new Date($("ad").value+"T23:59:00").getTime():null,title=$("at").value.trim()||l.title,nt=$("an").checked,em=$("ae").checked;$("ago").disabled=true;
   try{const ex=await findAssign(l.id,cid);if(ex){o.remove();toast("Bài này đã giao cho lớp "+c.name+" rồi. Mỗi bài chỉ giao một lần cho mỗi lớp.");T.tab="giao";tabs();showTab("giao");return}
-   const a=await mkAssign(l,c,{title,due});o.remove();const st=await classStudents(cid);let msg="Đã giao bài.";
+   let a;const qo=(await DB.list("assignments",[["teacherId","==",UID]])).find(x=>x.quizOnly&&x.lessonId===l.id&&x.classId===cid);
+   if(qo){const up={quizOnly:false,title,due,mode:"homework",createdAt:Date.now()};const mc=mailCfg();if(mc)up.mail=mc;await DB.update("assignments/"+qo.id,up);a={...qo,...up}}else a=await mkAssign(l,c,{title,due});o.remove();const st=await classStudents(cid);let msg="Đã giao bài.";
    if(nt){const n=await notify(st,a,"new","Cô giao bài mới: “"+title+"”"+(due?" (hạn "+fmtDay(due)+")":"")+".");msg+=" Đã báo "+n+" em."}
    if(em){let ok=0,bad=0;for(const s of st.filter(x=>x.parentEmail)){try{await sendMail(mailCfg(),{to:s.parentEmail,name:s.name,subject:"[Lớp Toán tư duy cô Oanh] Bài mới của "+s.name,message:"Kính gửi phụ huynh em "+s.name+",\n\nCô vừa giao bài mới cho lớp "+c.name+": “"+title+"”"+(due?"\nHạn hoàn thành: "+fmtDay(due):"")+".\nEm đăng nhập tại: "+appUrl()+" để làm bài.\n\nTrân trọng,\nCô Oanh – Lớp Toán tư duy"});ok++}catch(e){bad++}}msg+=" Email PH: "+ok+" gửi"+(bad?", "+bad+" lỗi":"")+"."}
    toast(msg);T.tab="giao";tabs();showTab("giao")}catch(e){alert(authErr(e));$("ago").disabled=false}}};
