@@ -674,7 +674,7 @@ ACT.pdf=async d=>{toast("Đang chuẩn bị PDF… cô chọn “Lưu dưới d�
 /* ===== Bảng điều khiển lớp: gieo tên, gọi lên bảng, cho viết, mời ra ===== */
 const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
 const isOnline=id=>H&&H.who[id]&&Date.now()-H.who[id]<50000&&!H.kick.includes(id);
-function hostPanel(){const e=$("sp");if(!e||!H)return;const c=H.call,rn=$("rname"),keep=rn?rn.innerHTML:"";
+function hostPanel(){const e=$("sp");if(!e||!H)return;const hd=document.querySelector("#pl .hd");if(hd)e.style.top=hd.getBoundingClientRect().bottom+"px";const c=H.call,rn=$("rname"),keep=rn?rn.innerHTML:"";
  const rows=H.studs.slice().sort((a,b)=>a.name.localeCompare(b.name,"vi")).map(s=>{const k=H.kick.includes(s.id),on=isOnline(s.id),dr=H.draw.includes(s.id);
   return`<div class="srow"><i class="dot ${on?"on":""}"></i><span title="${esc(s.name)}">${esc(s.name)}${c&&c.uid===s.id?" 🙋":""}</span>`+(k?`<button class="sec sm" data-act="sunkick" data-u="${s.id}">Cho vào lại</button>`:`<button class="sm" data-act="scall" data-u="${s.id}" ${on?"":"disabled"}>Gọi</button><button class="sm ${dr?"go":"sec"}" title="Cho phép viết lên slide" data-act="sdraw" data-u="${s.id}">✍</button><button class="red sm" title="Mời ra khỏi buổi học" data-act="skick" data-u="${s.id}">🚪</button>`)+`</div>`}).join("");
  const on=H.studs.filter(s=>isOnline(s.id)).length;
