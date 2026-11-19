@@ -10,6 +10,7 @@ service cloud.firestore {
     function liveOk(aid) { return asg(aid).get('guest', false) == true || inClass(asg(aid).classId); }
     function qz(q) { return get(/databases/$(db)/documents/quizzes/$(q)).data; }
     function qzOk(q) { return qz(q).get('guest', false) == true || inClass(qz(q).classId); }
+    function isAdmin() { return signed() && request.auth.token.email == 'kieuoanhvo89@gmail.com'; }
     match /users/{uid} {
       allow read: if signed() && (request.auth.uid == uid || resource.data.teacherId == request.auth.uid);
       allow create: if signed() && ((request.auth.uid == uid && request.resource.data.role == 'teacher' && request.resource.data.teacherId == uid) || (isTeacher() && request.resource.data.role == 'student' && request.resource.data.teacherId == request.auth.uid));
@@ -28,6 +29,25 @@ service cloud.firestore {
         allow read: if signed() && (lessonOf(lid).teacherId == request.auth.uid || lessonOf(lid).get('guestOpen', false) == true || lessonOf(lid).classIds.hasAny(me().classIds));
         allow write: if signed() && lessonOf(lid).teacherId == request.auth.uid;
       }
+    }
+    match /licenses/{tid} {
+      allow read: if signed() && (request.auth.uid == tid || isAdmin());
+      allow create: if signed() && ((request.auth.uid == tid && request.resource.data.plan == 'trial' && request.resource.data.until <= request.time.toMillis() + 5184600000 && request.resource.data.keys().hasOnly(['name','email','plan','until','createdAt'])) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+    match /payreqs/{id} {
+      allow read: if signed() && (isAdmin() || resource.data.tid == request.auth.uid);
+      allow create: if isTeacher() && request.resource.data.tid == request.auth.uid && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+    match /feedback/{id} {
+      allow read: if signed() && (isAdmin() || resource.data.tid == request.auth.uid);
+      allow create: if isTeacher() && request.resource.data.tid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+    match /config/{id} {
+      allow read: if signed();
+      allow write: if isAdmin();
     }
     match /notes/{sid} {
       allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
