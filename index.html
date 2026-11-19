@@ -42,6 +42,7 @@ th{font-size:13px;color:var(--mu);font-weight:700;white-space:nowrap}td.n,th.n{t
 #pl .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 #pl .stage .sld{width:min(100vw,calc((100vh - 170px)*1.7777));border-radius:8px;background:#fff}
 #pl .ft{padding:8px 12px;display:flex;flex-direction:column;gap:8px;min-height:92px;justify-content:center}
+#pl .hst{font-size:15px;text-align:center}
 .opts{display:grid;grid-template-columns:repeat(var(--n,4),1fr);gap:8px}
 .opts button{font-size:22px;min-height:52px;border-radius:12px;color:#fff}
 .o0{background:#2f80ed}.o1{background:#f2a900}.o2{background:#27ae60}.o3{background:#eb5757}.o4{background:#9b51e0}.opts button.x{opacity:.3}
@@ -530,8 +531,56 @@ function judgeAns(it,v){if(it.kind==="mc")return it.correct!=null&&v===it.correc
  if(/^-?\d+([.,]\d+)?$/.test(t)){const m=String(it.answer).match(/-?\d+([.,]\d+)?/);if(m&&parseFloat(m[0].replace(",","."))===parseFloat(t.replace(",",".")))return true}return false}
 const ptsOf=(tries,gave)=>gave?0:tries<=1?100:tries===2?70:tries===3?40:20;
 
+
+/* ===== Tải PowerPoint từ kho ===== */
+const loadJs=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Không tải được thư viện tạo PowerPoint. Kiểm tra mạng rồi thử lại nhé."));document.head.appendChild(s)});
+async function ensurePptx(){if(!window.PptxGenJS)await loadJs(window.__PPTX_URL||"https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js");if(!window.JSZip)await loadJs(window.__ZIP_URL||"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js")}
+const svgToPng=uri=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const w=900,h=Math.round(w/((im.naturalWidth||400)/(im.naturalHeight||300)));const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,w,h);g.drawImage(im,0,0,w,h);res(c.toDataURL("image/png"))};im.onerror=()=>rej(new Error("hình vẽ bị lỗi"));im.src=uri});
+function dlBlob(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+ACT.dlppt=async(d,b)=>{const old=b.textContent;b.disabled=true;b.textContent="Đang tạo…";
+ try{await ensurePptx();const l=await DB.get("lessons/"+d.id);const L=await loadLesson(d.id);LESSON=L;STY=(L.form&&L.form.sty)||"sang";
+  const vs=L.slides.map(s=>({...s,visual:visualOf(s)}));
+  const buf=await buildPptx(PptxGenJS,JSZip,vs,STY,{logo:LOGO,title:l.title},async u=>u.startsWith("data:image/svg")?await svgToPng(u):u);
+  dlBlob((l.title.replace(/[^\p{L}\p{N}]+/gu,"_")||"bai-giang")+".pptx",new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"}));toast("Đã tạo file PowerPoint. Bấm chuột trong PowerPoint để các bước hiện lần lượt.")}
+ catch(e){alert("Chưa tạo được PowerPoint: "+(e.message||e))}b.disabled=false;b.textContent=old};
+
+/* ===== Nhận bài từ trình soạn bài giảng AI (cửa sổ khác gửi sang) ===== */
+const AUTHOR_URL="https://claude.ai/artifact/VCu9idVtePmiUDbfjZw4DM";let INBOX=null,ibTimer=0;
+addEventListener("message",e=>{const d=e.data;if(!d||d.t!=="bg-lesson"||!d.rec||!Array.isArray(d.rec.slides)||!d.rec.slides.length)return;if(e.source!==window.opener)return;INBOX=d.rec;clearInterval(ibTimer);if(ME&&ME.role==="teacher"){T.tab="bai";T.cid=null;tabs();showTab("bai")}});
+function pingOpener(){if(!window.opener||window.opener===window)return;let n=0;clearInterval(ibTimer);ibTimer=setInterval(()=>{if(INBOX||++n>80){clearInterval(ibTimer);return}try{window.opener.postMessage({t:"lop-ready"},"*")}catch(e){clearInterval(ibTimer)}},1500)}
+ACT.saveinbox=async()=>{if(!INBOX)return;const title=prompt("Tên bài giảng:",INBOX.title||(INBOX.slides[0]&&INBOX.slides[0].title)||"Bài giảng");if(!title)return;const b=$("ibsave");if(b)b.disabled=true;
+ try{await publishLesson(INBOX,title.trim(),(i,n)=>{const m=$("lmsg2");if(m)m.textContent=`Đang lưu vào kho ${i}/${n}…`});INBOX=null;toast("Đã lưu vào kho bài giảng.");tabBai()}catch(e){alert(authErr(e));if(b)b.disabled=false}};
+ACT.dropinbox=()=>{INBOX=null;tabBai()};
+
+/* ===== Chiếu trực tiếp (giáo viên) – đồng bộ cả lớp qua Firestore ===== */
+let H=null;
+ACT.golive=async d=>{toast("Đang mở phòng chiếu…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const us=await DB.list("users",[["teacherId","==",UID]]);
+  startHost(a,L,us.filter(u=>u.role==="student"&&(u.classIds||[]).includes(a.classId)))}catch(e){alert("Không mở được: "+authErr(e))}};
+function startHost(a,L,studs){if(H)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";H={a,n:L.slides.length,cur:0,st:0,studs,res:[],t0:Date.now()};
+ const o=document.createElement("div");o.id="pl";o.className="host";document.body.appendChild(o);document.body.style.overflow="hidden";
+ H.unsub=DB.onList(`assignments/${a.id}/results`,null,rs=>{if(H){H.res=rs;hostStats()}},()=>{});
+ addEventListener("keydown",hostKey);addEventListener("beforeunload",hostBye);hostPush();hostDraw()}
+function hostPush(){if(!H)return;DB.set("live/"+H.a.id,{on:true,cur:H.cur,st:H.st,n:H.n,t:Date.now()}).catch(e=>toast("Chưa gửi được cho học sinh: "+authErr(e)))}
+function hostBye(){if(H)try{DB.set("live/"+H.a.id,{on:false,ended:true,t:Date.now()})}catch(e){}}
+function hostKey(e){if(!H||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();hostNext()}else if(e.key==="ArrowLeft"){e.preventDefault();hostPrev()}}
+function hostNext(){if(!H)return;if(H.st<clicks(H.cur))H.st++;else if(H.cur<H.n-1){H.cur++;H.st=0}else{toast("Đã đến slide cuối.");return}hostPush();hostDraw()}
+function hostPrev(){if(!H)return;if(H.cur>0){H.cur--;H.st=0;hostPush();hostDraw()}}
+ACT.hnext=hostNext;ACT.hprev=hostPrev;
+ACT.hend=async()=>{if(!H)return;if(!confirm("Kết thúc buổi học trực tiếp? Học sinh sẽ được thoát ra."))return;const h=H;H=null;removeEventListener("keydown",hostKey);removeEventListener("beforeunload",hostBye);h.unsub&&h.unsub();
+ try{await DB.set("live/"+h.a.id,{on:false,ended:true,t:Date.now()})}catch(e){}const o=$("pl");if(o)o.remove();document.body.style.overflow="";toast("Đã kết thúc buổi học. Kết quả của học sinh ở mục Bài đã giao.");T.tab="giao";tabs();showTab("giao")};
+function hostDraw(){const o=$("pl");if(!o||!H)return;const last=H.cur===H.n-1&&H.st>=clicks(H.cur);
+ o.innerHTML=`<div class="hd"><button data-act="hend" class="red">■ Kết thúc</button><b style="flex:none">${esc(H.a.title)}</b><span class="chip wa">Đang chiếu cho ${esc(H.a.className)}</span><span class="grow"></span><span class="dw">Slide ${H.cur+1}/${H.n}</span></div>
+ <div class="stage"><div class="sld" id="psl">${slideHtml(H.cur,H.st)}</div></div>
+ <div class="ft"><div class="hst" id="hst"></div><div class="nav"><button data-act="hprev" ${H.cur===0?"disabled":""}>◀ Trước</button><span class="dw">← → hoặc phím cách để chuyển</span><button class="go" data-act="hnext" ${last?"disabled":""}>Tiếp ▶</button></div></div>`;hostStats()}
+function hostStats(){const e=$("hst");if(!e||!H)return;const T0=H.studs.length,rs=H.res.filter(r=>r.lastAt>=H.t0),joined=rs.length,i=H.cur,it=interactiveOf(i);
+ let h=`Đã vào học: <b>${joined}/${T0}</b>`;
+ if(it){const ans=rs.filter(r=>r.slides&&r.slides[i]&&(r.slides[i].ok||r.slides[i].gave)),ok=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].ok),tried=rs.filter(r=>r.slides&&r.slides[i]&&r.slides[i].tries>0&&!r.slides[i].ok&&!r.slides[i].gave);
+  h+=` · Làm đúng: <b>${ok.length}</b> · Đang thử: <b>${tried.length}</b>`;
+  const wait=H.studs.filter(s=>!ans.find(r=>r.uid===s.id)).map(s=>s.name);if(wait.length&&wait.length<=12)h+=`<div class="note" style="color:#cbd5e1">Chưa xong: ${wait.map(esc).join(", ")}</div>`}
+ e.innerHTML=h}
+
 /* ===== Giáo viên ===== */
-function teacherShell(){$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" id="tv"></div>`;tabs();showTab(T.tab)}
+function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" id="tv"></div>`;tabs();showTab(T.tab)}
 function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"]];$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
 function showTab(t){({lop:tabLop,bai:tabBai,giao:tabGiao})[t]()}
@@ -565,20 +614,22 @@ ACT.rmst=async d=>{if(!confirm("Bỏ em này khỏi lớp? (Tài khoản vẫn c
 ACT.delclass=async d=>{if(!confirm("Xóa lớp này? Học sinh sẽ không còn trong lớp."))return;const us=(await DB.list("users",[["teacherId","==",UID]])).filter(u=>(u.classIds||[]).includes(d.id));for(const u of us)await DB.update("users/"+u.id,{classIds:u.classIds.filter(x=>x!==d.id)});await DB.del("classes/"+d.id);T.cid=null;tabLop()};
 
 async function tabBai(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';const ls=await DB.list("lessons",[["teacherId","==",UID]]);ls.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
- v.innerHTML=`<div class="panel"><h2>Đưa bài giảng lên lớp</h2><p class="note">Chọn file <b>.json</b> đã “Sao lưu” từ app soạn bài giảng.</p><div class="row"><input type="file" id="lf" accept=".json" class="grow"><button id="lup" data-act="upl" disabled>Tải lên</button></div><p class="note" id="lmsg2"></p></div>
- <div class="panel"><h2>Bài giảng của cô</h2>${ls.length?`<table><tr><th>Tên bài</th><th class="n">Slide</th><th>Ngày</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.title)}</td><td class="n">${l.slideCount}</td><td>${fmtDay(l.createdAt)}</td><td class="n"><button class="sm" data-act="assign" data-id="${l.id}">Giao bài</button> <button class="red sm" data-act="dellesson" data-id="${l.id}">Xóa</button></td></tr>`).join("")}</table>`:'<p class="note">Chưa có bài giảng nào.</p>'}</div>`;
+ const inbox=INBOX?`<div class="panel" style="border-color:var(--ok)"><h2>📥 Vừa nhận bài từ trình soạn</h2><p><b>${esc(INBOX.title||(INBOX.slides[0]&&INBOX.slides[0].title)||"Bài giảng")}</b> · ${INBOX.slides.length} slide</p><div class="row"><button id="ibsave" data-act="saveinbox">Lưu vào kho bài giảng</button><button class="sec" data-act="dropinbox">Bỏ qua</button></div><p class="note" id="lmsg2"></p></div>`:"";
+ v.innerHTML=inbox+`<div class="panel"><h2>Soạn bài giảng mới</h2><p class="note">Soạn bằng AI trong trình soạn bài giảng, rồi bấm <b>“Gửi sang Lớp học”</b> – bài sẽ tự về kho này. Hoặc tải lên file .json đã sao lưu:</p><div class="row"><a href="${AUTHOR_URL}" target="_blank" rel="opener"><button type="button">✨ Mở trình soạn bài giảng AI</button></a></div><div class="row"><input type="file" id="lf" accept=".json" class="grow"><button id="lup" data-act="upl" disabled>Tải lên</button></div><p class="note" id="lmsg2"></p></div>
+ <div class="panel"><h2>Kho bài giảng của cô</h2>${ls.length?`<table><tr><th>Tên bài</th><th class="n">Slide</th><th>Ngày</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.title)}</td><td class="n">${l.slideCount}</td><td>${fmtDay(l.createdAt)}</td><td class="n"><button class="sm" data-act="assignLive" data-id="${l.id}">▶ Chiếu trực tiếp</button> <button class="sm" data-act="assign" data-id="${l.id}">Giao về nhà</button> <button class="sec sm" data-act="dlppt" data-id="${l.id}">⬇ PowerPoint</button> <button class="red sm" data-act="dellesson" data-id="${l.id}">Xóa</button></td></tr>`).join("")}</table>`:'<p class="note">Chưa có bài giảng nào.</p>'}</div>`;
  let pend=null;$("lf").onchange=async e=>{const f=e.target.files[0];pend=null;$("lup").disabled=true;if(!f)return;try{const r=JSON.parse(await f.text());if(!r.slides||!r.slides.length)throw new Error("file không đúng");pend={r,name:(r.slides[0].title&&r.slides.length>1?(r.title||r.slides[0].title):f.name.replace(/\.json$/i,""))};
   $("lmsg2").textContent=`Đã đọc “${f.name}”: ${r.slides.length} slide, ${(JSON.stringify(r).length/1e6).toFixed(1)} MB.`;$("lup").disabled=false}catch(x){$("lmsg2").textContent="Không đọc được file: "+x.message}};
  ACT.upl=async()=>{if(!pend)return;const title=prompt("Tên bài giảng:",pend.name);if(!title)return;$("lup").disabled=true;try{await publishLesson(pend.r,title.trim(),(i,n)=>$("lmsg2").textContent=`Đang tải lên ${i}/${n}…`);toast("Đã tải bài giảng lên.");tabBai()}catch(e){$("lmsg2").textContent=authErr(e);$("lup").disabled=false}}}
 ACT.dellesson=async d=>{if(!confirm("Xóa bài giảng này? Các bài đã giao dùng bài này sẽ không mở được nữa."))return;const ps=await DB.list(`lessons/${d.id}/parts`);for(const p of ps)await DB.del(`lessons/${d.id}/parts/${p.id}`);await DB.del("lessons/"+d.id);tabBai()};
+ACT.assignLive=d=>ACT.assign({...d,mode:"live"});
 ACT.assign=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.list("classes",[["teacherId","==",UID]])]);if(!cl.length){alert("Cô tạo lớp trước nhé (tab Lớp học).");return}
  const o=modal(`<h2>Giao bài “${esc(l.title)}”</h2><label class="l">Lớp</label><select id="ac">${cl.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
- <label class="l">Hình thức</label><select id="am"><option value="homework">Bài tập về nhà (học sinh làm lúc nào cũng được)</option><option value="live">Học trực tiếp (cô chiếu, cả lớp cùng xem)</option></select>
+ <label class="l">Hình thức</label><select id="am"><option value="homework" ${d.mode==="live"?"":"selected"}>Bài tập về nhà (học sinh làm lúc nào cũng được)</option><option value="live" ${d.mode==="live"?"selected":""}>Học trực tiếp (cô chiếu, cả lớp cùng xem)</option></select>
  <label class="l">Tên bài giao</label><input id="at" value="${esc(l.title)}"><label class="l">Hạn nộp (không bắt buộc)</label><input id="ad" type="date">
- <div class="row" style="margin-top:14px"><button id="ago">Giao bài</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
+ <div class="row" style="margin-top:14px"><button id="ago">${d.mode==="live"?"Bắt đầu chiếu":"Giao bài"}</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
  $("ago").onclick=async()=>{const cid=$("ac").value,c=cl.find(x=>x.id===cid),due=$("ad").value?new Date($("ad").value+"T23:59:00").getTime():null;$("ago").disabled=true;
-  try{await DB.set("assignments/"+nid(),{teacherId:UID,classId:cid,className:c.name,lessonId:l.id,lessonTitle:l.title,title:$("at").value.trim()||l.title,mode:$("am").value,due,slideCount:l.slideCount,createdAt:Date.now()});
-   if(!(l.classIds||[]).includes(cid))await DB.update("lessons/"+l.id,{classIds:[...(l.classIds||[]),cid]});o.remove();toast("Đã giao bài.");T.tab="giao";tabs();showTab("giao")}catch(e){alert(authErr(e));$("ago").disabled=false}}};
+  try{const aid=nid();await DB.set("assignments/"+aid,{teacherId:UID,classId:cid,className:c.name,lessonId:l.id,lessonTitle:l.title,title:$("at").value.trim()||l.title,mode:$("am").value,due,slideCount:l.slideCount,createdAt:Date.now()});
+   if(!(l.classIds||[]).includes(cid))await DB.update("lessons/"+l.id,{classIds:[...(l.classIds||[]),cid]});const lv=$("am").value==="live";o.remove();toast("Đã giao bài.");if(lv){ACT.golive({id:aid});return}T.tab="giao";tabs();showTab("giao")}catch(e){alert(authErr(e));$("ago").disabled=false}}};
 async function tabGiao(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';const as=await DB.list("assignments",[["teacherId","==",UID]]);as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
  v.innerHTML=`<h2>Bài đã giao</h2>`+(as.length?`<div class="cards">${as.map(a=>`<div class="card"><b>${esc(a.title)}</b><span class="note">${esc(a.className)} · ${a.slideCount} slide</span><div class="row"><span class="chip ${a.mode==="live"?"wa":"pr"}">${a.mode==="live"?"Học trực tiếp":"Bài tập về nhà"}</span>${a.due?`<span class="chip">Hạn ${fmtDay(a.due)}</span>`:""}</div><div class="row">${a.mode==="live"&&window.liveHost?`<button class="sm" data-act="golive" data-id="${a.id}">▶ Chiếu trực tiếp</button>`:""}<button class="sec sm" data-act="results" data-id="${a.id}">Xem kết quả</button><button class="red sm" data-act="delassign" data-id="${a.id}">Xóa</button></div></div>`).join("")}</div>`:'<div class="panel">Cô chưa giao bài nào. Vào tab Bài giảng, bấm “Giao bài”.</div>')}
 ACT.delassign=async d=>{if(!confirm("Xóa bài đã giao? Kết quả của học sinh cũng mất."))return;const rs=await DB.list(`assignments/${d.id}/results`);for(const r of rs)await DB.del(`assignments/${d.id}/results/${r.id}`);await DB.del("assignments/"+d.id);tabGiao()};
@@ -610,16 +661,21 @@ async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds
 
 /* ===== Trình học bài (học sinh làm bài về nhà) ===== */
 let P=null;
+ACT.joinlive=async d=>{toast("Đang vào lớp…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev,true)}catch(e){alert("Không vào được lớp: "+authErr(e))}};
+function onLive(d){if(!P||!P.live)return;
+ if(!d||!d.on){const was=P.wait;P.wait=true;P.over=!!(d&&d.ended);if(P.over&&!was){toast("Cô đã kết thúc buổi học.");stopPlayer(false);return}draw();return}
+ const was=P.wait;P.wait=false;P.over=false;const c=Math.min(d.cur||0,P.n-1),s=P.sl[c],st=(s.ok||s.gave)?clicks(c):(d.st||0);
+ if(was||c!==P.cur||st!==P.st){P.cur=c;P.st=st;P.msg="";P.msgc="";P.dirty=true;draw();savePlayer(true)}}
 ACT.play=async d=>{toast("Đang mở bài…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev)}catch(e){alert("Không mở được bài: "+authErr(e))}};
-function startPlayer(a,L,prev){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const n=L.slides.length;
+function startPlayer(a,L,prev,live){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const n=L.slides.length;
  const sl=[];for(let i=0;i<n;i++){const it=interactiveOf(i),o=prev&&prev.slides&&prev.slides[i]||{};sl.push({it,ms:o.ms||0,seen:!!o.seen,tries:o.tries||0,ok:!!o.ok,gave:!!o.gave,pts:o.pts||0,wrong:[]})}
- P={a,n,sl,cur:Math.min(prev&&prev.last||0,n-1),st:0,startedAt:(prev&&prev.startedAt)||Date.now(),completedAt:(prev&&prev.completedAt)||null,totalMs:(prev&&prev.totalMs)||0,dirty:true,lastSave:0,msg:"",tick:null};
+ P={a,n,sl,cur:Math.min(prev&&prev.last||0,n-1),st:0,startedAt:(prev&&prev.startedAt)||Date.now(),completedAt:(prev&&prev.completedAt)||null,totalMs:(prev&&prev.totalMs)||0,dirty:true,lastSave:0,msg:"",tick:null,live:!!live,wait:!!live,over:false,unsub:null};
  if(P.sl[P.cur].ok||P.sl[P.cur].gave)P.st=clicks(P.cur);
  const o=document.createElement("div");o.id="pl";document.body.appendChild(o);document.body.style.overflow="hidden";
- P.tick=setInterval(playerTick,1000);document.addEventListener("visibilitychange",onVis);addEventListener("beforeunload",onUnload);addEventListener("keydown",onKey);draw();savePlayer()}
+ if(live)P.unsub=DB.onDoc("live/"+a.id,onLive,e=>toast("Không nối được phòng học: "+authErr(e)));P.tick=setInterval(playerTick,1000);document.addEventListener("visibilitychange",onVis);addEventListener("beforeunload",onUnload);addEventListener("keydown",onKey);draw();savePlayer()}
 function onVis(){if(document.visibilityState==="hidden")savePlayer(true)}function onUnload(){savePlayer(true)}
-function onKey(e){if(!P||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();nextStep()}else if(e.key==="ArrowLeft")prevSlide()}
-function playerTick(){if(!P)return;if(document.visibilityState!=="visible")return;const s=P.sl[P.cur];s.ms+=1000;P.totalMs+=1000;if(!s.seen&&s.ms>=SEEN_MS){s.seen=true;P.dirty=true;toast("✓ Đã học xong slide này");updHead()}updDw();
+function onKey(e){if(!P||P.live||["INPUT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();nextStep()}else if(e.key==="ArrowLeft")prevSlide()}
+function playerTick(){if(!P||P.wait)return;if(document.visibilityState!=="visible")return;const s=P.sl[P.cur];s.ms+=1000;P.totalMs+=1000;if(!s.seen&&s.ms>=SEEN_MS){s.seen=true;P.dirty=true;toast("✓ Đã học xong slide này");updHead()}updDw();
  if(P.dirty&&Date.now()-P.lastSave>30000)savePlayer()}
 function stats(){const n=P.n;let seen=0,qT=0,qOk=0,sc=0,qDone=0;P.sl.forEach(s=>{if(s.seen)seen++;if(s.it){qT++;if(s.ok)qOk++;if(s.ok||s.gave)qDone++;sc+=s.pts}});
  return{pct:Math.round(seen/n*100),qTotal:qT,qOk,qDone,score:sc,maxScore:qT*100}}
@@ -627,7 +683,7 @@ async function savePlayer(quiet){if(!P)return;const S=stats();if(!P.completedAt&
  const sl={};P.sl.forEach((s,i)=>{sl[i]={ms:s.ms,seen:s.seen,q:!!s.it,tries:s.tries,ok:s.ok,gave:s.gave,pts:s.pts}});
  const doc={uid:UID,name:ME.name,aid:P.a.id,classId:P.a.classId,startedAt:P.startedAt,lastAt:Date.now(),completedAt:P.completedAt||null,totalMs:P.totalMs,last:P.cur,slideCount:P.n,...S,slides:sl};
  P.dirty=false;P.lastSave=Date.now();try{await DB.set(`assignments/${P.a.id}/results/${UID}`,doc)}catch(e){P.dirty=true;if(!quiet)toast("Chưa lưu được kết quả: "+authErr(e))}}
-function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
+function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);if(P.unsub)P.unsub();document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
  if(!noSave){P=p;savePlayer(true).finally(()=>{P=null;if(ME&&ME.role==="student")studentHome()})}}
 ACT.pexit=()=>stopPlayer(false);
 function updHead(){if(!P)return;const S=stats(),e=$("phd");if(e)e.innerHTML=`<button data-act="pexit">← Thoát</button><b style="flex:none">${esc(P.a.title)}</b><div class="bar pb"><i style="width:${S.pct}%"></i></div><span class="dw">${S.pct}% đã học</span><span class="dw">Điểm ${S.score}/${S.maxScore}</span>`}
@@ -636,8 +692,9 @@ function draw(){const o=$("pl");if(!o||!P)return;const s=P.sl[P.cur],it=s.it,sol
  let ctl="";if(it&&!solved){if(it.kind==="mc")ctl=`<div class="opts" style="--n:${it.opts.length}">${it.opts.map((x,i)=>`<button class="o${i}${s.wrong.includes(i)?" x":""}" data-act="pick" data-i="${i}" ${s.wrong.includes(i)?"disabled":""}>${String.fromCharCode(65+i)}</button>`).join("")}</div>`;
   else ctl=`<div class="row" style="flex-wrap:nowrap"><input id="pans" placeholder="Nhập đáp án của em…" autocomplete="off" style="font-size:20px"><button data-act="psend">Gửi</button></div>`;
   if(s.tries>=2)ctl+=`<div style="text-align:center"><button class="sec sm" data-act="pgive" style="color:#fff;border-color:#fff8">Xem lời giải (không tính điểm)</button></div>`}
+ if(P.live&&P.wait){o.innerHTML=`<div class="hd" id="phd"></div><div class="stage"><div style="text-align:center;padding:24px"><div style="font-size:54px">${P.over?"👋":"⏳"}</div><h2 style="color:#fff">${P.over?"Buổi học đã kết thúc":"Đang chờ cô bắt đầu…"}</h2><p class="note" style="color:#cbd5e1">${P.over?"Em bấm Thoát để về trang chính.":"Cô chiếu là slide tự hiện ra, em cứ để màn hình này nhé."}</p></div></div>`;updHead();return}
  o.innerHTML=`<div class="hd" id="phd"></div><div class="stage"><div class="sld" id="psl">${slideHtml(P.cur,P.st)}</div></div><div class="ft">${ctl}<div class="msgl ${P.msgc||""}" id="pmsg">${esc(P.msg||"")}</div>
- <div class="nav"><button data-act="pprev" ${P.cur===0?"disabled":""}>◀ Trước</button><span class="dw" id="pdw"></span><span class="dw">Slide ${P.cur+1}/${P.n}</span><button class="go" data-act="pnext">${last&&P.st>=clicks(P.cur)?"Hoàn thành ✓":"Tiếp ▶"}</button></div></div>`;
+ ${P.live?`<div class="nav"><span class="dw" id="pdw"></span><span class="dw">Slide ${P.cur+1}/${P.n} · cô đang chiếu</span></div>`:`<div class="nav"><button data-act="pprev" ${P.cur===0?"disabled":""}>◀ Trước</button><span class="dw" id="pdw"></span><span class="dw">Slide ${P.cur+1}/${P.n}</span><button class="go" data-act="pnext">${last&&P.st>=clicks(P.cur)?"Hoàn thành ✓":"Tiếp ▶"}</button></div>`}</div>`;
  updHead();updDw();const inp=$("pans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.psend()};inp.focus()}}
 function say(m,c){P.msg=m;P.msgc=c||"";const e=$("pmsg");if(e){e.textContent=m;e.className="msgl "+(c||"")}}
 function answer(v){const s=P.sl[P.cur],it=s.it;if(!it||s.ok||s.gave)return;s.tries++;P.dirty=true;
@@ -647,12 +704,12 @@ function answer(v){const s=P.sl[P.cur],it=s.it;if(!it||s.ok||s.gave)return;s.tri
 ACT.pick=d=>answer(+d.i);ACT.psend=()=>{const i=$("pans");if(i&&i.value.trim())answer(i.value.trim());else if(i)say("Em nhập đáp án trước nhé.","no")};
 ACT.pgive=()=>{const s=P.sl[P.cur];s.gave=true;s.pts=0;P.st=clicks(P.cur);P.msg="Lời giải đã hiện, em xem kỹ nhé.";P.msgc="";P.dirty=true;draw();savePlayer(true)};
 function nextStep(){if(!P)return;if(P.st<clicks(P.cur)){P.st++;P.msg="";draw()}else if(P.cur<P.n-1){gotoSlide(P.cur+1)}else{toast("Em đã đến slide cuối.");stopPlayer(false)}}
-ACT.pnext=nextStep;ACT.pprev=()=>prevSlide();
+ACT.pnext=()=>{if(P&&!P.live)nextStep()};ACT.pprev=()=>{if(P&&!P.live)prevSlide()};
 function prevSlide(){if(P&&P.cur>0)gotoSlide(P.cur-1)}
 function gotoSlide(i){P.cur=i;const s=P.sl[i];P.st=(s.ok||s.gave)?clicks(i):0;P.msg="";P.msgc="";P.dirty=true;draw();savePlayer(true)}
 
 /* ===== Khởi động ===== */
 (function(){try{DB=window.__MOCK?window.__MOCK():fbAdapter()}catch(e){$("app").innerHTML='<div class="wrap narrow"><div class="panel"><b>Không tải được Firebase.</b><p class="note">'+esc(e.message)+'</p></div></div>';return}
  $("app").innerHTML='<div class="wrap narrow"><p class="note" style="text-align:center">Đang tải…</p></div>';DB.onAuth(boot)})();
-
+window.liveHost=true;window.liveJoin=true;
 </script></body></html>
