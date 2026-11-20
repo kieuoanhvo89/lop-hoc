@@ -557,7 +557,7 @@ async function boot(u){if(SIGNUP_BUSY)return;if(!u){UID=null;ME=null;(GL||GQ)?vi
  UID=u.uid;if(u.anon){if(!GL&&!GQ){await DB.signOut();return}ME={id:UID,role:"guest",name:localStorage.getItem("gname")||"Khách",classIds:[]};guestShell();return}
  try{ME=await DB.get("users/"+UID)}catch(e){ME=null}
  if(!ME){$("app").innerHTML='<div class="wrap narrow"><div class="panel"><b>Tài khoản chưa được xếp vào lớp.</b><p class="note">Em nhờ cô tạo tài khoản học sinh cho em nhé.</p><button data-act="logout">Đăng xuất</button></div></div>';return}
- if(ME.role==="teacher"){ME.email=ME.email||u.email||"";IS_ADMIN=!!u.email&&u.email.toLowerCase()===ADMIN_EMAIL;if(!IS_ADMIN&&!u.verified){VU=u;viewVerify();return}loadLic().then(teacherShell)}else studentShell()}
+ if(ME.role==="teacher"){ME.email=ME.email||u.email||"";IS_ADMIN=!!u.email&&u.email.toLowerCase()===ADMIN_EMAIL;if(!IS_ADMIN&&!u.verified){VU=u;viewVerify();return}loadLic().then(()=>{teacherShell();sendLic()})}else{studentShell();sendLic()}}
 
 /* ===== Lưu bài giảng lên mạng (cắt nhỏ) ===== */
 async function publishLesson(L,title,prog){const s=JSON.stringify(L),id=nid(),parts=[];for(let i=0;i<s.length;i+=CH)parts.push(s.slice(i,i+CH));
@@ -947,7 +947,7 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
  const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};qsTick()}
 
 /* ===== Giáo viên ===== */
-function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
+function teacherShell(){if(!AUTHREQ)pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
 function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
 /* ===== Báo cáo, biểu đồ & nhận xét ===== */
@@ -1088,7 +1088,14 @@ async function rsCharts(a,rows){const box=$("rch");if(!box)return;const R=rows.f
 
 /* ===== Dùng thử, nâng cấp, quản trị, góp ý, sao lưu ===== */
 const ADMIN_EMAIL="kieuoanhvo89@gmail.com";let VU=null;
-const BUILD="1795118176";
+const AUTHREQ=/[?&]auth=1(&|$)/.test(location.search)&&!!window.opener&&window.opener!==window;
+function sendLic(){if(!AUTHREQ||!ME)return;const t=ME.role==="teacher",s=t?licState():{ok:false};
+ const msg=!t?"Đây là tài khoản học sinh. Thầy/cô đăng nhập bằng tài khoản giáo viên nhé.":s.ok?"":"Tài khoản đã hết hạn dùng thử. Thầy/cô bấm “Nâng cấp” ở trang này; xong quay lại trình soạn.";
+ try{window.opener.postMessage({t:"lop-lic",ok:!!s.ok,plan:s.plan||(s.admin?"admin":""),until:s.until||0,msg},"*")}catch(e){}
+ let b=$("authnote");if(!b){b=document.createElement("div");b.id="authnote";b.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:98;padding:12px 16px;text-align:center;font-weight:700;color:#fff";document.body.appendChild(b)}
+ b.style.background=s.ok?"#1a9b4b":"#c98a00";b.textContent=s.ok?"✓ Đã xác thực cho trình soạn bài. Thầy/cô quay lại tab trình soạn nhé (tab này sẽ tự đóng).":"🔒 "+msg;
+ if(s.ok)setTimeout(()=>{try{window.close()}catch(e){}},1800)}
+const BUILD="1795138604";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
@@ -1140,7 +1147,7 @@ ACT.payshow=async d=>{let r=d.r;if(!r){r=await DB.get("payreqs/"+d.id).catch(()=
  <div class="row" style="align-items:flex-start;gap:18px;margin-top:10px"><img src="${qrUrl(r)}" alt="Mã QR chuyển khoản" style="width:260px;max-width:100%;border-radius:12px;background:#fff" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="note" style="display:none">Chưa tải được mã QR, thầy/cô chuyển khoản theo thông tin bên cạnh.</div>
  <div class="grow" style="min-width:220px;line-height:1.8"><div>Ngân hàng: <b>${esc((BANKS.find(b=>b[1]===CFG.bin)||[CFG.bin])[0])}</b></div><div>Số tài khoản: <b>${esc(CFG.acc)}</b></div><div>Chủ tài khoản: <b>${esc(CFG.accName||"")}</b></div><div>Số tiền: <b style="color:var(--ok)">${money(r.amount)}</b></div><div>Nội dung: <b style="font-size:18px">${esc(r.code)}</b></div>
  <p class="note">Quét mã QR bằng app ngân hàng, hoặc chuyển khoản đúng <b>số tiền</b> và <b>nội dung</b> như trên. Chuyển xong, thầy/cô chờ xác nhận – cửa sổ này sẽ tự báo khi tài khoản được nâng cấp.</p><p class="note" id="pst">⏳ Đang chờ xác nhận…</p></div></div>`);
- const un=DB.onDoc("payreqs/"+(d.id),async x=>{if(x&&x.status==="done"){un();await loadLic();licChip();o.remove();toast("🎉 Tài khoản đã được nâng cấp. Cảm ơn thầy/cô!")}else if(x&&x.status==="rejected"){un();const e=$("pst");if(e)e.textContent="Yêu cầu chưa được xác nhận. Thầy/cô liên hệ người quản trị nếu đã chuyển khoản."}},()=>{});
+ const un=DB.onDoc("payreqs/"+(d.id),async x=>{if(x&&x.status==="done"){un();await loadLic();licChip();sendLic();o.remove();toast("🎉 Tài khoản đã được nâng cấp. Cảm ơn thầy/cô!")}else if(x&&x.status==="rejected"){un();const e=$("pst");if(e)e.textContent="Yêu cầu chưa được xác nhận. Thầy/cô liên hệ người quản trị nếu đã chuyển khoản."}},()=>{});
  new MutationObserver((_,ob)=>{if(!document.body.contains(o)){try{un()}catch(e){}ob.disconnect()}}).observe(document.body,{childList:true})};
 
 /* ---------- Góp ý / báo lỗi ---------- */
