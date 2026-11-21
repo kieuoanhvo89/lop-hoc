@@ -54,7 +54,7 @@ th{font-size:13px;color:var(--mu);font-weight:700;white-space:nowrap}td.n,th.n{t
 #pl .hd button{padding:5px 10px;font-size:13px}#pl .pb{flex:1;max-width:360px}
 #pl .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;container-type:size}
 .slw{position:relative;width:min(100cqw,177.78cqh)}
-.slw .sld{width:100%;border-radius:8px;background:#fff}.slw svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.slw svg.on{pointer-events:auto;touch-action:none;cursor:crosshair}
+.vzb{display:none;position:absolute;transform:translate(-100%,-100%);margin:-.6cqw;background:var(--pr);color:#fff;font-weight:700;font-size:1.7cqw;padding:.5cqw 1.4cqw;border-radius:2cqw;cursor:pointer;z-index:3;box-shadow:0 .3cqw 1cqw #0006;white-space:nowrap}#psl .vzb{display:block}.slw .sld{width:100%;border-radius:8px;background:#fff}.slw svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.slw svg.on{pointer-events:auto;touch-action:none;cursor:crosshair}
 #pl .hd{flex-wrap:wrap}.tb{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:2px 12px 6px;font-size:13px}.tb button{padding:4px 9px;font-size:14px;background:#ffffff22;color:#fff;border:1px solid #ffffff33;border-radius:8px}.tb button.on{background:#2563eb;border-color:#93c5fd}.tb button:disabled{opacity:.35}
 .tb .cd{width:22px;height:22px;padding:0;border-radius:50%;border:2px solid #fff6}.tb .cd.on{border-color:#fff;box-shadow:0 0 0 2px #2563eb}.tb .sep{width:1px;height:22px;background:#fff4;margin:0 3px}
 #lbw{position:absolute;inset:0;background:#0b1020;z-index:7;overflow:auto;padding:12px 20px}.lbh{display:flex;align-items:center;gap:12px;margin-bottom:12px;position:sticky;top:0;background:#0b1020;padding:6px 0;flex-wrap:wrap}.lbr{display:flex;align-items:center;gap:14px;padding:10px 16px;margin:7px auto;max-width:900px;border-radius:14px;font-size:clamp(16px,2.6vw,30px);color:#fff}.lbr .rk{width:2.2em;text-align:center;font-weight:800}.lbr .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lbr .sc{font-weight:800;color:#fde68a;white-space:nowrap}.lbr.sm2{font-size:17px;background:#1e293b;padding:7px 12px;margin:5px 0}#lbs{position:fixed;inset:0;z-index:48;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px}#lbs .lbc{background:#111a33;color:#fff;border-radius:18px;padding:20px;max-width:420px;width:100%;text-align:center}
@@ -264,10 +264,158 @@ function figVenn(s) {
   return wrap(420, s.outside != null ? 265 : 240, b, s.title);
 }
 const FIGS = { tree: figTree, table: figTable, graph: figGraph, sticks: figSticks, grid: figGrid, geometry: figGeometry, boxes: figBoxes, numline: figNumline, venn: figVenn };
+/* 10. Đồ thị hàm số y = f(x) có tham số (a, b, …) — bộ tính biểu thức tự viết, không dùng eval */
+const FN_FUNCS = { sin: Math.sin, cos: Math.cos, tan: Math.tan, sqrt: Math.sqrt, abs: Math.abs, ln: Math.log, log: Math.log10, exp: Math.exp, cot: (v) => 1 / Math.tan(v) };
+function fnTokens(src) {
+  const s = String(src || "").replace(/\s+/g, "").replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/π/g, "pi").replace(/−/g, "-").replace(/²/g, "^2").replace(/³/g, "^3").replace(/,/g, ".").replace(/\*\*/g, "^").replace(/^y=/i, "").replace(/^f\(x\)=/i, "");
+  const t = []; let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/[0-9.]/.test(c)) { let j = i; while (j < s.length && /[0-9.]/.test(s[j])) j++; const n = parseFloat(s.slice(i, j)); if (!isFinite(n)) throw new Error("Số không đúng"); t.push({ n }); i = j; }
+    else if (/[a-zA-Z]/.test(c)) { let j = i; while (j < s.length && /[a-zA-Z]/.test(s[j])) j++; t.push({ w: s.slice(i, j) }); i = j; }
+    else if ("+-*/^()".includes(c)) { t.push({ o: c }); i++; }
+    else throw new Error("Ký tự lạ: " + c);
+  }
+  return t;
+}
+/* trả về { f(x,P), ids:[tên tham số] } ; declared = các chữ được coi là tham số (kể cả e nếu có khai báo) */
+function fnCompile(src, declared) {
+  const T = fnTokens(src); if (!T.length) throw new Error("Chưa nhập biểu thức"); let p = 0; const ids = new Set(); const dec = new Set(declared || []);
+  const peek = () => T[p];
+  const isStart = (t) => t && (t.n != null || t.w != null || t.o === "(");
+  const expr = () => { let a = term(); for (;;) { const t = peek(); if (t && (t.o === "+" || t.o === "-")) { p++; const b = term(), l = a; a = t.o === "+" ? (x, P) => l(x, P) + b(x, P) : (x, P) => l(x, P) - b(x, P); } else return a; } };
+  const term = () => { let a = unary(); for (;;) { const t = peek(); if (t && (t.o === "*" || t.o === "/")) { p++; const b = unary(), l = a; a = t.o === "*" ? (x, P) => l(x, P) * b(x, P) : (x, P) => l(x, P) / b(x, P); } else if (isStart(t)) { const b = unary(), l = a; a = (x, P) => l(x, P) * b(x, P); } else return a; } };
+  const unary = () => { const t = peek(); if (t && t.o === "-") { p++; const a = unary(); return (x, P) => -a(x, P); } if (t && t.o === "+") { p++; return unary(); } return pw(); };
+  const pw = () => { const a = atom(); const t = peek(); if (t && t.o === "^") { p++; const b = unary(); return (x, P) => Math.pow(a(x, P), b(x, P)); } return a; };
+  const letter = (c) => { if (c === "x") return (x) => x; if (c === "e" && !dec.has("e")) return () => Math.E; ids.add(c); return (x, P) => P[c]; };
+  const atom = () => {
+    const t = T[p++]; if (!t) throw new Error("Biểu thức chưa đầy đủ");
+    if (t.n != null) return () => t.n;
+    if (t.o === "(") { const a = expr(); if (!T[p] || T[p].o !== ")") throw new Error("Thiếu dấu )"); p++; return a; }
+    if (t.w != null) {
+      const w = t.w;
+      if (FN_FUNCS[w.toLowerCase()] && peek() && peek().o === "(") { p++; const a = expr(); if (!T[p] || T[p].o !== ")") throw new Error("Thiếu dấu )"); p++; const fn = FN_FUNCS[w.toLowerCase()]; return (x, P) => fn(a(x, P)); }
+      if (FN_FUNCS[w.toLowerCase()]) throw new Error("Hãy viết " + w + "(…) có ngoặc");
+      if (w.toLowerCase() === "pi") return () => Math.PI;
+      if (w.length > 1 && /^(sin|cos|tan|cot|sqrt|abs|ln|log|exp)/i.test(w)) throw new Error("Hãy viết hàm có ngoặc, ví dụ sin(x), sqrt(x)");
+      let r = null; for (const c of w) { const g = letter(c); r = r ? ((l, h) => (x, P) => l(x, P) * h(x, P))(r, g) : g; } return r;
+    }
+    throw new Error("Biểu thức chưa đúng");
+  };
+  const f = expr(); if (p < T.length) throw new Error("Biểu thức chưa đúng gần “" + (T[p].o || T[p].w || T[p].n) + "”");
+  return { f, ids: [...ids].sort() };
+}
+const fnFmt = (v) => String(+(+v).toFixed(2)).replace(".", ",").replace("-", "−");
+const SUPD = { 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+function fnPretty(src, P) {
+  let T; try { T = fnTokens(src); } catch (e) { return String(src); } let out = "", skipStar = false;
+  for (let k = 0; k < T.length; k++) {
+    const t = T[k];
+    if (t.n != null) out += fnFmt(t.n);
+    else if (t.o === "*") { if (skipStar) skipStar = false; else out += "·"; }
+    else if (t.o === "^" && T[k + 1] && T[k + 1].n != null && /^\d{1,3}$/.test(String(T[k + 1].n))) { out += String(T[k + 1].n).split("").map((d) => SUPD[d]).join(""); k++; }
+    else if (t.o === "-") out += "−";
+    else if (t.o) out += t.o;
+    else {
+      const w = t.w, nxt = T[k + 1];
+      if (FN_FUNCS[w.toLowerCase()] || w.toLowerCase() === "pi") { out += w.toLowerCase() === "pi" ? "π" : w; continue; }
+      let seg = ""; [...w].forEach((c, ci) => {
+        if (c !== "x" && !(c === "e" && !(P && "e" in P)) && P && c in P) {
+          let v = +P[c]; const star = ci === w.length - 1 && nxt && nxt.o === "*", more = ci < w.length - 1 || (nxt && (nxt.o === "(" || nxt.o === "*"));
+          if (v < 0 && seg === "" && out.endsWith("+")) { out = out.slice(0, -1) + "−"; v = -v; }
+          if (v === 0 && seg === "" && /[+−]$/.test(out) && (!nxt || nxt.o === "+" || nxt.o === "-" || nxt.o === ")")) { out = out.slice(0, -1); }
+          else if (v === 1 && more && !/[0-9]$/.test(out + seg)) { seg += ""; if (star) skipStar = true; } else if (v === -1 && more) { seg += "−"; if (star) skipStar = true; } else { seg += v < 0 && (out + seg) ? "(" + fnFmt(v) + ")" : fnFmt(v); if (star && T[k + 2] && (T[k + 2].w != null || T[k + 2].o === "(")) skipStar = true; }
+        } else seg += c;
+      }); out += seg;
+    }
+  }
+  return out;
+}
+let FN_UID = 0;
+function niceStep(range, target) { const raw = range / target, m = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; }
+const FN_COL = ["#2F80ED", "#EB5757", "#27AE60", "#9B51E0"];
+function funcPrep(s) {
+  const fns = arr(s.fns, []).filter((f) => f && String(f.e || "").trim()).slice(0, 4); if (!fns.length) throw new Error("no fn");
+  const decl = Object.keys(s.params || {}); const comp = fns.map((f) => fnCompile(f.e, decl)); const ids = [...new Set(comp.flatMap((c) => c.ids))].sort();
+  const P = {}; ids.forEach((k) => { const d = (s.params || {})[k] || {}; P[k] = num((s.pv || {})[k], num(d.v, 1)); });
+  return { fns, comp, ids, P };
+}
+function funcAnalyze(f, P, xmin, xmax) {
+  const N = 600, xs = [], ys = []; for (let i = 0; i <= N; i++) { const x = xmin + (xmax - xmin) * i / N; xs.push(x); let y; try { y = f(x, P); } catch (e) { y = NaN; } ys.push(isFinite(y) ? y : NaN); }
+  const roots = [], ext = [];
+  for (let i = 1; i <= N; i++) {
+    const y0 = ys[i - 1], y1 = ys[i]; if (isNaN(y0) || isNaN(y1)) continue;
+    if (y0 === 0 && roots.length < 6) roots.push(xs[i - 1]);
+    else if (y0 * y1 < 0 && Math.abs(y0) + Math.abs(y1) < 1e3 && roots.length < 6) { let a = xs[i - 1], b = xs[i]; for (let k = 0; k < 40; k++) { const m = (a + b) / 2, ym = f(m, P); if ((f(a, P) < 0) === (ym < 0)) a = m; else b = m; } roots.push((a + b) / 2); }
+    if (i < N && !isNaN(ys[i + 1])) { const d0 = y1 - y0, d1 = ys[i + 1] - y1; if (d0 * d1 < 0 && Math.abs(d0) < 50 && ext.length < 4) ext.push([xs[i], y1]); }
+  }
+  return { roots, ext };
+}
+function figFunc(s) {
+  const { fns, comp, ids, P } = funcPrep(s);
+  let [x0, x1, y0, y1] = arr(s.win, [-6, 6, -6, 6]).map((v, i) => num(v, [-6, 6, -6, 6][i]));
+  if (!(x1 > x0)) x1 = x0 + 1; if (!(y1 > y0)) y1 = y0 + 1;
+  const xr = x1 - x0, yr = y1 - y0, PW = 540, PH = Math.max(240, Math.min(520, Math.round(PW * yr / xr))), ml = 40, mt = 12, mr = 16, mb = 30, W = PW + ml + mr, H = PH + mt + mb;
+  const X = (v) => ml + (v - x0) / xr * PW, Y = (v) => mt + (y1 - v) / yr * PH, id = "fn" + (++FN_UID);
+  let b = `<defs><clipPath id="${id}"><rect x="${ml}" y="${mt}" width="${PW}" height="${PH}"/></clipPath></defs>`;
+  const sx = niceStep(xr, 12), sy = niceStep(yr, 10); let g = "", tk = "";
+  const ax = (y0 <= 0 && y1 >= 0) ? Y(0) : (y1 < 0 ? mt : mt + PH), ay = (x0 <= 0 && x1 >= 0) ? X(0) : (x1 < 0 ? ml + PW : ml);
+  for (let v = Math.ceil(x0 / sx) * sx; v <= x1 + 1e-9; v += sx) { const px = X(v); if (s.grid !== false) g += `<line x1="${px}" y1="${mt}" x2="${px}" y2="${mt + PH}" stroke="#DCE3EE" stroke-width="1"/>`; if (Math.abs(v) > 1e-9) tk += txt(px, ax + (ax > mt + PH - 18 ? -12 : 12), fnFmt(v), { fs: 12, c: "#5d6b82" }); }
+  for (let v = Math.ceil(y0 / sy) * sy; v <= y1 + 1e-9; v += sy) { const py = Y(v); if (s.grid !== false) g += `<line x1="${ml}" y1="${py}" x2="${ml + PW}" y2="${py}" stroke="#DCE3EE" stroke-width="1"/>`; if (Math.abs(v) > 1e-9) tk += txt(ay + (ay < ml + 20 ? -0 : 0) - (ay < ml + 22 ? 0 : 0) + (ay <= ml + 1 ? -14 : -14), py, fnFmt(v), { fs: 12, c: "#5d6b82", a: "end" }); }
+  b += `<g clip-path="url(#${id})">${g}</g><rect x="${ml}" y="${mt}" width="${PW}" height="${PH}" fill="none" stroke="#C9D3E3"/>`;
+  b += `<line x1="${ml}" y1="${ax}" x2="${ml + PW}" y2="${ax}" stroke="${FC.ink}" stroke-width="2"/><line x1="${ay}" y1="${mt + PH}" x2="${ay}" y2="${mt}" stroke="${FC.ink}" stroke-width="2"/>`;
+  b += `<path d="M${ml + PW - 9} ${ax - 5}L${ml + PW + 1} ${ax}L${ml + PW - 9} ${ax + 5}z" fill="${FC.ink}"/><path d="M${ay - 5} ${mt + 9}L${ay} ${mt - 1}L${ay + 5} ${mt + 9}z" fill="${FC.ink}"/>` + txt(ml + PW - 6, ax - 12, "x", { fs: 15, b: 1, a: "end" }) + txt(ay + 12, mt + 8, "y", { fs: 15, b: 1, a: "start" }) + txt(ay - 9, ax + 11, "O", { fs: 12, c: "#5d6b82" }) + tk;
+  let cur = "", leg = "", marks = "";
+  comp.forEach((c, k) => {
+    const col = fns[k].color || FN_COL[k % 4]; let d = "", pen = false, prev = null; const N = 700;
+    for (let i = 0; i <= N; i++) { const x = x0 + xr * i / N; let y; try { y = c.f(x, P); } catch (e) { y = NaN; } if (!isFinite(y) || Math.abs(y) > yr * 40) { pen = false; prev = null; continue; }
+      if (prev !== null && Math.abs(y - prev) > yr * 1.5) pen = false; d += (pen ? "L" : "M") + X(x).toFixed(1) + " " + Y(y).toFixed(1); pen = true; prev = y; }
+    cur += `<path d="${d}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const label = fns[k].label || ("y = " + fnPretty(fns[k].e, P)); leg += `<rect x="${ml + 8}" y="${mt + 8 + k * 22}" width="14" height="4" rx="2" fill="${col}"/>` + txt(ml + 28, mt + 10 + k * 22, label, { fs: 14, b: 1, c: col, a: "start" });
+    if (s.vertex || s.roots) { const an = funcAnalyze(c.f, P, x0, x1); const pt = (x, y, t) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; marks += `<circle cx="${X(x)}" cy="${Y(y)}" r="5" fill="#fff" stroke="${col}" stroke-width="2.5"/>` + txt(X(x) + 8, Y(y) - 12, t, { fs: 12, b: 1, c: col, a: "start" }); };
+      if (s.vertex) an.ext.forEach(([x, y]) => pt(x, y, "(" + fnFmt(x) + "; " + fnFmt(y) + ")")); if (s.roots) an.roots.forEach((x) => pt(x, 0, "x=" + fnFmt(x))); }
+  });
+  b += `<g clip-path="url(#${id})">${cur}</g>` + marks + leg;
+  return wrap(W, H, b, s.title);
+}
+FIGS.func = figFunc;
+
+
+/* ===== Hình tương tác: đồ thị kéo thanh trượt (dùng chung cho trình soạn và Lớp học) ===== */
+const vizOn = (f) => !!f && f.type === "func";
+function vizMount(box, spec) {
+  box.innerHTML = ""; box.classList.add("vzbox");
+  let pr; try { pr = funcPrep(spec); } catch (e) { box.innerHTML = '<div style="padding:14px;color:#c0392b">Chưa vẽ được: ' + fx(e.message === "no fn" ? "chưa có hàm số" : e.message) + "</div>"; return { redraw() {} }; }
+  const st = { pv: { ...pr.P }, vertex: !!spec.vertex, roots: !!spec.roots, grid: spec.grid !== false };
+  const svg = document.createElement("div"); svg.className = "vzsvg"; svg.style.cssText = "background:#fff;border-radius:10px;border:1px solid #dbe2ee;padding:4px;text-align:center";
+  const ctl = document.createElement("div"); ctl.className = "vzctl"; ctl.style.cssText = "margin-top:10px;display:grid;gap:8px";
+  const draw = () => { try { svg.innerHTML = figFunc({ ...spec, pv: st.pv, vertex: st.vertex, roots: st.roots, grid: st.grid }).svg; const s = svg.querySelector("svg"); if (s) { s.removeAttribute("width"); s.removeAttribute("height"); s.style.cssText = "max-width:100%;width:auto;height:min(56vh,640px)"; } } catch (e) { svg.textContent = "Không vẽ được: " + e.message; } };
+  pr.ids.forEach((k) => {
+    const d = (spec.params || {})[k] || {}, mn = num(d.min, -5), mx = num(d.max, 5), stp = num(d.step, 0.5), row = document.createElement("div");
+    row.style.cssText = "display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center";
+    const lab = document.createElement("b"); lab.style.cssText = "font-size:17px;color:#183F69;white-space:nowrap"; const rng = document.createElement("input"); rng.type = "range"; rng.min = mn; rng.max = mx; rng.step = stp; rng.value = st.pv[k]; rng.style.cssText = "width:100%;height:28px";
+    const sh = () => { lab.textContent = k + " = " + fnFmt(st.pv[k]); }; sh();
+    rng.oninput = () => { st.pv[k] = +rng.value; sh(); draw(); }; row.append(lab, rng); ctl.appendChild(row);
+  });
+  const opt = document.createElement("div"); opt.style.cssText = "display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:15px";
+  [["vertex", "Hiện đỉnh / cực trị"], ["roots", "Hiện giao điểm với trục Ox"], ["grid", "Lưới"]].forEach(([k, t]) => { const l = document.createElement("label"), c = document.createElement("input"); c.type = "checkbox"; c.checked = st[k]; c.style.cssText = "width:auto;margin-right:6px"; c.onchange = () => { st[k] = c.checked; draw(); }; l.append(c, t); opt.appendChild(l); });
+  const rs = document.createElement("button"); rs.textContent = "↺ Về giá trị ban đầu"; rs.style.cssText = "padding:5px 12px;border-radius:8px;border:1px solid #1f6feb;background:transparent;color:#1f6feb;font-weight:600;cursor:pointer"; rs.onclick = () => { st.pv = { ...pr.P }; ctl.querySelectorAll("input[type=range]").forEach((r, i) => { r.value = st.pv[pr.ids[i]]; r.oninput(); }); };
+  opt.appendChild(rs); ctl.appendChild(opt); box.append(svg, ctl); draw();
+  return { redraw: draw };
+}
+function vizModal(spec, title) {
+  const o = document.createElement("div"); o.className = "vzov"; o.style.cssText = "position:fixed;inset:0;z-index:95;background:#000c;overflow:auto;padding:12px";
+  const bx = document.createElement("div"); bx.style.cssText = "max-width:1000px;margin:0 auto;background:var(--card,#fff);color:var(--tx,#1b2433);border-radius:14px;padding:14px;border:1px solid var(--bd,#dbe2ee)";
+  const hd = document.createElement("div"); hd.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:8px"; hd.innerHTML = '<b style="flex:1;font-size:18px"></b>'; hd.firstChild.textContent = "🎛 " + (title || "Hình tương tác");
+  const x = document.createElement("button"); x.textContent = "✕ Đóng"; x.style.cssText = "padding:6px 14px;border-radius:9px;border:1px solid #1f6feb;background:transparent;color:#1f6feb;font-weight:600;cursor:pointer"; hd.appendChild(x);
+  const m = document.createElement("div"); bx.append(hd, m); o.appendChild(bx); document.body.appendChild(o); vizMount(m, spec);
+  const cl = () => o.remove(); x.onclick = cl; o.addEventListener("click", (e) => { if (e.target === o) cl(); }); return o;
+}
+
 function renderFigure(spec) {
   try { const f = FIGS[spec && spec.type]; if (!f) return null; const r = f(spec); return { svg: r.svg, ratio: r.w / r.h }; } catch (e) { return null; }
 }
-if (false && typeof module !== "undefined") module.exports = { renderFigure, FIGS };
+if (false && typeof module !== "undefined") module.exports = { renderFigure, FIGS, fnCompile, fnPretty, funcPrep };
 /* ====== Thư viện dựng bài giảng: bố cục dùng chung cho xem trước và .pptx ====== */
 const SW = 10, SH = 5.625;
 const THEMES = {
@@ -607,10 +755,12 @@ function visualOf(s){const m=(LESSON.form&&LESSON.form.img)||"both",pick=s.pick,
  if(m!=="graphic"&&s.img&&di(s.img))return{src:di(s.img).src,ratio:di(s.img).w/di(s.img).h};
  if(m!=="doc"&&s.fig){const f=renderFigure(s.fig);if(f)return{src:svgUri(f.svg),ratio:f.ratio}}
  if(m!=="doc"&&s.svg&&/<svg/i.test(s.svg))return{src:svgUri(s.svg),ratio:svgRatio(s.svg)};return null}
+const vzOn=s=>{if(!s||!s.fig||!vizOn(s.fig)||s.pick==="none"||s.pick==="svg")return false;if(s.pick&&(LESSON.docImgs||[]).find(x=>x.id===s.pick))return false;return true};
+ACT.vzopen=d=>{const s=LESSON&&LESSON.slides[+d.i];if(s&&s.fig)vizModal(s.fig,s.title)};
 function slideHtml(i,stp){const s=LESSON.slides[i],th=THEMES[STY]||THEMES.sang;let h=`<div style="position:absolute;inset:0;background:#${th.bg};display:block"></div>`;
  for(const o of layoutSlide({...s,visual:visualOf(s)},th,{idx:i,total:LESSON.slides.length,logo:slideBrand().logo,brand:slideBrand().name})){if(o.fb!=null)continue;const hide=o.step>=stp&&o.step>=0;
   let css=`left:${o.x/SW*100}%;top:${o.y/SH*100}%;width:${o.w/SW*100}%;height:${o.h/SH*100}%;`;
-  if(o.k==="img"){h+=`<img class="${hide?"h":""}" src="${o.src}" style="${css}${o.round?"border-radius:50%;":""}">`;continue}
+  if(o.k==="img"){h+=`<img class="${hide?"h":""}" src="${o.src}" style="${css}${o.round?"border-radius:50%;":""}">`;if(o.name==="hinh"&&vzOn(s))h+=`<div class="vzb" data-act="vzopen" data-i="${i}" style="left:${(o.x+o.w)/SW*100}%;top:${(o.y+o.h)/SH*100}%">🎛 Chạm để kéo thanh trượt</div>`;continue}
   if(o.fill)css+=`background:#${o.fill};`;if(o.line)css+=`border:${(o.lw||1)*K}cqw solid #${o.line};`;if(o.k==="ellipse")css+="border-radius:50%;";if(o.k==="round")css+="border-radius:1.2cqw;";
   if(o.text!=null){css+=`font-size:${o.fs*K}cqw;color:#${o.c};font-weight:${o.b?700:400};justify-content:${o.al==="c"?"center":o.al==="r"?"flex-end":"flex-start"};align-items:${o.va==="m"?"center":"flex-start"};text-align:${o.al==="c"?"center":o.al==="r"?"right":"left"};`;css+=o.k==="text"?"padding:0;":`padding:${4*K}cqw ${(o.mr||7)*K}cqw ${4*K}cqw ${7*K}cqw;`}
   h+=`<div class="${hide?"h":""}" style="${css}">${o.text!=null?`<span style="display:block;width:100%">${esc(o.text)}</span>`:""}</div>`}
@@ -1329,7 +1479,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795283086";
+const BUILD="1795284833";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
