@@ -14,7 +14,7 @@ service cloud.firestore {
     function isMyStu(sid) { return signed() && get(/databases/$(db)/documents/users/$(sid)).data.teacherId == request.auth.uid; }
     function grp(g) { return get(/databases/$(db)/documents/groups/$(g)).data; }
     function gMem(g) { return signed() && (grp(g).teacherId == request.auth.uid || request.auth.uid in grp(g).members); }
-    function okMsg() { return request.resource.data.keys().hasOnly(['from','name','text','at']) && request.resource.data.from == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000 && request.resource.data.at is int; }
+    function okMsg() { return request.resource.data.keys().hasOnly(['from','name','text','at','a']) && request.resource.data.from == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() <= 1000 && (request.resource.data.text.size() > 0 || ('a' in request.resource.data)) && request.resource.data.at is int && (!('a' in request.resource.data) || (request.resource.data.a.keys().hasOnly(['n','t','s','d']) && request.resource.data.a.n is string && request.resource.data.a.n.size() <= 120 && request.resource.data.a.d is string && request.resource.data.a.d.size() <= 800000)); }
     match /users/{uid} {
       allow read: if signed() && (request.auth.uid == uid || resource.data.teacherId == request.auth.uid);
       allow create: if signed() && ((request.auth.uid == uid && request.resource.data.role == 'teacher' && request.resource.data.teacherId == uid) || (isTeacher() && request.resource.data.role == 'student' && request.resource.data.teacherId == request.auth.uid));
@@ -79,6 +79,11 @@ service cloud.firestore {
       allow read: if signed() && (isAdmin() || resource.data.tid == request.auth.uid);
       allow create: if isTeacher() && request.resource.data.tid == request.auth.uid;
       allow update, delete: if isAdmin();
+      match /att/{k} {
+        allow read: if signed() && (isAdmin() || get(/databases/$(db)/documents/feedback/$(id)).data.tid == request.auth.uid);
+        allow create: if isTeacher() && get(/databases/$(db)/documents/feedback/$(id)).data.tid == request.auth.uid && request.resource.data.keys().hasOnly(['n','t','s','d']) && request.resource.data.d is string && request.resource.data.d.size() <= 800000;
+        allow update, delete: if isAdmin();
+      }
     }
     match /config/{id} {
       allow read: if signed();
