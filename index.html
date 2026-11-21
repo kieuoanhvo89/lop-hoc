@@ -30,6 +30,19 @@ th{font-size:13px;color:var(--mu);font-weight:700;white-space:nowrap}td.n,th.n{t
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
 .ov{position:fixed;inset:0;background:#000a;z-index:50;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
 .ov .box{background:var(--card);border-radius:16px;padding:18px;width:min(720px,100%);border:1px solid var(--bd)}
+.cbd{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--no);color:#fff;font-size:11px;font-weight:700;text-align:center;padding:0 5px;margin-left:5px}
+.chw{display:flex;border:1px solid var(--bd);border-radius:16px;background:var(--card);overflow:hidden;height:min(640px,calc(100vh - 170px));min-height:420px}
+.chl{width:290px;flex:none;border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}#cflt{padding:8px}.cli{overflow:auto;flex:1;padding:0 6px 8px}
+.cgh{font-weight:700;font-size:13px;color:var(--mu);margin:10px 6px 4px}
+.ci{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:11px;cursor:pointer}.ci:hover{background:var(--bg)}.ci.on{background:#1f6feb22}.ci.un b{color:var(--pr)}.cpv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdot{width:10px;height:10px;border-radius:50%;background:var(--no);flex:none}
+.cht{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}.chh{padding:10px 14px;border-bottom:1px solid var(--bd)}.cback{display:none}
+.cms{flex:1;overflow:auto;padding:12px 14px;background:var(--bg)}.cdy{text-align:center;font-size:12px;color:var(--mu);margin:10px 0 6px}
+.cm{display:flex;margin:5px 0}.cm.me{justify-content:flex-end}.cb{max-width:78%;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:7px 12px;word-break:break-word}.cm.me .cb{background:#1f6feb22;border-color:#1f6feb55}
+.cn{font-size:12px;color:var(--mu)}.ct2{font-size:11px;color:var(--mu);text-align:right;margin-top:2px}
+.ccomp{display:flex;gap:8px;padding:10px;border-top:1px solid var(--bd);align-items:flex-end}.ccomp textarea{resize:none;min-height:0;height:52px}
+.chov{position:fixed;inset:0;background:#000a;z-index:60;padding:14px;overflow:auto}.chop{background:var(--card);border-radius:16px;padding:14px;max-width:960px;margin:0 auto;border:1px solid var(--bd)}.chov .chw{height:min(640px,calc(100vh - 110px))}
+@media(max-width:760px){.chl{width:100%;border-right:0}.cht{display:none}.chw.ths .chl{display:none}.chw.ths .cht{display:flex}.cback{display:inline-block}}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111c;color:#fff;border-radius:12px;padding:10px 16px;z-index:99;display:none;max-width:90vw}
 /* slide */
 .sld{container-type:inline-size;position:relative;aspect-ratio:16/9;overflow:hidden;font-family:Arial,sans-serif}
@@ -558,7 +571,7 @@ ACT.tback=viewLogin;
 ACT.tsign2=async()=>{const n=$("sn").value.trim(),e=$("se").value.trim().toLowerCase(),p=$("spw").value;if(!n||!e.includes("@")||p.length<6){$("smsg").textContent="Nhập đủ họ tên, email, mật khẩu (≥ 6 ký tự).";return}
  $("sgo").disabled=true;SIGNUP_BUSY=true;try{const uid=await DB.signUp(e,p);UID=uid;ME={id:uid,role:"teacher",name:n,teacherId:uid,classIds:[],createdAt:Date.now()};ME.email=e;await DB.set("users/"+uid,ME);SIGNUP_BUSY=false;boot({uid,email:e,verified:await DB.isVerified()})}
  catch(er){SIGNUP_BUSY=false;$("smsg").textContent=authErr(er);$("sgo").disabled=false}};
-ACT.logout=async()=>{stopPlayer(true);stopQS();await DB.signOut()};
+ACT.logout=async()=>{stopPlayer(true);stopQS();stopChat();await DB.signOut()};
 const GL=new URLSearchParams(location.search).get("live");let GLDONE=false;
 const liveLink=aid=>location.href.split("?")[0].split("#")[0]+"?live="+aid+(UID&&ME&&ME.role==="teacher"?"&t="+UID:"");
 function viewGuest(){$("app").innerHTML=`<div class="wrap narrow"><div style="text-align:center">${logoImg().replace('<img','<img style="width:92px;height:92px;border-radius:50%"')}<h1>${GQ?"Vào thi đấu Quiz":"Vào học trực tiếp"}</h1><p class="sub">${esc(BRAND&&BRAND.n||"")}</p></div>
@@ -1034,9 +1047,110 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
  const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};if(rev)qsBoard();qsTick()}
 
 /* ===== Giáo viên ===== */
-function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
-function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
+function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab);watchChat()}
+function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"],["chat","💬 Trò chuyện"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("");chatTick()}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
+/* ===== Trò chuyện (cô ↔ từng em) và nhóm làm nhiệm vụ có thời hạn ===== */
+const CHS={chats:{},groups:[],doc:null,cur:null,un:[],tm:0,msgs:[],unMsg:null,filter:"",cf:"",open:false,stu:[],cls:[],cleaning:{},i1:false,i2:false,lastSend:0};
+const seenK=k=>"cs_"+UID+"_"+k,seenGet=k=>+(localStorage.getItem(seenK(k))||0);
+const seenSet=(k,t)=>{try{localStorage.setItem(seenK(k),String(t))}catch(e){}};
+const isT=()=>!!ME&&ME.role==="teacher",tchId=()=>isT()?UID:(ME&&ME.teacherId);
+const gLive=g=>(g.expiresAt||0)>Date.now();
+const unreadOf=(k,o)=>!!o&&(o.lastAt||0)>seenGet(k)&&!!o.lastBy&&o.lastBy!==UID;
+const thPath=k=>k[0]==="d"?`chats/${k.slice(2)}/msgs`:`groups/${k.slice(2)}/msgs`;
+const thObj=k=>k[0]==="d"?(isT()?CHS.chats[k.slice(2)]:CHS.doc):CHS.groups.find(g=>g.id===k.slice(2));
+function fmtLeft(ms){if(ms<=0)return "đã hết";const m=Math.floor(ms/6e4),d=Math.floor(m/1440),h=Math.floor((m%1440)/60);if(d>=1)return d+" ngày "+h+" giờ";if(m>=60)return h+" giờ "+(m%60)+" phút";return m>=1?m+" phút":"dưới 1 phút"}
+function chatUnread(){let n=0;if(isT()){Object.values(CHS.chats).forEach(c=>{if(unreadOf("d_"+(c.studentId||c.id),c))n++})}else if(CHS.doc&&unreadOf("d_"+UID,CHS.doc))n++;CHS.groups.filter(gLive).forEach(g=>{if(unreadOf("g_"+g.id,g))n++});return n}
+function stopChat(){CHS.un.forEach(f=>{try{f()}catch(e){}});CHS.un=[];if(CHS.unMsg){CHS.unMsg();CHS.unMsg=null}clearInterval(CHS.tm);CHS.chats={};CHS.groups=[];CHS.doc=null;CHS.cur=null;CHS.open=false;CHS.i1=CHS.i2=false;const o=$("chov");if(o)o.remove()}
+function chatPing(k,o,old,title){if(!o||!o.lastBy||o.lastBy===UID||(o.lastAt||0)<=((old&&old.lastAt)||0))return;if(CHS.open&&CHS.cur&&CHS.cur.k===k&&document.visibilityState==="visible")return;toast("💬 "+title+": "+cut(o.last,40))}
+function watchChat(){stopChat();
+ if(isT()){
+  CHS.un.push(DB.onList("chats",[["teacherId","==",UID]],l=>{const old=CHS.chats;CHS.chats={};l.forEach(c=>CHS.chats[c.studentId||c.id]=c);if(CHS.i1)l.forEach(c=>{const s=c.studentId||c.id;chatPing("d_"+s,c,old[s],c.name||"Học sinh")});CHS.i1=true;chatTick()},()=>{}));
+  CHS.un.push(DB.onList("groups",[["teacherId","==",UID]],l=>{const old=CHS.groups;CHS.groups=l;if(CHS.i2)l.forEach(g=>chatPing("g_"+g.id,g,old.find(x=>x.id===g.id),"Nhóm "+g.name));CHS.i2=true;l.filter(g=>!gLive(g)).forEach(dissolveGroup);chatTick()},()=>{}))
+ }else{
+  CHS.un.push(DB.onDoc("chats/"+UID,d=>{const old=CHS.doc;CHS.doc=d;if(CHS.i1)chatPing("d_"+UID,d,old,"Giáo viên");CHS.i1=true;chatTick()},()=>{}));
+  CHS.un.push(DB.onList("groups",[["members","array-contains",UID]],l=>{const old=CHS.groups;CHS.groups=l;if(CHS.i2)l.forEach(g=>{if(gLive(g))chatPing("g_"+g.id,g,old.find(x=>x.id===g.id),"Nhóm "+g.name)});CHS.i2=true;chatTick()},()=>{}))
+ }
+ CHS.tm=setInterval(chatTick,15000)}
+async function dissolveGroup(g){if(!isT()||CHS.cleaning[g.id])return;CHS.cleaning[g.id]=1;try{const ms=await DB.list(`groups/${g.id}/msgs`);for(let i=0;i<ms.length;i+=20)await Promise.all(ms.slice(i,i+20).map(m=>DB.del(`groups/${g.id}/msgs/${m.id}`)));await DB.del("groups/"+g.id)}catch(e){delete CHS.cleaning[g.id]}}
+function chatTick(){
+ const n=chatUnread(),b=$("chbd");if(b){b.textContent=n||"";b.style.display=n?"inline-block":"none"}
+ const tb=document.querySelector('#tabs [data-t="chat"] .cbd');if(isT()&&$("tabs")){const bt=document.querySelector('#tabs [data-t="chat"]');if(bt){let s=bt.querySelector(".cbd");if(n){if(!s){s=document.createElement("span");s.className="cbd";bt.appendChild(s)}s.textContent=n}else if(s)s.remove()}}
+ if(CHS.cur&&CHS.cur.k[0]==="g"){const g=thObj(CHS.cur.k);if(!g||!gLive(g)){const was=CHS.cur.k;chatClose();if(CHS.open){toast("Nhóm đã hết thời gian hoặc đã được giải tán.");if(!isT()&&innerWidth>760)chatOpen("d_"+UID)}}}
+ if(CHS.open&&$("chw"))chatDraw()}
+function chatClose(){CHS.cur=null;if(CHS.unMsg){CHS.unMsg();CHS.unMsg=null}CHS.msgs=[]}
+function chatMount(root){root.innerHTML=`<div class="chw" id="chw"><div class="chl"><div id="cflt"></div><div id="cl" class="cli"></div></div><div class="cht"><div id="chh" class="chh"></div><div id="cmsgs" class="cms"></div><div id="ccomp" class="ccomp"><textarea id="cmi" rows="2" maxlength="1000" placeholder="Nhập tin nhắn… (Enter để gửi, Shift+Enter xuống dòng)"></textarea><button data-act="csend">Gửi</button></div></div></div>`;
+ CHS.open=true;if(isT()){$("cflt").innerHTML=`<div class="row" style="flex-wrap:nowrap"><input id="cq" placeholder="Tìm học sinh…" value="${esc(CHS.filter)}"><select id="ccl"><option value="">Mọi lớp</option>${CHS.cls.map(c=>`<option value="${c.id}"${CHS.cf===c.id?" selected":""}>${esc(c.name)}</option>`).join("")}</select></div>`;$("cq").oninput=e=>{CHS.filter=e.target.value;chatDrawList()};$("ccl").onchange=e=>{CHS.cf=e.target.value;chatDrawList()}}
+ if(!CHS.cur&&innerWidth>760&&!isT())chatOpen("d_"+UID);else chatDraw()}
+function chatDrawList(){const e=$("cl");if(!e)return;let h="";const gs=CHS.groups.filter(gLive).sort((a,b)=>a.expiresAt-b.expiresAt);
+ if(isT())h+=`<div class="row" style="margin:6px 4px"><b class="grow">👥 Nhóm làm nhiệm vụ</b><button class="sm" data-act="gnew">+ Tạo nhóm</button></div>`;else h+=`<div class="cgh">👩‍🏫 Giáo viên</div>`;
+ const it=(k,ti,sub,o)=>`<div class="ci${CHS.cur&&CHS.cur.k===k?" on":""}${unreadOf(k,o)?" un":""}" data-act="copen" data-k="${k}"><div class="grow" style="min-width:0"><b>${ti}</b><div class="note cpv">${sub}</div></div>${unreadOf(k,o)?'<span class="cdot"></span>':""}</div>`;
+ if(!isT())h+=it("d_"+UID,"Nhắn cho giáo viên",esc(cut(CHS.doc&&CHS.doc.last||"Hỏi bài, nộp thắc mắc…",40)),CHS.doc);
+ if(gs.length){if(!isT())h+=`<div class="cgh">👥 Nhóm của em</div>`;h+=gs.map(g=>it("g_"+g.id,"👥 "+esc(g.name),"còn "+fmtLeft(g.expiresAt-Date.now())+" · "+(g.members||[]).length+" bạn"+(g.last?" · "+esc(cut(g.last,26)):""),g)).join("")}
+ else if(isT())h+=`<div class="note" style="margin:0 6px 10px">Chưa có nhóm nào. Bấm “+ Tạo nhóm” để cô giao nhiệm vụ chung cho vài em.</div>`;
+ if(isT()){const q=slug(CHS.filter),l=CHS.stu.filter(s=>(!CHS.cf||(s.classIds||[]).includes(CHS.cf))&&(!q||slug(s.name).includes(q)));l.sort((a,b)=>{const x=(CHS.chats[a.id]||{}).lastAt||0,y=(CHS.chats[b.id]||{}).lastAt||0;return y-x||a.name.localeCompare(b.name,"vi")});
+  h+=`<div class="cgh">🎓 Học sinh (${l.length})</div>`+(l.map(s=>{const c=CHS.chats[s.id];return it("d_"+s.id,esc(s.name),c&&c.last?esc((c.lastBy===UID?"Cô: ":"")+cut(c.last,34)):"Chưa nhắn",c)}).join("")||'<div class="note" style="margin:6px">Không có học sinh phù hợp.</div>')}
+ const y=e.scrollTop;e.innerHTML=h;e.scrollTop=y}
+function chatDraw(){const w=$("chw");if(!w)return;w.classList.toggle("ths",!!CHS.cur);chatDrawList();
+ const h=$("chh"),c=$("ccomp"),m=$("cmsgs");if(!CHS.cur){h.innerHTML='<div class="note" style="padding:14px">Chọn một cuộc trò chuyện ở bên trái.</div>';c.style.display="none";m.style.display="none";return}
+ m.style.display="";const k=CHS.cur.k;let t="",sub="",acts="";
+ if(k[0]==="d"){if(isT()){const s=CHS.stu.find(x=>x.id===k.slice(2));t="🎓 "+esc(s?s.name:(CHS.chats[k.slice(2)]||{}).name||"Học sinh");sub=s?esc(CHS.cls.filter(c=>(s.classIds||[]).includes(c.id)).map(c=>c.name).join(", ")):""}else{t="👩‍🏫 Giáo viên"+(BRAND&&BRAND.n?" · "+esc(BRAND.n):"");sub="Chỉ em và giáo viên nhìn thấy cuộc trò chuyện này."}c.style.display=""}
+ else{const g=thObj(k);if(!g){return}const live=gLive(g);t="👥 "+esc(g.name);const mem=Object.values(g.mn||{});sub=(g.task?`<div><b>Nhiệm vụ:</b> ${esc(g.task)}</div>`:"")+`<div>⏳ Còn <b>${fmtLeft(g.expiresAt-Date.now())}</b> (đến ${fmtD(g.expiresAt)}) · Thành viên: ${esc(mem.join(", ")||"chưa có")}</div><div class="note">Nhóm tự giải tán khi hết giờ, tin nhắn trong nhóm sẽ bị xóa.</div>`;
+  if(isT())acts=`<button class="sec sm" data-act="gedit" data-id="${g.id}">Thành viên</button><button class="sec sm" data-act="gext" data-id="${g.id}">Gia hạn</button><button class="red sm" data-act="gend" data-id="${g.id}">Giải tán</button>`;c.style.display=live?"":"none"}
+ h.innerHTML=`<div class="row" style="flex-wrap:nowrap"><button class="sec sm cback" data-act="cback">←</button><div class="grow" style="min-width:0"><b style="font-size:17px">${t}</b><div class="note">${sub}</div></div>${acts}</div>`}
+const linkify=s=>esc(s).replace(/(https?:\/\/[^\s<]+)/g,u=>`<a class="lk" href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`).replace(/\n/g,"<br>");
+function drawMsgs(){const e=$("cmsgs");if(!e||!CHS.cur)return;const near=e.scrollHeight-e.scrollTop-e.clientHeight<90||!e.dataset.k||e.dataset.k!==CHS.cur.k;e.dataset.k=CHS.cur.k;let day="";const tid=tchId();
+ e.innerHTML=CHS.msgs.length?CHS.msgs.map(m=>{const me=m.from===UID,d=fmtDay(m.at),hd=d!==day?(day=d,`<div class="cdy">${d}</div>`):"",tm=new Date(m.at||0).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+  return hd+`<div class="cm${me?" me":""}"><div class="cb">${me?"":`<b class="cn">${esc(m.name||"")}${m.from===tid?' <span class="chip pr">giáo viên</span>':""}</b>`}<div>${linkify(m.text||"")}</div><div class="ct2">${tm}${isT()?` · <a class="lk" data-act="cdel" data-id="${m.id}" title="Xóa tin nhắn này">xóa</a>`:""}</div></div></div>`}).join(""):'<div class="note" style="text-align:center;margin:30px 10px">Chưa có tin nhắn. Hãy nhắn tin đầu tiên nhé.</div>';
+ if(near)e.scrollTop=e.scrollHeight}
+function markSeen(){if(!CHS.cur)return;const o=thObj(CHS.cur.k),last=CHS.msgs.length?CHS.msgs[CHS.msgs.length-1].at||0:0,t=Math.max((o&&o.lastAt)||0,last);if(t&&t>seenGet(CHS.cur.k)){seenSet(CHS.cur.k,t);chatTick()}}
+function chatOpen(k){if(CHS.unMsg){CHS.unMsg();CHS.unMsg=null}CHS.cur={k};CHS.msgs=[];const e=$("cmsgs");if(e){e.innerHTML="";delete e.dataset.k}
+ CHS.unMsg=DB.onList(thPath(k),null,l=>{if(!CHS.cur||CHS.cur.k!==k)return;CHS.msgs=l.sort((a,b)=>(a.at||0)-(b.at||0)).slice(-200);drawMsgs();markSeen()},er=>{const m=$("cmsgs");if(m)m.innerHTML='<div class="note" style="margin:20px">Không đọc được tin nhắn: '+esc(authErr(er))+'</div>'});
+ chatDraw();markSeen();setTimeout(()=>{const t=$("cmi");if(t&&innerWidth>760)t.focus()},50)}
+ACT.copen=d=>chatOpen(d.k);
+ACT.cback=()=>{chatClose();chatDraw()};
+ACT.cdel=async d=>{if(!CHS.cur||!confirm("Xóa tin nhắn này?"))return;try{await DB.del(thPath(CHS.cur.k)+"/"+d.id)}catch(e){toast(authErr(e))}};
+ACT.csend=async()=>{const ta=$("cmi");if(!ta||!CHS.cur)return;const text=ta.value.trim().slice(0,1000);if(!text)return;const now=Date.now();if(now-CHS.lastSend<500)return;CHS.lastSend=now;const k=CHS.cur.k;
+ if(k[0]==="g"){const g=thObj(k);if(!g||!gLive(g)){toast("Nhóm đã hết thời gian.");return}}ta.value="";
+ try{await DB.set(thPath(k)+"/"+nid(),{from:UID,name:ME.name,text,at:now});
+  if(k[0]==="d"){const sid=k.slice(2),s=isT()?CHS.stu.find(x=>x.id===sid):null;await DB.set("chats/"+sid,{teacherId:tchId(),studentId:sid,name:isT()?(s?s.name:(CHS.chats[sid]||{}).name||""):ME.name,last:cut(text,80),lastAt:now,lastBy:UID})}
+  else await DB.update("groups/"+k.slice(2),{last:cut(text,80),lastAt:now,lastBy:UID});
+  seenSet(k,now)}catch(e){ta.value=text;toast(authErr(e))}};
+document.addEventListener("keydown",e=>{if(e.target&&e.target.id==="cmi"&&e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();ACT.csend()}});
+/* --- học sinh: nút mở hộp chat --- */
+ACT.chatopen=()=>{if($("chov"))return;const o=document.createElement("div");o.className="chov";o.id="chov";o.innerHTML=`<div class="chop"><div class="row" style="margin-bottom:8px"><b class="grow" style="font-size:18px">💬 Trò chuyện</b><button class="sec sm" data-act="chatclose">✕ Đóng</button></div><div id="chroot"></div></div>`;document.body.appendChild(o);document.body.style.overflow="hidden";chatMount($("chroot"))};
+ACT.chatclose=()=>{chatClose();CHS.open=false;const o=$("chov");if(o)o.remove();document.body.style.overflow="";chatTick()};
+/* --- giáo viên: tab Trò chuyện --- */
+async function tabChat(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';
+ const[us,cl]=await Promise.all([DB.list("users",[["teacherId","==",UID]]),DB.list("classes",[["teacherId","==",UID]])]);if(T.tab!=="chat")return;
+ CHS.stu=us.filter(u=>u.role==="student").sort((a,b)=>a.name.localeCompare(b.name,"vi"));CHS.cls=cl.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+ v.innerHTML='<div class="row"><h2 class="grow" style="margin:0">💬 Trò chuyện với học sinh</h2></div><p class="note" style="margin:4px 0 10px">Cô nhắn riêng từng em để hỗ trợ cả ngoài giờ học. Các em không nhắn riêng với nhau được; chỉ khi cô lập nhóm thì các em trong nhóm mới trò chuyện chung (có cô trong nhóm).</p><div id="chbox"></div>';chatMount($("chbox"))}
+/* --- nhóm --- */
+const GDUR=[[30,"30 phút"],[60,"1 giờ"],[120,"2 giờ"],[180,"3 giờ"],[1440,"1 ngày"],[4320,"3 ngày"],[10080,"7 ngày"],["c","Chọn ngày giờ kết thúc…"]];
+const durOpts=()=>GDUR.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("");
+function durMs(selId,custId,from){const v=$(selId).value;if(v==="c"){const t=new Date($(custId).value).getTime();return t&&!isNaN(t)?t:0}return from+(+v)*6e4}
+function groupForm(g){const sel=new Set(g?g.members||[]:[]);let cf=CHS.cls[0]?CHS.cls[0].id:"";
+ const o=modal(`<h2>${g?"Thành viên và nội dung nhóm":"Tạo nhóm làm nhiệm vụ"}</h2><label class="l">Tên nhóm</label><input id="gn" maxlength="60" placeholder="VD: Nhóm 1 – Dạng toán chuyển động" value="${esc(g?g.name:"")}">
+ <label class="l">Nhiệm vụ chung (hiện ở đầu nhóm, không bắt buộc)</label><textarea id="gt" maxlength="500" rows="3" placeholder="VD: Cả nhóm cùng giải 5 bài chuyển động trong phiếu, thống nhất đáp án rồi cử 1 bạn báo cô.">${esc(g?g.task||"":"")}</textarea>
+ <label class="l">Chọn học sinh vào nhóm (<span id="gcnt">0</span> em đã chọn)</label><div class="row"><select id="gcl" class="grow">${CHS.cls.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select><button class="sec sm" id="gall" type="button">Chọn cả lớp</button><button class="sec sm" id="gnone" type="button">Bỏ chọn lớp này</button></div>
+ <div id="gst" style="max-height:230px;overflow:auto;border:1px solid var(--bd);border-radius:11px;padding:6px 10px;margin-top:6px"></div>
+ ${g?"":`<label class="l">Nhóm tồn tại trong</label><div class="row"><select id="gd" style="max-width:260px">${durOpts()}</select><input id="gdc" type="datetime-local" style="display:none;max-width:240px"></div><div class="note">Hết thời gian, nhóm tự giải tán và tin nhắn nhóm bị xóa. Cô cũng có thể bấm “Giải tán” bất cứ lúc nào.</div>`}
+ <div class="row" style="margin-top:14px"><button id="gok">${g?"Lưu":"Tạo nhóm"}</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
+ const draw=()=>{const l=CHS.stu.filter(s=>(s.classIds||[]).includes(cf));$("gst").innerHTML=l.length?l.map(s=>`<label style="display:flex;gap:8px;align-items:center;padding:4px 0;cursor:pointer"><input type="checkbox" style="width:auto" data-u="${s.id}"${sel.has(s.id)?" checked":""}> ${esc(s.name)}</label>`).join(""):'<span class="note">Lớp này chưa có học sinh.</span>';$("gcnt").textContent=sel.size;$("gst").querySelectorAll("input").forEach(i=>i.onchange=()=>{i.checked?sel.add(i.dataset.u):sel.delete(i.dataset.u);$("gcnt").textContent=sel.size})};
+ $("gcl").onchange=e=>{cf=e.target.value;draw()};$("gall").onclick=()=>{CHS.stu.filter(s=>(s.classIds||[]).includes(cf)).forEach(s=>sel.add(s.id));draw()};$("gnone").onclick=()=>{CHS.stu.filter(s=>(s.classIds||[]).includes(cf)).forEach(s=>sel.delete(s.id));draw()};draw();
+ if(!g){$("gd").onchange=e=>{$("gdc").style.display=e.target.value==="c"?"":"none"}}
+ $("gok").onclick=async()=>{const name=$("gn").value.trim();if(!name){alert("Cô đặt tên nhóm nhé.");return}if(!sel.size){alert("Cô chọn ít nhất một học sinh vào nhóm.");return}
+  const mn={};sel.forEach(id=>{const s=CHS.stu.find(x=>x.id===id);if(s)mn[id]=s.name});const task=$("gt").value.trim();$("gok").disabled=true;
+  try{if(g){await DB.update("groups/"+g.id,{name,task,members:Object.keys(mn),mn});toast("Đã lưu nhóm.")}
+   else{const now=Date.now(),end=durMs("gd","gdc",now);if(!end||end<=now+6e4){alert("Thời điểm kết thúc phải sau hiện tại ít nhất 1 phút.");$("gok").disabled=false;return}if(end>now+60*864e5){alert("Nhóm tồn tại tối đa 60 ngày.");$("gok").disabled=false;return}
+    const id=nid();await DB.set("groups/"+id,{teacherId:UID,name,task,members:Object.keys(mn),mn,createdAt:now,expiresAt:end,last:"",lastAt:0,lastBy:""});toast("Đã tạo nhóm “"+name+"”.");setTimeout(()=>{if(CHS.open)chatOpen("g_"+id)},300)}
+   o.remove()}catch(e){alert(authErr(e));$("gok").disabled=false}}}
+ACT.gnew=()=>{if(!CHS.cls.length){alert("Cô cần tạo lớp và thêm học sinh trước.");return}groupForm(null)};
+ACT.gedit=d=>{const g=CHS.groups.find(x=>x.id===d.id);if(g)groupForm(g)};
+ACT.gext=d=>{const g=CHS.groups.find(x=>x.id===d.id);if(!g)return;const o=modal(`<h2>Gia hạn nhóm “${esc(g.name)}”</h2><p class="note">Hiện kết thúc lúc <b>${fmtD(g.expiresAt)}</b>. Chọn thời gian cộng thêm hoặc thời điểm kết thúc mới.</p><div class="row"><select id="ge" style="max-width:260px">${durOpts()}</select><input id="gec" type="datetime-local" style="display:none;max-width:240px"></div><div class="row" style="margin-top:14px"><button id="geok">Gia hạn</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
+ $("ge").onchange=e=>{$("gec").style.display=e.target.value==="c"?"":"none"};$("geok").onclick=async()=>{const base=Math.max(Date.now(),g.expiresAt),end=durMs("ge","gec",base);if(!end||end<=Date.now()+6e4){alert("Thời điểm kết thúc phải ở tương lai.");return}if(end>Date.now()+60*864e5){alert("Nhóm tồn tại tối đa 60 ngày.");return}try{await DB.update("groups/"+g.id,{expiresAt:end});o.remove();toast("Nhóm kết thúc lúc "+fmtD(end))}catch(e){alert(authErr(e))}}};
+ACT.gend=async d=>{const g=CHS.groups.find(x=>x.id===d.id);if(!g||!confirm("Giải tán nhóm “"+g.name+"”?\nToàn bộ tin nhắn trong nhóm sẽ bị xóa và không khôi phục được."))return;if(CHS.cur&&CHS.cur.k==="g_"+g.id)chatClose();toast("Đang giải tán nhóm…");CHS.cleaning[g.id]=0;await dissolveGroup(g);CHS.groups=CHS.groups.filter(x=>x.id!==g.id);chatTick();toast("Đã giải tán nhóm.")};
+
 /* ===== Báo cáo, biểu đồ & nhận xét ===== */
 const RP={cid:null,per:"4w",from:"",to:"",sel:{},name:"",data:null,cmt:{}};
 const PERS=[["2w","2 tuần gần đây",14],["4w","4 tuần gần đây",28],["8w","2 tháng gần đây",61],["12w","3 tháng gần đây",92],["all","Toàn bộ các bài đã giao",0],["topic","Theo chuyên đề (tự chọn các bài)",0],["custom","Khoảng ngày tự chọn",0]];
@@ -1182,7 +1296,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795276775";
+const BUILD="1795277864";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
@@ -1302,7 +1416,7 @@ ACT.terms=()=>modal(`<div class="row"><h2 class="grow" style="margin:0">Điều 
  <b>6. Thanh toán.</b> Phí được chuyển khoản theo mã QR; tài khoản được nâng cấp sau khi người vận hành xác nhận đã nhận tiền. Phí đã thanh toán không hoàn lại cho thời gian đã sử dụng, trừ trường hợp lỗi do dịch vụ.<br><br>
  <b>7. Thay đổi.</b> Điều khoản có thể được cập nhật; việc tiếp tục sử dụng nghĩa là chấp nhận bản mới.</div>`);
 
-function showTab(t){({lop:tabLop,bai:tabBai,giao:tabGiao,bao:tabBao,quan:tabQuan})[t]()}
+function showTab(t){if(t!=="chat"&&isT()&&CHS.open){CHS.open=false;chatClose()}({lop:tabLop,bai:tabBai,giao:tabGiao,bao:tabBao,chat:tabChat,quan:tabQuan})[t]()}
 async function tabLop(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';
  if(T.cid)return classView(T.cid);
  const [cl,us]=await Promise.all([DB.list("classes",[["teacherId","==",UID]]),DB.list("users",[["teacherId","==",UID]])]);
@@ -1448,7 +1562,7 @@ async function showDetail(a,sname,r){let L;try{L=await loadLesson(a.lessonId)}ca
  <div style="overflow:auto"><table><tr><th>#</th><th>Slide</th><th class="n">Thời gian</th><th>Học</th><th class="n">Lần thử</th><th>Kết quả</th><th class="n">Điểm</th></tr>${tr}</table></div>`)}
 
 /* ===== Học sinh ===== */
-async function studentShell(){$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><span class="grow"></span><button class="sec sm" data-act="chpw">Đổi mật khẩu</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" style="padding-bottom:0" id="nt"></div><div class="wrap" style="padding-bottom:0" id="qzb"></div><div class="wrap" id="sv"><p class="note">Đang tải…</p></div>`;watchNotices();watchQuizzes();studentHome();if(GQ&&!GQDONE){GQDONE=true;ACT.joinquiz({id:GQ})}else if(GL&&!GLDONE){GLDONE=true;ACT.joinlive({id:GL})}}
+async function studentShell(){$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><span class="grow"></span><button class="sm" data-act="chatopen" id="chbtn">💬 Trò chuyện <span class="cbd" id="chbd" style="display:none"></span></button><button class="sec sm" data-act="chpw">Đổi mật khẩu</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" style="padding-bottom:0" id="nt"></div><div class="wrap" style="padding-bottom:0" id="qzb"></div><div class="wrap" id="sv"><p class="note">Đang tải…</p></div>`;watchNotices();watchQuizzes();watchChat();studentHome();if(GQ&&!GQDONE){GQDONE=true;ACT.joinquiz({id:GQ})}else if(GL&&!GLDONE){GLDONE=true;ACT.joinlive({id:GL})}}
 ACT.chpw=async()=>{const p=prompt("Mật khẩu mới (ít nhất 6 ký tự):");if(!p)return;try{await DB.changePw(p);try{await DB.update("users/"+UID,{pw:p})}catch(x){}toast("Đã đổi mật khẩu.")}catch(e){alert(String(e.code||"").includes("requires-recent-login")?"Em đăng xuất, đăng nhập lại rồi đổi mật khẩu nhé.":authErr(e))}};
 async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds||[];if(!cids.length){v.innerHTML='<div class="panel"><b>Em chưa được xếp vào lớp nào.</b><p class="note">Em nhờ cô xếp lớp cho em nhé.</p></div>';return}
  let as=[];for(const c of cids)as=as.concat((await DB.list("assignments",[["classId","==",c]])).filter(a=>!a.quizOnly));as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));{const ab=as.find(x=>x.blogo||x.brand);if(ab)setBrand(ab.brand,ab.blogo)}
