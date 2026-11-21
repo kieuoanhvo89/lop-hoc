@@ -71,6 +71,9 @@ button.go.big{font-size:22px;padding:14px 34px;margin-top:16px;background:#16a34
 .pod{display:flex;gap:10px;align-items:flex-end;justify-content:center;margin:14px 0}.pd{flex:1;max-width:210px;border-radius:14px 14px 0 0;background:#ffffff1c;padding:10px 6px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
 .pd.p1{background:#b4890a;min-height:170px}.pd.p2{background:#64748b;min-height:140px}.pd.p3{background:#9a5b2a;min-height:120px}
 table.qt{color:#fff;text-align:left}table.qt th{color:#cbd5e1}table.qt td,table.qt th{border-color:#ffffff2a}
+.pbar{height:10px;background:#ffffff22;border-radius:6px;overflow:hidden}.pbar i{display:block;height:100%;background:#22c55e;transition:width .4s}
+#qs{user-select:none;-webkit-user-select:none}#qs input{user-select:text;-webkit-user-select:text}
+.qwarn{position:fixed;inset:0;z-index:45;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px}.qwarn>div{background:#7f1d1d;color:#fff;border-radius:16px;padding:22px;max-width:420px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
 .qhd{display:flex;gap:12px;align-items:center;justify-content:center;padding:8px}.qctl{max-width:900px;width:100%;margin:10px auto;padding:0 12px 18px;display:flex;flex-direction:column;gap:8px}
 .qmsg{text-align:center;font-weight:700;font-size:22px;padding:8px}.qmsg.ok{color:#58e08f}.qmsg.no{color:#ff8585}.qlbw{max-width:520px;margin:6px auto;width:100%;text-align:left}
 #qs .opts button{font-size:26px;min-height:64px}
@@ -812,7 +815,7 @@ function qsInfo(L){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const out=[];L.slid
   const t=String(s.problem||s.title||"Câu "+(out.length+1)).replace(/\s+/g," ").trim().slice(0,90);
   const a=it.kind==="mc"?qLet(it.correct)+(/^[A-E]$/.test(String(it.opts[it.correct]).trim())?"":". "+String(it.opts[it.correct]).replace(/\s+/g," ").slice(0,40)):String(it.answer).replace(/\s+/g," ").slice(0,60);
   out.push({i,kind:it.kind,n:it.kind==="mc"?it.opts.length:0,time:qClamp(s.time||30),t,a})});return out}
-function qRows(q,pl){const rows=Object.values(pl||{}).map(p=>{const an=p.ans||{};let ms=0,ok=0,n=0;Object.values(an).forEach(x=>{n++;ms+=x.ms||0;if(x.ok)ok++});return{id:p.id,name:p.name||"?",score:p.score||0,ok,n,ms,ans:an}});
+function qRows(q,pl){const rows=Object.values(pl||{}).map(p=>{const an=p.ans||{};let ms=0,ok=0,n=0,pen=0;Object.values(an).forEach(x=>{n++;ms+=x.ms||0;if(x.ok)ok++;if(x.pen)pen++});return{id:p.id,name:p.name||"?",score:p.score||0,ok,n,ms,ans:an,pos:p.pos||0,done:!!p.done,aw:p.aw||0,hb:p.hb||0,an:p.an||0,am:p.am||0,away:p.away||[],pen}});
  rows.sort((a,b)=>b.score-a.score||a.ms-b.ms||a.name.localeCompare(b.name));rows.forEach((r,i)=>r.rank=i+1);return rows}
 const medal=r=>r===1?"🥇":r===2?"🥈":r===3?"🥉":r;
 function lbHtml(rows,meId){return rows.length?rows.map(r=>`<div class="lbr${r.id===meId?" me":""}"><span class="lbk">${medal(r.rank)}</span><span class="lbn">${esc(r.name)}</span><b>${r.score}</b></div>`).join(""):'<p class="note" style="color:#94a3b8">Chưa có điểm.</p>'}
@@ -823,77 +826,87 @@ ACT.quizsetup=async d=>{toast("Đang chuẩn bị quiz…");let l,cl,L;
  const qs=qsInfo(L);if(!qs.length){alert("Bài này chưa có câu hỏi trắc nghiệm hoặc câu có đáp án nên chưa làm quiz được. Cô nhờ AI soạn thêm các slide câu hỏi (kèm đáp án) nhé.");return}
  const o=modal(`<h2>⚡ Quiz thi đua “${esc(l.title)}”</h2><label class="l">Cho lớp</label><select id="qc">${cl.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
  <label class="l" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="qg" checked style="width:auto"> Cho phép em chưa có tài khoản vào bằng link</label>
+ <label class="l" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="qsh" checked style="width:auto"> Đảo thứ tự câu hỏi khác nhau cho từng em (khó nhìn bài bạn)</label>
+ <label class="l" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="qst" style="width:auto"> Nghiêm: rời khỏi màn hình khi đang làm câu thì câu đó bị 0 điểm</label>
  <div class="row" style="margin-top:12px"><b>${qs.length} câu hỏi</b><span class="grow"></span><span class="note">Đặt cùng thời gian (giây):</span><input id="qall" type="number" min="5" max="300" value="30" style="width:84px"><button class="sec sm" id="qapply">Áp dụng</button></div>
  <div style="max-height:44vh;overflow:auto;margin-top:8px"><table><tr><th></th><th>Câu</th><th>Nội dung</th><th>Loại</th><th class="n">Giây</th></tr>${qs.map((x,k)=>`<tr><td><input type="checkbox" id="qi${k}" checked style="width:auto"></td><td>${k+1}</td><td>${esc(x.t)}</td><td><span class="chip">${x.kind==="mc"?"Trắc nghiệm":"Nhập đáp án"}</span></td><td class="n"><input id="qt${k}" type="number" min="5" max="300" value="${x.time}" style="width:76px"></td></tr>`).join("")}</table></div>
- <p class="note">Điểm mỗi câu từ 500 đến 1000: đúng càng nhanh càng nhiều điểm; sai hoặc hết giờ được 0. Câu tự chuyển khi cả lớp trả lời xong hoặc hết giờ.</p>
+ <p class="note">Mỗi em tự làm theo tốc độ của mình: làm xong câu nào thì hiện đáp án 5 giây rồi tự sang câu tiếp. Điểm mỗi câu từ 500 đến 1000: đúng càng nhanh càng nhiều điểm; sai hoặc hết giờ được 0. Hệ thống ghi lại mỗi lần em chuyển tab / rời cửa sổ và báo cho cô.</p>
  <div class="row" style="margin-top:10px"><button id="qgo">Mở phòng chờ</button><button class="sec" onclick="closeModal()">Hủy</button></div>`);
  $("qapply").onclick=()=>qs.forEach((x,k)=>$("qt"+k).value=qClamp($("qall").value));
  $("qgo").onclick=async()=>{const sel=qs.map((x,k)=>({...x,time:qClamp($("qt"+k).value),on:$("qi"+k).checked})).filter(x=>x.on).map(({on,...r})=>r);if(!sel.length){toast("Cô chọn ít nhất 1 câu nhé.");return}
-  const c=cl.find(x=>x.id===$("qc").value),guest=$("qg").checked;$("qgo").disabled=true;
+  const c=cl.find(x=>x.id===$("qc").value),guest=$("qg").checked,shuf=$("qsh").checked,strict=$("qst").checked;$("qgo").disabled=true;
   try{let a=(await DB.list("assignments",[["teacherId","==",UID]])).find(x=>x.lessonId===l.id&&x.classId===c.id);
    if(!a)a=await mkAssign(l,c,{quizOnly:true,guest});else if(guest&&!a.guest)await DB.update("assignments/"+a.id,{guest:true});
    if(guest)await syncGuest(l.id);
-   const id=nid(),q={teacherId:UID,aid:a.id,classId:c.id,className:c.name,lessonId:l.id,title:l.title,guest,status:"lobby",qi:-1,t0:0,t1:0,dur:0,qs:sel,rk:{},board:[],np:0,final:[],createdAt:Date.now()};
+   const id=nid(),q={teacherId:UID,aid:a.id,classId:c.id,className:c.name,lessonId:l.id,title:l.title,guest,shuf,strict,status:"lobby",qi:-1,t0:0,t1:0,dur:0,qs:sel,rk:{},board:[],np:0,final:[],createdAt:Date.now()};
    await DB.set("quizzes/"+id,q);o.remove();startQuizHost({id,...q},L)}catch(e){alert(authErr(e));$("qgo").disabled=false}}};
 
-function startQuizHost(q,L){if(QH)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";QH={q,pl:{},tick:0,unsub:null};
+function startQuizHost(q,L){if(QH)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";QH={q,pl:{},tick:0,unsub:null,alerts:[],pub:"",pubAt:0,lp:""};
  const o=document.createElement("div");o.id="qh";document.body.appendChild(o);document.body.style.overflow="hidden";
- QH.unsub=DB.onList(`quizzes/${q.id}/pl`,null,l=>{if(!QH)return;QH.pl={};l.forEach(x=>QH.pl[x.id]=x);if(!QH.hist)qhUpdate()},e=>toast("Chưa nhận được kết quả: "+authErr(e)));
- QH.tick=setInterval(qhTick,300);qhRender()}
+ QH.unsub=DB.onList(`quizzes/${q.id}/pl`,null,l=>{if(!QH)return;const old=QH.pl;QH.pl={};l.forEach(x=>{const p=old[x.id];
+   if(p&&QH.q.status==="run"){if((x.an||0)>(p.an||0)){const e=(x.away||[]).slice(-1)[0]||{};QH.alerts.unshift({n:x.name,t:Date.now(),x:e.y==="prt"?"vừa bấm PrintScreen (chụp màn hình)":e.y==="prn"?"vừa dùng lệnh in":"vừa quay lại sau khi rời màn hình "+Math.round((e.d||0)/1000)+" giây"})}else if(x.aw&&!p.aw)QH.alerts.unshift({n:x.name,t:Date.now(),x:"đang rời khỏi màn hình thi"})}
+   QH.pl[x.id]=x});QH.alerts=QH.alerts.slice(0,8);if(!QH.hist)qhUpdate()},e=>toast("Chưa nhận được kết quả: "+authErr(e)));
+ QH.tick=setInterval(qhTick,500);qhRender()}
 function qhSave(){const{id,...r}=QH.q;return DB.set("quizzes/"+id,r).catch(e=>toast("Chưa gửi được cho học sinh: "+authErr(e)))}
-const qOn=q=>Object.values(QH.pl).filter(p=>(p.ans&&p.ans[q.qi])||Date.now()-(p.hb||0)<ONL);
+const qAlive=(p,now)=>p.done||now-(p.hb||0)<60000||(p.aw&&now-p.aw<180000);
 function qhTick(){if(!QH||QH.hist)return;const q=QH.q,now=Date.now();
- if(q.status==="q"){const on=qOn(q);if(now-q.t0>=q.dur*1000||(on.length&&now-q.t0>800&&on.every(p=>p.ans&&p.ans[q.qi]))){qReveal();return}}
- else if(q.status==="rev"&&now-q.t1>=REV_MS){qNext();return}
+ if(q.status==="run"){if(now-QH.pubAt>=3000){QH.pubAt=now;qhPub()}
+  const al=Object.values(QH.pl).filter(p=>qAlive(p,now));if(al.length&&now-q.t0>3000&&al.every(p=>p.done)){qEnd();return}}
  qhUpdate()}
-function qReveal(){const q=QH.q,rows=qRows(q,QH.pl);q.status="rev";q.t1=Date.now();q.rk={};rows.slice(0,100).forEach(r=>q.rk[r.id]=[r.rank,r.score]);q.board=rows.slice(0,5).map(r=>({n:r.name,s:r.score}));q.np=rows.length;qhSave();qhRender()}
-function qNext(){const q=QH.q;if(q.qi+1>=q.qs.length){qEnd();return}q.qi++;q.status="q";q.t0=Date.now();q.dur=q.qs[q.qi].time;qhSave();qhRender()}
+function qhPub(){const q=QH.q,rows=qRows(q,QH.pl),rk={};rows.slice(0,100).forEach(r=>rk[r.id]=[r.rank,r.score]);const board=rows.slice(0,5).map(r=>({n:r.name,s:r.score})),sig=JSON.stringify([rk,board]);if(sig===QH.pub)return;QH.pub=sig;q.rk=rk;q.board=board;q.np=rows.length;qhSave()}
 function qEnd(){const q=QH.q,rows=qRows(q,QH.pl);q.status="end";q.ended=Date.now();q.np=rows.length;q.rk={};rows.slice(0,100).forEach(r=>q.rk[r.id]=[r.rank,r.score]);q.final=rows.slice(0,100).map(r=>({id:r.id,n:r.name,s:r.score,ok:r.ok}));clearInterval(QH.tick);const p=qhSave();qhRender();return p}
-ACT.qstart=()=>{if(!QH||QH.q.status!=="lobby")return;const q=QH.q;q.status="q";q.qi=0;q.t0=Date.now();q.dur=q.qs[0].time;qhSave();qhRender()};
-ACT.qskip=()=>{if(!QH||QH.hist)return;if(QH.q.status==="q")qReveal();else if(QH.q.status==="rev")qNext()};
+ACT.qstart=()=>{if(!QH||QH.q.status!=="lobby")return;const q=QH.q;q.status="run";q.t0=Date.now();qhSave();qhRender()};
 ACT.qstop=()=>{if(!QH||QH.hist||QH.q.status==="end")return;if(confirm("Kết thúc quiz ngay và xem bảng xếp hạng?"))qEnd()};
+const AWAY_Y={tab:"Chuyển tab / thu nhỏ cửa sổ",win:"Chuyển sang cửa sổ khác",off:"Tắt cửa sổ hoặc mất kết nối",prt:"Bấm PrintScreen (chụp màn hình)",prn:"Dùng lệnh in"};
+ACT.qaway=d=>{if(!QH)return;const p=QH.pl[d.id];if(!p)return;const ev=p.away||[],q=QH.q;
+ modal(`<h2>⚠ Nhật ký của ${esc(p.name||"?")}</h2><p class="note">${p.an||0} lần · tổng ${Math.round((p.am||0)/1000)} giây rời màn hình khi làm quiz.</p><div style="max-height:50vh;overflow:auto"><table><tr><th>Lúc</th><th>Việc</th><th class="n">Giây</th><th class="n">Câu</th></tr>${ev.map(e=>`<tr><td>${new Date(e.t).toLocaleTimeString("vi-VN")}</td><td>${AWAY_Y[e.y]||e.y}</td><td class="n">${Math.round((e.d||0)/1000)}</td><td class="n">${e.k>=0?e.k+1:"–"}</td></tr>`).join("")||'<tr><td colspan="4">Chưa có.</td></tr>'}</table></div><div class="row" style="margin-top:10px"><button onclick="closeModal()">Đóng</button></div>`)};
 ACT.qcopy=async()=>{const u=qLink(QH.q.id);try{await navigator.clipboard.writeText(u);toast("Đã sao chép link. Cô dán gửi học sinh nhé.")}catch(e){prompt("Cô copy link này:",u)}};
 ACT.qclose=async()=>{if(!QH)return;if(!QH.hist&&QH.q.status!=="end"){if(!confirm("Thoát phòng quiz? Quiz đang diễn ra sẽ kết thúc."))return;await qEnd()}
  clearInterval(QH.tick);if(QH.unsub)QH.unsub();const o=$("qh");if(o)o.remove();document.body.style.overflow="";QH=null;if(ME&&ME.role==="teacher"&&T.tab==="giao")showTab("giao")};
 function qFinalHtml(q,rows,hist){const top=rows.slice(0,3),pod=[top[1],top[0],top[2]].filter(Boolean);
  return`<div class="qfin"><h1>🏆 Bảng xếp hạng</h1><p class="note" style="color:#cbd5e1">${esc(q.title)} · ${esc(q.className||"")} · ${rows.length} em · ${q.qs.length} câu${q.status!=="end"?" (chưa kết thúc)":""}</p>
  <div class="pod">${pod.map(r=>`<div class="pd p${r.rank}"><div style="font-size:34px">${medal(r.rank)}</div><b>${esc(r.name)}</b><span>${r.score} điểm</span></div>`).join("")}</div>
- <div style="overflow:auto"><table class="qt"><tr><th>Hạng</th><th>Họ tên</th><th class="n">Điểm</th><th class="n">Đúng</th><th class="n">TB giây/câu</th></tr>${rows.map(r=>`<tr><td>${medal(r.rank)}</td><td>${esc(r.name)}</td><td class="n"><b>${r.score}</b></td><td class="n">${r.ok}/${q.qs.length}</td><td class="n">${r.n?(r.ms/r.n/1000).toFixed(1):"–"}</td></tr>`).join("")||'<tr><td colspan="5">Chưa có học sinh nào tham gia.</td></tr>'}</table></div>
+ <div style="overflow:auto"><table class="qt"><tr><th>Hạng</th><th>Họ tên</th><th class="n">Điểm</th><th class="n">Đúng</th><th class="n">TB giây/câu</th><th class="n">Rời màn hình</th></tr>${rows.map(r=>`<tr><td>${medal(r.rank)}</td><td>${esc(r.name)}</td><td class="n"><b>${r.score}</b></td><td class="n">${r.ok}/${q.qs.length}</td><td class="n">${r.n?(r.ms/r.n/1000).toFixed(1):"–"}</td><td class="n">${r.an?`<span style="color:#fca5a5">⚠ ${r.an} lần · ${Math.round(r.am/1000)}s</span>`:"–"}</td></tr>`).join("")||'<tr><td colspan="6">Chưa có học sinh nào tham gia.</td></tr>'}</table></div>
  <div class="row" style="justify-content:center;margin:14px 0"><button class="go" data-act="qxls">⬇ Tải file Excel (đúng/sai, thời gian từng câu)</button><button class="sec" style="color:#fff;border-color:#fff8" data-act="qclose">Đóng</button></div></div>`}
-function qhRender(){const o=$("qh");if(!o||!QH)return;const q=QH.q;QH.key=q.status+"|"+q.qi;
+function qhRender(){const o=$("qh");if(!o||!QH)return;const q=QH.q;QH.key=q.status;QH.lp="";
  const hd=x=>`<div class="qtop"><b>⚡ ${esc(q.title)}</b><span class="note" style="color:#cbd5e1">${esc(q.className||"")}</span><span class="grow"></span>${x||""}<button class="red sm" style="color:#fecaca;border-color:#fecaca" data-act="qclose">Đóng</button></div>`;
  if(QH.hist||q.status==="end"){o.innerHTML=hd()+qFinalHtml(q,qRows(q,QH.pl),QH.hist);return}
  if(q.status==="lobby"){o.innerHTML=hd()+`<div class="qwait"><h1>⚡ Phòng chờ quiz</h1><p>Học sinh vào bằng link này${q.guest?" (không cần tài khoản)":""}, hoặc đăng nhập tài khoản lớp rồi bấm “Vào thi”:</p>
   <div class="row" style="justify-content:center;flex-wrap:nowrap;width:min(560px,100%)"><input readonly value="${esc(qLink(q.id))}" onclick="this.select()"><button data-act="qcopy">Chép link</button></div>
   <h2 style="margin-top:18px">Đã vào phòng: <span id="qn">0</span> em</h2><div id="qlist" class="qchips"></div>
+  <p class="note" style="color:#cbd5e1">Mỗi em tự làm theo tốc độ của mình${q.shuf?", thứ tự câu hỏi được đảo khác nhau":""}${q.strict?". Rời màn hình khi đang làm câu thì câu đó bị 0 điểm":""}.</p>
   <button class="go big" data-act="qstart">▶ Bắt đầu quiz (${q.qs.length} câu)</button></div>`;qhUpdate();return}
- const cur=q.qs[q.qi],rev=q.status==="rev";
- o.innerHTML=hd(`<span class="chip pr">Câu ${q.qi+1}/${q.qs.length}</span><b id="qtm" style="font-size:24px;min-width:56px;text-align:center"></b><button class="sm" data-act="qskip">${rev?"Sang câu tiếp ▶":"⏭ Chốt câu"}</button><button class="red sm" style="color:#fecaca;border-color:#fecaca" data-act="qstop">■ Kết thúc</button>`)+
- `<div class="qbar"><i id="qbi"></i></div><div class="qmain"><div class="qcol"><div class="qsw"><div class="qsl"><div class="sld">${slideHtml(cur.i,rev?clicks(cur.i):0)}</div></div></div>${rev?`<div class="qans">Đáp án đúng: <b>${esc(cur.a)}</b></div>`:""}</div>
- <div class="qside"><div id="qcnt"></div><h3>🏆 Bảng thành tích</h3><div id="qlb"></div></div></div>`;qhUpdate()}
+ o.innerHTML=hd(`<span class="chip pr" id="qdone"></span><b id="qel" style="font-size:22px;min-width:64px;text-align:center"></b><button class="red sm" style="color:#fecaca;border-color:#fecaca" data-act="qstop">■ Kết thúc</button>`)+
+ `<div class="qbar"><i id="qbi"></i></div><div class="qmain"><div class="qcol"><div id="qprog" style="overflow:auto"></div></div><div class="qside"><div id="qcnt"></div><h3>🏆 Bảng thành tích</h3><div id="qlb"></div><h3>⚠ Cảnh báo gần đây</h3><div id="qal"></div></div></div>`;qhUpdate()}
 function qhUpdate(){if(!QH||QH.hist)return;const q=QH.q,rows=qRows(q,QH.pl);
  if(q.status==="lobby"){const on=rows.filter(r=>Date.now()-((QH.pl[r.id]||{}).hb||0)<ONL*2);const e=$("qlist");if(e)e.innerHTML=on.length?on.map(r=>`<span class="qchip">${esc(r.name)}</span>`).join(""):'<p class="note" style="color:#94a3b8">Chưa có em nào vào phòng…</p>';const c=$("qn");if(c)c.textContent=on.length;return}
- if(q.status==="end")return;const rev=q.status==="rev",now=Date.now(),on=qOn(q);
- const tm=$("qtm"),bi=$("qbi");if(rev){if(tm)tm.textContent="✓";if(bi)bi.style.width=Math.max(0,100-(now-q.t1)/REV_MS*100)+"%"}
- else{const rem=Math.max(0,q.dur-(now-q.t0)/1000);if(tm){tm.textContent=Math.ceil(rem);tm.style.color=rem<=5?"#fca5a5":"#fff"}if(bi)bi.style.width=(rem/q.dur*100)+"%"}
- const ans=on.filter(p=>p.ans&&p.ans[q.qi]);let h=`Đã trả lời: <b>${ans.length}/${on.length}</b> em`;
- if(rev){const cur=q.qs[q.qi],ok=ans.filter(p=>p.ans[q.qi].ok).length;h+=`<br>Đúng: <b style="color:#86efac">${ok}</b> · Sai: <b style="color:#fca5a5">${ans.length-ok}</b>`;
-  if(cur.kind==="mc"){const cnt=Array(cur.n).fill(0);ans.forEach(p=>{const v=p.ans[q.qi].v;if(v>=0&&v<cur.n)cnt[v]++});h+=`<div class="dist">${cnt.map((c,i)=>`<span class="o${i}">${qLet(i)}: ${c}</span>`).join("")}</div>`}}
- const e=$("qcnt");if(e)e.innerHTML=h;const l=$("qlb");if(l)l.innerHTML=lbHtml(rows.slice(0,10))}
+ if(q.status==="end")return;const now=Date.now(),n=q.qs.length;
+ const doneN=rows.filter(r=>r.done).length,dn=$("qdone");if(dn)dn.textContent=`Đã xong ${doneN}/${rows.length} em`;
+ const el=$("qel");if(el){const s=Math.floor((now-q.t0)/1000);el.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+ const bi=$("qbi");if(bi&&rows.length)bi.style.width=(rows.reduce((a,r)=>a+(r.done?n:Math.min(n,r.pos)),0)/(rows.length*n)*100)+"%";
+ const pr=$("qprog");if(pr){const h=`<table class="qt"><tr><th>#</th><th>Họ tên</th><th>Tiến độ</th><th class="n">Điểm</th><th class="n">Đúng</th><th>Trạng thái</th><th>Rời màn hình</th></tr>${rows.map(r=>{const fin=r.done?n:Math.min(n,r.pos),p=QH.pl[r.id]||{};
+   const st=r.done?'<span style="color:#86efac">✔ Xong</span>':(r.aw&&now-r.aw<180000)?'<span style="color:#fca5a5">🔴 Đang rời màn hình</span>':(now-r.hb>60000)?'<span style="color:#94a3b8">⚪ Mất kết nối</span>':'<span style="color:#86efac">🟢 Đang làm</span>';
+   return`<tr><td>${medal(r.rank)}</td><td>${esc(r.name)}</td><td style="min-width:120px"><div class="pbar"><i style="width:${fin/n*100}%"></i></div><small>${fin}/${n} câu</small></td><td class="n"><b>${r.score}</b></td><td class="n">${r.ok}/${r.n}</td><td>${st}</td><td>${r.an?`<button class="sm red" style="color:#fecaca;border-color:#fecaca" data-act="qaway" data-id="${r.id}">⚠ ${r.an} lần · ${Math.round(r.am/1000)}s</button>`:"–"}</td></tr>`}).join("")||'<tr><td colspan="7">Chưa có em nào.</td></tr>'}</table>`;
+  if(h!==QH.lp){QH.lp=h;pr.innerHTML=h}}
+ const st=q.qs.map((x,k)=>{const an=rows.map(r=>r.ans[k]).filter(Boolean),ok=an.filter(z=>z.ok).length;return`<span class="chip" style="background:#fff2;color:#fff;margin:2px">Câu ${k+1}: ${an.length?`<b style="color:${ok/an.length>=.6?"#86efac":"#fca5a5"}">${ok}/${an.length}</b>`:"–"}</span>`}).join("");
+ const c=$("qcnt");if(c)c.innerHTML=`<b>Số em đúng / đã làm từng câu</b><div style="margin-top:6px">${st}</div>`;
+ const l=$("qlb");if(l)l.innerHTML=lbHtml(rows.slice(0,10));
+ const al=$("qal");if(al)al.innerHTML=QH.alerts.length?QH.alerts.map(a=>`<div class="note" style="color:#fecaca">${new Date(a.t).toLocaleTimeString("vi-VN")} · <b>${esc(a.n)}</b> ${a.x}</div>`).join(""):'<p class="note" style="color:#94a3b8">Chưa có em nào rời màn hình.</p>'}
 
 /* ---- Xuất Excel ---- */
 async function ensureXlsx(){if(!window.XLSX)await loadJs(window.__XLSX_URL||"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js")}
 function qxData(q,pl){const rows=qRows(q,pl),Q=q.qs.length;
- const a1=[["Hạng","Họ tên","Tổng điểm","Số câu đúng","Số câu sai","Không trả lời","Thời gian TB mỗi câu (giây)"]];
- rows.forEach(r=>{const sai=Object.values(r.ans).filter(x=>!x.ok).length;a1.push([r.rank,r.name,r.score,r.ok,sai,Q-r.n,r.n?+(r.ms/r.n/1000).toFixed(1):""])});
+ const a1=[["Hạng","Họ tên","Tổng điểm","Số câu đúng","Số câu sai","Không trả lời","Thời gian TB mỗi câu (giây)","Số lần rời màn hình","Tổng giây rời màn hình"]];
+ rows.forEach(r=>{const sai=Object.values(r.ans).filter(x=>!x.ok).length;a1.push([r.rank,r.name,r.score,r.ok,sai,Q-r.n,r.n?+(r.ms/r.n/1000).toFixed(1):"",r.an,Math.round(r.am/1000)])});
  const h2=["Hạng","Họ tên","Tổng điểm"];q.qs.forEach((x,k)=>h2.push(`Câu ${k+1} – Trả lời`,`Câu ${k+1} – Kết quả`,`Câu ${k+1} – Giây`,`Câu ${k+1} – Điểm`));const a2=[h2];
- rows.forEach(r=>{const row=[r.rank,r.name,r.score];q.qs.forEach((x,k)=>{const an=r.ans[k];if(!an)row.push("","Không trả lời","","0");else row.push(x.kind==="mc"?qLet(an.v):String(an.v),an.ok?"Đúng":"Sai",+(an.ms/1000).toFixed(1),an.pts||0)});a2.push(row)});
+ rows.forEach(r=>{const row=[r.rank,r.name,r.score];q.qs.forEach((x,k)=>{const an=r.ans[k];if(!an)row.push("","Không trả lời","","0");else row.push(an.pen?"(rời màn hình)":x.kind==="mc"?qLet(an.v):String(an.v),an.pen?"Rời màn hình – 0 điểm":an.ok?"Đúng":"Sai",+(an.ms/1000).toFixed(1),an.pts||0)});a2.push(row)});
  const a3=[["Câu","Nội dung","Đáp án đúng","Thời gian cho (giây)","Số em trả lời","Số em đúng","Tỉ lệ đúng (%)","Giây TB (em đã trả lời)"]];
  q.qs.forEach((x,k)=>{const an=rows.map(r=>r.ans[k]).filter(Boolean),ok=an.filter(z=>z.ok).length;a3.push([k+1,x.t,x.a,x.time,an.length,ok,an.length?Math.round(ok/an.length*100):"",an.length?+(an.reduce((s,z)=>s+z.ms,0)/an.length/1000).toFixed(1):""])});
- return{a1,a2,a3}}
-ACT.qxls=async(d,b)=>{if(!QH)return;const q=QH.q,{a1,a2,a3}=qxData(q,QH.pl),name="Quiz_"+(q.title.replace(/[^\p{L}\p{N}]+/gu,"_")||"thi_dua")+"_"+new Date(q.createdAt).toISOString().slice(0,10);const old=b&&b.textContent;if(b){b.disabled=true;b.textContent="Đang tạo file…"}
+ const a4=[["Họ tên","Thời điểm","Việc ghi nhận","Thời gian rời (giây)","Câu (số trong đề)"]];rows.forEach(r=>(r.away||[]).forEach(e=>a4.push([r.name,new Date(e.t).toLocaleString("vi-VN"),AWAY_Y[e.y]||e.y,Math.round((e.d||0)/1000),e.k>=0?e.k+1:""])));
+ return{a1,a2,a3,a4}}
+ACT.qxls=async(d,b)=>{if(!QH)return;const q=QH.q,{a1,a2,a3,a4}=qxData(q,QH.pl),name="Quiz_"+(q.title.replace(/[^\p{L}\p{N}]+/gu,"_")||"thi_dua")+"_"+new Date(q.createdAt).toISOString().slice(0,10);const old=b&&b.textContent;if(b){b.disabled=true;b.textContent="Đang tạo file…"}
  try{await ensureXlsx();const wb=XLSX.utils.book_new(),mk=(a,w)=>{const s=XLSX.utils.aoa_to_sheet(a);s["!cols"]=w.map(x=>({wch:x}));return s};
-  XLSX.utils.book_append_sheet(wb,mk(a1,[7,26,12,12,12,13,24]),"Xếp hạng");XLSX.utils.book_append_sheet(wb,mk(a2,[7,26,11].concat(q.qs.flatMap(()=>[14,13,10,9]))),"Chi tiết từng câu");XLSX.utils.book_append_sheet(wb,mk(a3,[6,60,20,14,12,12,12,16]),"Thống kê câu hỏi");
+  XLSX.utils.book_append_sheet(wb,mk(a1,[7,26,12,12,12,13,24,14,14]),"Xếp hạng");XLSX.utils.book_append_sheet(wb,mk(a2,[7,26,11].concat(q.qs.flatMap(()=>[14,13,10,9]))),"Chi tiết từng câu");XLSX.utils.book_append_sheet(wb,mk(a3,[6,60,20,14,12,12,12,16]),"Thống kê câu hỏi");XLSX.utils.book_append_sheet(wb,mk(a4,[26,20,34,14,14]),"Nhật ký rời màn hình");
   dlBlob(name+".xlsx",new Blob([XLSX.write(wb,{type:"array",bookType:"xlsx"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));toast("Đã tạo file Excel.")}
  catch(e){const csv="﻿"+a2.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");dl(name+".csv",csv,"text/csv;charset=utf-8");toast("Không tải được thư viện Excel nên Win xuất file .csv (mở bằng Excel được).")}
  if(b){b.disabled=false;b.textContent=old}};
@@ -911,40 +924,80 @@ function watchQuizzes(){QZU.forEach(f=>f());QZU=[];const cids=(ME&&ME.classIds)|
  const draw=()=>{const e=$("qzb");if(!e)return;const l=Object.values(acc).flat().filter(q=>q.status!=="end"&&Date.now()-(q.createdAt||0)<8*3600e3);
   e.innerHTML=l.map(q=>`<div class="panel" style="border-color:#7c3aed;background:linear-gradient(90deg,#7c3aed22,transparent)"><div class="row"><div class="grow"><b>⚡ Quiz thi đua: ${esc(q.title)}</b><br><span class="note">${q.status==="lobby"?"Phòng chờ đã mở – vào ngay nhé!":"Đang thi – em vào được ngay."}</span></div><button data-act="joinquiz" data-id="${q.id}">⚡ Vào thi</button></div></div>`).join("")};
  cids.forEach(c=>{QZU.push(DB.onList("quizzes",[["classId","==",c]],l=>{acc[c]=l;draw()},()=>{}))})}
+function qOrder(q,uid){const n=q.qs.length,a=[...Array(n).keys()];if(!q.shuf)return a;let h=2166136261;const s=String(q.id)+uid;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0}
+ let t=h>>>0;const rnd=()=>{t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^t>>>15,1|t);r=(r+Math.imul(r^r>>>7,61|r))^r;return((r^r>>>14)>>>0)/4294967296};
+ for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const plPath=()=>`quizzes/${QS.q.id}/pl/${UID}`;
 ACT.joinquiz=async d=>{if(QS)return;toast("Đang vào phòng thi…");
  try{const q=await DB.get("quizzes/"+d.id);if(!q)throw new Error("Không tìm thấy phòng quiz này.");if(q.status==="end"){alert("Quiz này đã kết thúc rồi em nhé.");if(ME.role==="guest")guestHome();return}
+  if(q.status==="q"||q.status==="rev"){alert("Phòng quiz này tạo bằng phiên bản cũ. Em nhờ cô tạo phòng mới nhé.");return}
   const L=await loadLesson(q.lessonId);LESSON=L;STY=(L.form&&L.form.sty)||"sang";
-  let doc=null;try{doc=await DB.get(`quizzes/${q.id}/pl/${UID}`)}catch(e){}
-  doc={...(doc||{}),name:ME.name,score:(doc&&doc.score)||0,ans:(doc&&doc.ans)||{},hb:Date.now()};delete doc.id;
+  let old=null;try{old=await DB.get(`quizzes/${q.id}/pl/${UID}`)}catch(e){}
+  const doc={...(old||{}),name:ME.name,score:(old&&old.score)||0,ans:(old&&old.ans)||{},hb:Date.now(),aw:0};delete doc.id;
+  if(old&&old.hb&&!old.done&&q.status==="run"&&Date.now()-old.hb>40000){const gap=Date.now()-old.hb;doc.an=(doc.an||0)+1;doc.am=(doc.am||0)+gap;doc.away=(doc.away||[]).concat([{t:old.hb,d:gap,k:-1,y:"off"}]).slice(-40)}
   await DB.set(`quizzes/${q.id}/pl/${UID}`,doc);
-  QS={q,doc,key:"",recv:0,exp:false,tick:0,hb:0,unsub:null};const o=document.createElement("div");o.id="qs";document.body.appendChild(o);document.body.style.overflow="hidden";
+  QS={q,doc,ph:"",pos:0,t0:0,r0:0,order:[],aw:null,mute:0,tick:0,hb:0,unsub:null,wt:0};const o=document.createElement("div");o.id="qs";document.body.appendChild(o);document.body.style.overflow="hidden";
   QS.unsub=DB.onDoc("quizzes/"+q.id,qsOnQuiz,e=>toast("Mất kết nối phòng thi: "+authErr(e)));
-  QS.hb=setInterval(()=>{if(!QS)return;QS.doc.hb=Date.now();DB.update(`quizzes/${QS.q.id}/pl/${UID}`,{hb:QS.doc.hb}).catch(()=>{})},12000);QS.tick=setInterval(qsTick,250);qsRender()}
+  QS.hb=setInterval(()=>{if(!QS)return;QS.doc.hb=Date.now();DB.update(plPath(),{hb:QS.doc.hb}).catch(()=>{})},12000);QS.tick=setInterval(qsTick,250);qsGuard(true);
+  if(q.status==="run")qsBegin();else qsRender()}
  catch(e){alert("Không vào được phòng thi: "+authErr(e))}};
-function qsOnQuiz(d){if(!QS)return;if(!d){toast("Cô đã đóng phòng thi.");stopQS();return}QS.q=d;const key=d.status+"|"+d.qi;if(key!==QS.key){QS.key=key;QS.exp=false;if(d.status==="q")QS.recv=Date.now();qsRender()}}
-function qsTick(){if(!QS)return;const q=QS.q;if(q.status!=="q")return;const rem=Math.max(0,q.dur-(Date.now()-QS.recv)/1000),tm=$("qstm"),bi=$("qsbi");if(tm){tm.textContent=Math.ceil(rem);tm.style.color=rem<=5?"#fca5a5":"#fff"}if(bi)bi.style.width=(rem/q.dur*100)+"%";
- if(rem<=0&&!QS.exp&&!QS.doc.ans[q.qi]){QS.exp=true;qsRender()}}
-function qsAnswer(v){if(!QS||QS.q.status!=="q")return;const q=QS.q,d=QS.doc;if(d.ans[q.qi]||QS.exp)return;const cur=q.qs[q.qi],it=interactiveOf(cur.i);
- const ms=Math.min(Math.max(0,Date.now()-QS.recv),q.dur*1000),ok=judgeAns(it,v),pts=ok?Math.round(500+500*(1-ms/(q.dur*1000))):0;
- d.ans[q.qi]={v,ok,ms,pts};d.score+=pts;d.hb=Date.now();DB.set(`quizzes/${q.id}/pl/${UID}`,d).catch(e=>toast("Chưa gửi được đáp án: "+authErr(e)));qsRender()}
+function qsOnQuiz(d){if(!QS)return;if(!d){toast("Cô đã đóng phòng thi.");stopQS();return}const prev=QS.q.status;QS.q=d;
+ if(d.status==="end"){if(prev!=="end"){QS.ph="end";qsRender()}return}
+ if(d.status==="run"){if(!QS.ph)qsBegin();else qsBoard()}}
+const qsDur=()=>QS.q.qs[QS.order[QS.pos]].time;
+function qsBegin(){const q=QS.q,d=QS.doc,n=q.qs.length;QS.order=qOrder(q,UID);let pos=Math.max(0,Math.min(+d.pos||0,n)),t0=Date.now();
+ if(d.done||pos>=n){QS.pos=n;QS.ph="done";qsRender();return}
+ if(d.qt0&&(+d.pos||0)===pos)t0=d.qt0;
+ if(d.ans[QS.order[pos]]){pos++;t0=Date.now();if(pos>=n){qsFinish();return}}
+ qsStart(pos,t0)}
+function qsStart(pos,t0){QS.pos=pos;QS.t0=t0;const d=QS.doc;d.pos=pos;d.qt0=t0;d.hb=Date.now();DB.update(plPath(),{pos,qt0:t0,hb:d.hb}).catch(()=>{});
+ if(Date.now()-t0>=qsDur()*1000){qsRev();return}QS.ph="q";qsRender()}
+function qsRev(){QS.ph="rev";QS.r0=Date.now();qsRender()}
+function qsNext(){if(QS.pos+1>=QS.q.qs.length){qsFinish();return}qsStart(QS.pos+1,Date.now())}
+function qsFinish(){QS.ph="done";QS.pos=QS.q.qs.length;const d=QS.doc;d.done=true;d.fin=Date.now();d.pos=QS.pos;DB.update(plPath(),{done:true,fin:d.fin,pos:d.pos,hb:d.fin}).catch(()=>{});qsRender()}
+function qsTick(){if(!QS||!QS.ph||QS.q.status!=="run")return;const now=Date.now();
+ if(QS.ph==="q"){const dur=qsDur(),rem=Math.max(0,dur-(now-QS.t0)/1000),tm=$("qstm"),bi=$("qsbi");if(tm){tm.textContent=Math.ceil(rem);tm.style.color=rem<=5?"#fca5a5":"#fff"}if(bi)bi.style.width=(rem/dur*100)+"%";if(rem<=0)qsRev()}
+ else if(QS.ph==="rev"){const bi=$("qsbi");if(bi)bi.style.width=Math.max(0,100-(now-QS.r0)/REV_MS*100)+"%";if(now-QS.r0>=REV_MS)qsNext()}}
+function qsAnswer(v){if(!QS||QS.ph!=="q"||QS.q.status!=="run")return;const q=QS.q,d=QS.doc,k=QS.order[QS.pos];if(d.ans[k])return;const cur=q.qs[k],it=interactiveOf(cur.i),dur=cur.time*1000;
+ const ms=Math.min(Math.max(0,Date.now()-QS.t0),dur),ok=judgeAns(it,v),pts=ok?Math.round(500+500*(1-ms/dur)):0;
+ d.ans[k]={v,ok,ms,pts};d.score+=pts;d.hb=Date.now();DB.set(plPath(),d).catch(e=>toast("Chưa gửi được đáp án: "+authErr(e)));qsRev()}
 ACT.qpick=d=>qsAnswer(+d.i);ACT.qsend=()=>{const i=$("qsans");if(i&&i.value.trim())qsAnswer(i.value.trim());else toast("Em nhập đáp án trước nhé.")};
-function stopQS(){if(!QS)return;clearInterval(QS.tick);clearInterval(QS.hb);if(QS.unsub)QS.unsub();const o=$("qs");if(o)o.remove();document.body.style.overflow="";QS=null}
-ACT.qsexit=()=>{if(!QS)return;if(QS.q.status!=="end"&&!confirm("Em thoát phòng thi? Điểm đã có vẫn được giữ."))return;stopQS();if(ME&&ME.role==="guest")guestHome()};
+/* ---- chống gian lận: ghi nhận rời màn hình ---- */
+let QG=null;
+function qsGuard(on){if(QG){QG.forEach(([t,f,e])=>e.removeEventListener(t,f));QG=null}if(!on)return;const inp=e=>/INPUT|TEXTAREA/.test((e.target||{}).tagName||"");
+ QG=[["visibilitychange",()=>{if(document.hidden){if(QS&&QS.aw)QS.aw.y="tab";else qsLeave("tab")}else qsBack()},document],["blur",()=>qsLeave("win"),window],["focus",()=>{if(!document.hidden)qsBack()},window],
+  ["keyup",e=>{if(e.key==="PrintScreen")qsLog("prt")},window],["keydown",e=>{if(e.ctrlKey&&["p","s","u"].includes(String(e.key).toLowerCase()))e.preventDefault()},window],
+  ["contextmenu",e=>{if(!inp(e))e.preventDefault()},document],["copy",e=>{if(!inp(e))e.preventDefault()},document],["beforeprint",()=>qsLog("prn"),window]];
+ QG.forEach(([t,f,e])=>e.addEventListener(t,f))}
+const qsLive=()=>QS&&QS.ph&&QS.ph!=="done"&&QS.ph!=="end"&&QS.q.status==="run"&&!QS.mute;
+function qsLeave(y){if(!qsLive()||QS.aw)return;QS.aw={t:Date.now(),y,pos:QS.pos};DB.update(plPath(),{aw:QS.aw.t}).catch(()=>{})}
+function qsBack(){if(!QS||!QS.aw)return;const a=QS.aw;QS.aw=null;const d=QS.doc,dur=Date.now()-a.t;d.aw=0;if(!qsLive()||dur<1000){DB.update(plPath(),{aw:0}).catch(()=>{});return}
+ const k=QS.order[a.pos];d.an=(d.an||0)+1;d.am=(d.am||0)+dur;d.away=(d.away||[]).concat([{t:a.t,d:dur,k:k==null?-1:k,y:a.y}]).slice(-40);d.hb=Date.now();
+ let pen=false;if(QS.q.strict&&QS.ph==="q"&&dur>=3000){const k2=QS.order[QS.pos];if(!d.ans[k2]){d.ans[k2]={v:null,ok:false,ms:Math.min(Date.now()-QS.t0,QS.q.qs[k2].time*1000),pts:0,pen:1};pen=true}}
+ if(pen)DB.set(plPath(),d).catch(()=>{});else DB.update(plPath(),{aw:0,an:d.an,am:d.am,away:d.away,hb:d.hb}).catch(()=>{});
+ if(pen)qsRev();qsWarn(`Em vừa rời khỏi màn hình làm bài ${Math.round(dur/1000)} giây. Cô đã được báo (đây là lần thứ ${d.an}).${pen?" Câu đang làm bị tính 0 điểm.":""}`)}
+function qsLog(y){if(!qsLive())return;const d=QS.doc;d.an=(d.an||0)+1;const k=QS.order[QS.pos];d.away=(d.away||[]).concat([{t:Date.now(),d:0,k:k==null?-1:k,y}]).slice(-40);d.hb=Date.now();DB.update(plPath(),{an:d.an,away:d.away,hb:d.hb}).catch(()=>{});
+ qsWarn(y==="prt"?"Em vừa bấm PrintScreen (chụp màn hình). Cô đã được báo.":"Em vừa dùng lệnh in. Cô đã được báo.")}
+function qsWarn(m){let w=$("qwarn");if(w)w.remove();w=document.createElement("div");w.id="qwarn";w.className="qwarn";w.innerHTML=`<div><div style="font-size:40px">⚠</div><b style="font-size:20px">Cảnh báo</b><p>${esc(m)}</p><button data-act="qwok">Em hiểu rồi</button></div>`;document.body.appendChild(w);if(QS){clearTimeout(QS.wt);QS.wt=setTimeout(()=>{const x=$("qwarn");if(x)x.remove()},12000)}}
+ACT.qwok=()=>{const x=$("qwarn");if(x)x.remove()};
+function stopQS(){if(!QS)return;clearInterval(QS.tick);clearInterval(QS.hb);clearTimeout(QS.wt);qsGuard(false);if(QS.unsub)QS.unsub();const o=$("qs");if(o)o.remove();const w=$("qwarn");if(w)w.remove();document.body.style.overflow="";QS=null}
+ACT.qsexit=()=>{if(!QS)return;if(QS.q.status!=="end"){QS.mute=1;const ok=confirm("Em thoát phòng thi? Điểm đã có vẫn được giữ.");QS.aw=null;QS.mute=0;if(!ok)return}stopQS();if(ME&&ME.role==="guest")guestHome()};
+function qsBoard(){if(!QS)return;const q=QS.q,me=q.rk&&q.rk[UID],e=$("qsbd");if(e)e.innerHTML=(q.board||[]).map((b,i)=>`<div class="lbr"><span class="lbk">${medal(i+1)}</span><span class="lbn">${esc(b.n)}</span><b>${b.s}</b></div>`).join("");
+ const m=$("qsme");if(m)m.textContent=me?`Hạng ${me[0]}/${q.np} · ${QS.doc.score} điểm`:`${QS.doc.score} điểm`;const r=$("qsrk");if(r)r.innerHTML=me?` · Hạng <b>${me[0]}</b>/${q.np}`:""}
 function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q.rk&&q.rk[UID];
  const top=`<div class="qtop"><b>⚡ ${esc(q.title)}</b><span class="grow"></span><span class="chip" style="background:#fff2;color:#fff">⭐ ${d.score} điểm</span><button class="red sm" style="color:#fecaca;border-color:#fecaca" data-act="qsexit">Thoát</button></div>`;
- if(q.status==="lobby"){o.innerHTML=top+`<div class="qwait"><div style="font-size:64px">⚡</div><h1>Em đã vào phòng!</h1><p>Chờ cô bấm bắt đầu nhé…</p><p class="note" style="color:#cbd5e1">Tên của em: <b>${esc(ME.name)}</b></p></div>`;return}
- if(q.status==="end"){const fin=q.final||[],mine=q.rk&&q.rk[UID];const rows=q.qs.map((x,k)=>{const a=d.ans[k];return`<tr><td>${k+1}</td><td>${a?(a.ok?'<span class="chip ok">Đúng</span>':'<span class="chip no">Sai</span>'):'<span class="chip">Không trả lời</span>'}</td><td class="n">${a?(a.ms/1000).toFixed(1)+"s":"–"}</td><td class="n">${a?a.pts:0}</td></tr>`}).join("");
-  o.innerHTML=top+`<div class="qfin"><h1>🏁 Kết thúc!</h1><h2>${mine?`Em xếp hạng ${medal(mine[0])} / ${q.np} · ${d.score} điểm`:`Em được ${d.score} điểm`}</h2><div class="qlbw">${lbHtml(fin.slice(0,10).map((f,i)=>({id:f.id,name:f.n,score:f.s,rank:i+1})),UID)}</div>
-  <div style="overflow:auto;margin-top:12px"><table class="qt"><tr><th>Câu</th><th>Kết quả</th><th class="n">Thời gian</th><th class="n">Điểm</th></tr>${rows}</table></div><div class="row" style="justify-content:center;margin:14px 0"><button data-act="qsexit">Thoát</button></div></div>`;return}
- const cur=q.qs[q.qi],it=interactiveOf(cur.i),mine=d.ans[q.qi],rev=q.status==="rev";let ctl="";
- if(!rev){if(mine)ctl=`<div class="qmsg">✓ Em đã chọn ${it.kind==="mc"?"<b>"+qLet(mine.v)+"</b>":"đáp án"}. Chờ các bạn nhé…</div>`;
-  else if(QS.exp)ctl='<div class="qmsg no">⏰ Hết giờ rồi!</div>';
-  else if(it.kind==="mc")ctl=`<div class="opts" style="--n:${it.opts.length}">${it.opts.map((x,i)=>`<button class="o${i}" data-act="qpick" data-i="${i}">${qLet(i)}</button>`).join("")}</div>`;
+ const tbl=()=>{const rows=q.qs.map((x,k)=>{const a=d.ans[k];return`<tr><td>${k+1}</td><td>${a?(a.pen?'<span class="chip no">Rời màn hình – 0 điểm</span>':a.ok?'<span class="chip ok">Đúng</span>':'<span class="chip no">Sai</span>'):'<span class="chip">Không trả lời</span>'}</td><td class="n">${a?(a.ms/1000).toFixed(1)+"s":"–"}</td><td class="n">${a?a.pts:0}</td></tr>`}).join("");return`<div style="overflow:auto;margin-top:12px"><table class="qt"><tr><th>Câu</th><th>Kết quả</th><th class="n">Thời gian</th><th class="n">Điểm</th></tr>${rows}</table></div>`};
+ if(q.status==="lobby"||!QS.ph){o.innerHTML=top+`<div class="qwait"><div style="font-size:64px">⚡</div><h1>Em đã vào phòng!</h1><p>Chờ cô bấm bắt đầu nhé…</p><p class="note" style="color:#cbd5e1">Tên của em: <b>${esc(ME.name)}</b></p><p class="note" style="color:#fcd34d">Lưu ý: khi đang thi, em đừng chuyển tab hay rời khỏi màn hình này – cô sẽ nhận được thông báo.${q.strict?" Rời màn hình khi đang làm câu thì câu đó bị 0 điểm.":""}</p></div>`;return}
+ if(q.status==="end"){const fin=q.final||[],mine=q.rk&&q.rk[UID];
+  o.innerHTML=top+`<div class="qfin"><h1>🏁 Kết thúc!</h1><h2>${mine?`Em xếp hạng ${medal(mine[0])} / ${q.np} · ${d.score} điểm`:`Em được ${d.score} điểm`}</h2>${d.an?`<p class="note" style="color:#fca5a5">Em đã rời màn hình thi ${d.an} lần.</p>`:""}<div class="qlbw">${lbHtml(fin.slice(0,10).map((f,i)=>({id:f.id,name:f.n,score:f.s,rank:i+1})),UID)}</div>${tbl()}<div class="row" style="justify-content:center;margin:14px 0"><button data-act="qsexit">Thoát</button></div></div>`;return}
+ if(QS.ph==="done"){o.innerHTML=top+`<div class="qfin"><h1>✅ Em làm xong rồi!</h1><h2 id="qsme"></h2><p class="note" style="color:#cbd5e1">Chờ các bạn làm xong hoặc cô kết thúc để xem bảng xếp hạng cuối nhé.</p><div class="qlbw" id="qsbd"></div>${tbl()}</div>`;qsBoard();return}
+ const k=QS.order[QS.pos],cur=q.qs[k],it=interactiveOf(cur.i),mine=d.ans[k],rev=QS.ph==="rev";let ctl="";
+ if(!rev){if(it.kind==="mc")ctl=`<div class="opts" style="--n:${it.opts.length}">${it.opts.map((x,i)=>`<button class="o${i}" data-act="qpick" data-i="${i}">${qLet(i)}</button>`).join("")}</div>`;
   else ctl=`<div class="row" style="flex-wrap:nowrap"><input id="qsans" placeholder="Nhập đáp án của em…" autocomplete="off" style="font-size:20px"><button data-act="qsend">Gửi</button></div>`}
- else ctl=`<div class="qmsg ${mine&&mine.ok?"ok":"no"}">${mine?(mine.ok?"✓ Đúng rồi! +"+mine.pts+" điểm":"✗ Chưa đúng rồi"):"⏰ Em chưa trả lời"}</div><div class="qmsg" style="font-size:16px">Đáp án đúng: <b>${esc(cur.a)}</b>${me?` · Hạng <b>${me[0]}</b>/${q.np}`:""}</div><div class="qlbw">${(q.board||[]).map((b,i)=>`<div class="lbr"><span class="lbk">${medal(i+1)}</span><span class="lbn">${esc(b.n)}</span><b>${b.s}</b></div>`).join("")}</div>`;
- o.innerHTML=top+`<div class="qhd"><span class="chip pr">Câu ${q.qi+1}/${q.qs.length}</span><b id="qstm" style="font-size:24px">${rev?"✓":Math.ceil(q.dur)}</b></div><div class="qbar"><i id="qsbi" style="width:${rev?0:100}%"></i></div>
+ else ctl=`<div class="qmsg ${mine&&mine.ok?"ok":"no"}">${mine?(mine.pen?"⚠ Em rời màn hình nên câu này 0 điểm":mine.ok?"✓ Đúng rồi! +"+mine.pts+" điểm":"✗ Chưa đúng rồi"):"⏰ Hết giờ rồi"}</div><div class="qmsg" style="font-size:18px">Đáp án đúng: <b>${esc(cur.a)}</b><span id="qsrk"></span></div><div class="qmsg" style="font-size:14px;color:#cbd5e1">Tự chuyển sang câu tiếp sau vài giây…</div><div class="qlbw" id="qsbd"></div>`;
+ o.innerHTML=top+`<div class="qhd"><span class="chip pr">${q.shuf?"Lượt":"Câu"} ${QS.pos+1}/${q.qs.length}</span><b id="qstm" style="font-size:24px">${rev?"✓":cur.time}</b></div><div class="qbar"><i id="qsbi" style="width:${rev?100:100}%"></i></div>
  <div class="qsl" style="margin:10px auto 0"><div class="sld">${slideHtml(cur.i,rev?clicks(cur.i):0)}</div></div><div class="qctl">${ctl}</div>`;
- const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};qsTick()}
+ const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};if(rev)qsBoard();qsTick()}
 
 /* ===== Giáo viên ===== */
 function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
@@ -1094,7 +1147,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(","),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795237288";
+const BUILD="1795239517";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
