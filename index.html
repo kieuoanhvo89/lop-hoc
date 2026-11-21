@@ -381,9 +381,110 @@ function figFunc(s) {
 FIGS.func = figFunc;
 
 
+/* 11. Hình không gian: khối đa diện (nét khuất vẽ nét đứt), trụ, nón, cầu — kéo chuột xoay được */
+const DEG = Math.PI / 180;
+const SOLID_DEFS = {
+  tetra: { name: "Tứ diện đều", p: [] },
+  cube: { name: "Hình lập phương", p: [] },
+  box: { name: "Hình hộp chữ nhật", p: [{ k: "a", l: "Dài", min: 0.5, max: 4, step: 0.5, v: 3 }, { k: "b", l: "Rộng", min: 0.5, max: 4, step: 0.5, v: 2 }, { k: "c", l: "Cao", min: 0.5, max: 4, step: 0.5, v: 2 }] },
+  pyramid: { name: "Hình chóp", p: [{ k: "n", l: "Số cạnh đáy", min: 3, max: 8, step: 1, v: 4 }, { k: "h", l: "Chiều cao", min: 0.5, max: 5, step: 0.5, v: 3 }, { k: "a", l: "Cạnh đáy AB", min: 1, max: 4, step: 0.5, v: 2 }, { k: "b", l: "Cạnh BC (khi đáy 4 cạnh)", min: 1, max: 4, step: 0.5, v: 2 }] },
+  prism: { name: "Hình lăng trụ", p: [{ k: "n", l: "Số cạnh đáy", min: 3, max: 8, step: 1, v: 3 }, { k: "h", l: "Chiều cao", min: 0.5, max: 5, step: 0.5, v: 3 }, { k: "a", l: "Cạnh đáy", min: 1, max: 4, step: 0.5, v: 2 }] },
+  cylinder: { name: "Hình trụ", p: [{ k: "r", l: "Bán kính", min: 0.5, max: 3, step: 0.25, v: 1.5 }, { k: "h", l: "Chiều cao", min: 0.5, max: 5, step: 0.5, v: 3 }] },
+  cone: { name: "Hình nón", p: [{ k: "r", l: "Bán kính", min: 0.5, max: 3, step: 0.25, v: 1.5 }, { k: "h", l: "Chiều cao", min: 0.5, max: 5, step: 0.5, v: 3 }] },
+  sphere: { name: "Hình cầu", p: [] },
+  custom: { name: "Tự định nghĩa (tọa độ các đỉnh)", p: [] },
+};
+const solidP = (s, k) => { const d = ((SOLID_DEFS[s.kind || "cube"] || {}).p || []).find((x) => x.k === k); return num((s.pv || {})[k], num((s.params || {})[k], d ? d.v : 1)); };
+const SLET = (i) => String.fromCharCode(65 + i);
+function solidPoly(n, a) { const R = a / (2 * Math.sin(Math.PI / n)); return Array.from({ length: n }, (_, k) => { const t = -Math.PI / 2 - Math.PI / n + 2 * Math.PI * k / n; return [R * Math.cos(t), R * Math.sin(t)]; }); }
+function solidModel(s) {
+  const kind = s.kind || "cube", g = (k) => solidP(s, k), P = {}, faces = [], M = {};
+  if (kind === "tetra") { const a = 2, R = a * Math.sqrt(3) / 3, h = a * Math.sqrt(2 / 3); P.A = [-a / 2, -R / 2, 0]; P.B = [a / 2, -R / 2, 0]; P.C = [0, R, 0]; P.D = [0, 0, h]; faces.push(["A", "B", "C"], ["A", "B", "D"], ["B", "C", "D"], ["C", "A", "D"]); }
+  else if (kind === "cube" || kind === "box") { const W = kind === "cube" ? 2.4 : g("a"), D = kind === "cube" ? 2.4 : g("b"), H = kind === "cube" ? 2.4 : g("c"); [[0, 0], [W, 0], [W, D], [0, D]].forEach((q, i) => { P[SLET(i)] = [q[0], q[1], 0]; P[SLET(i) + "'"] = [q[0], q[1], H]; });
+    faces.push(["A", "B", "C", "D"], ["A'", "B'", "C'", "D'"]); for (let i = 0; i < 4; i++) { const a = SLET(i), b = SLET((i + 1) % 4); faces.push([a, b, b + "'", a + "'"]); } }
+  else if (kind === "pyramid") { const n = Math.max(3, Math.min(8, Math.round(g("n")))), pl = n === 4 ? [[-g("a") / 2, -g("b") / 2], [g("a") / 2, -g("b") / 2], [g("a") / 2, g("b") / 2], [-g("a") / 2, g("b") / 2]] : solidPoly(n, g("a")), h = g("h"); pl.forEach((q, i) => P[SLET(i)] = [q[0], q[1], 0]); let ap = [0, 0]; if (s.apexAt && P[s.apexAt]) ap = [P[s.apexAt][0], P[s.apexAt][1]]; P.S = [ap[0], ap[1], h];
+    faces.push(pl.map((_, i) => SLET(i))); for (let i = 0; i < n; i++) faces.push(["S", SLET(i), SLET((i + 1) % n)]); if (s.height && !(s.apexAt && P[s.apexAt])) M.O = [0, 0, 0]; }
+  else if (kind === "prism") { const n = Math.max(3, Math.min(8, Math.round(g("n")))), pl = solidPoly(n, g("a")), h = g("h"); pl.forEach((q, i) => { P[SLET(i)] = [q[0], q[1], 0]; P[SLET(i) + "'"] = [q[0], q[1], h]; });
+    faces.push(pl.map((_, i) => SLET(i)), pl.map((_, i) => SLET(i) + "'")); for (let i = 0; i < n; i++) { const a = SLET(i), b = SLET((i + 1) % n); faces.push([a, b, b + "'", a + "'"]); } }
+  else if (kind === "custom") { Object.entries(s.points || {}).forEach(([k, v]) => { if (Array.isArray(v) && v.length >= 3) P[k] = [num(v[0], 0), num(v[1], 0), num(v[2], 0)]; }); arr(s.faces, []).forEach((f) => { const q = arr(f, []).map(String); if (q.length > 2 && q.every((k) => P[k])) faces.push(q); }); if (!Object.keys(P).length) throw new Error("no points"); }
+  else throw new Error("kind");
+  const get = (k) => P[k] || M[k];
+  Object.entries(s.marks || {}).forEach(([k, d]) => { try { if (Array.isArray(d) && typeof d[0] === "number") M[k] = [d[0], d[1], d[2]]; else if (d[0] === "mid") { const a = get(d[1]), b = get(d[2]); M[k] = a.map((v, i) => (v + b[i]) / 2); } else if (d[0] === "pt") { const a = get(d[1]), b = get(d[2]), t = num(d[3], 0.5); M[k] = a.map((v, i) => v + (b[i] - v) * t); } else if (d[0] === "centroid") { const q = d.slice(1).map(get); M[k] = [0, 1, 2].map((i) => q.reduce((x, p) => x + p[i], 0) / q.length); } } catch (e) {} });
+  if (s.height && kind === "pyramid" && !s.segs) { const foot = s.apexAt && P[s.apexAt] ? s.apexAt : "O"; s = { ...s, segs: [["S", foot, "red"]] }; }
+  return { P, M, faces, segs: arr(s.segs, []) };
+}
+function solidCam(s) {
+  const v = s.view || {}, az = num(v.az, -35) * DEG, el = Math.max(-89, Math.min(89, num(v.el, 22))) * DEG, ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  return { r: [ca, sa, 0], u: [-se * sa, se * ca, ce], c: [ce * sa, -ce * ca, se], az, el };
+}
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const SPC = { yellow: "#F2A900", blue: "#2F80ED", red: "#EB5757", green: "#27AE60", purple: "#9B51E0" };
+function solidSvgWrap(s, body) { return wrap(520, 430, body, s.title); }
+/* vẽ các đoạn polyline theo từng đoạn nhìn thấy / bị khuất (nét liền / nét đứt) */
+function solidRuns(pts, vis, close) {
+  const n = pts.length, runs = []; let cur = null;
+  for (let i = 0; i < n - (close ? 0 : 1); i++) { const a = pts[i], b = pts[(i + 1) % n], v = vis(i); if (!cur || cur.v !== v) { cur = { v, p: [a] }; runs.push(cur); } cur.p.push(b); }
+  return runs;
+}
+const solidPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + " " + q[1].toFixed(1)).join("L");
+const solidLine = (p, v, col, w) => `<path d="${solidPath(p)}" fill="none" stroke="${col || FC.ink}" stroke-width="${v ? w || 2.6 : (w || 2.6) * 0.72}" stroke-linecap="round" stroke-linejoin="round"${v ? "" : ' stroke-dasharray="7 6" opacity=".75"'}/>`;
+function figSolid(s) {
+  const kind = s.kind || "cube", cam = solidCam(s), { r, u, c } = cam, showHid = s.hidden !== false, showLab = s.labels !== false, fill = s.faces !== false, CX = 260, CY = 222;
+  let body = "";
+  if (kind === "cylinder" || kind === "cone" || kind === "sphere") {
+    const R = solidP(s, "r") || 1.5, Hh = kind === "sphere" ? 2 * R : solidP(s, "h"), cen = kind === "sphere" ? [0, 0, 0] : [0, 0, Hh / 2], ext = Math.max(R * 1.15, Hh / 2 * 1.1) * (kind === "sphere" ? 1 : 1.25), SC = 160 / Math.max(ext, 0.5);
+    const S = (p) => { const q = [p[0] - cen[0], p[1] - cen[1], p[2] - cen[2]]; return [CX + dot3(q, r) * SC, CY - dot3(q, u) * SC, dot3(q, c)]; };
+    const circ = (z, rad, n = 96) => Array.from({ length: n + 1 }, (_, i) => { const t = 2 * Math.PI * i / n; return [rad * Math.cos(t), rad * Math.sin(t), z]; });
+    const frontOf = (p) => dot3([p[0], p[1], 0], [c[0], c[1], 0]) > 0;
+    const lab = (name, p, dx, dy) => { const q = S(p); return `<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="${FC.ink}"/>` + txt(q[0] + dx, q[1] + dy, name, { fs: 17, b: 1 }); };
+    if (kind === "sphere") {
+      const o = S([0, 0, 0]); body += `<circle cx="${o[0]}" cy="${o[1]}" r="${R * SC}" fill="${FC.pale[0]}" fill-opacity=".55" stroke="${FC.ink}" stroke-width="2.6"/>`;
+      const eq = circ(0, R).map(S), eqv = (i) => { const p = [R * Math.cos(2 * Math.PI * i / 96), R * Math.sin(2 * Math.PI * i / 96), 0]; return dot3(p, c) > 0; };
+      solidRuns(eq, eqv, false).forEach((q) => { if (q.v || showHid) body += solidLine(q.p, q.v, FC.ink, 2); });
+      const mr = Array.from({ length: 97 }, (_, i) => { const t = 2 * Math.PI * i / 96; return [R * Math.cos(t), 0, R * Math.sin(t)]; }), mp = mr.map(S);
+      solidRuns(mp, (i) => dot3(mr[i], c) > 0, false).forEach((q) => { if (q.v || showHid) body += solidLine(q.p, q.v, "#7b8bb0", 1.6); });
+      if (showLab) { body += lab("O", [0, 0, 0], 14, 12); const a = S([R, 0, 0]); body += `<line x1="${o[0]}" y1="${o[1]}" x2="${a[0]}" y2="${a[1]}" stroke="${FC.red}" stroke-width="2" stroke-dasharray="6 5"/>` + `<circle cx="${a[0]}" cy="${a[1]}" r="3.5" fill="${FC.red}"/>` + txt((a[0] + o[0]) / 2, (a[1] + o[1]) / 2 - 11, "R", { fs: 15, b: 1, c: FC.red }); }
+    } else {
+      const topV = c[2] > 0, N = 96, base = circ(0, R, N), bp = base.map(S);
+      const bvis = (i) => frontOf(base[i]) || c[2] < 0;
+      if (kind === "cylinder") {
+        const top = circ(Hh, R, N), tp = top.map(S);
+        if (fill) body += `<path d="${solidPath(topV ? tp : bp)}Z" fill="${FC.pale[0]}" fill-opacity=".7"/>`;
+        const sx = r; [-1, 1].forEach((sg) => { const a = S([sg * R * sx[0], sg * R * sx[1], 0]), b = S([sg * R * sx[0], sg * R * sx[1], Hh]); body += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${FC.ink}" stroke-width="2.6" stroke-linecap="round"/>`; });
+        solidRuns(bp, bvis, false).forEach((q) => { if (q.v || showHid) body += solidLine(q.p, q.v); });
+        solidRuns(tp, (i) => frontOf(top[i]) || c[2] > 0, false).forEach((q) => { if (q.v || showHid) body += solidLine(q.p, q.v); });
+        if (showLab) { const a = S([0, 0, 0]), b = S([0, 0, Hh]); body += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${FC.red}" stroke-width="2" stroke-dasharray="6 5"/>` + lab("O", [0, 0, 0], 14, 12) + lab("O'", [0, 0, Hh], 16, -12); }
+      } else {
+        const ap = [0, 0, Hh], k = -R * Math.sin(cam.el) / (Hh * Math.cos(cam.el) || 1e-9);
+        if (fill && c[2] < 0) body += `<path d="${solidPath(bp)}Z" fill="${FC.pale[0]}" fill-opacity=".7"/>`;
+        solidRuns(bp, bvis, false).forEach((q) => { if (q.v || showHid) body += solidLine(q.p, q.v); });
+        if (Math.abs(k) < 0.999) { const sol = [Math.asin(k), Math.PI - Math.asin(k)].map((d) => cam.az - d); sol.forEach((ph) => { const a = S(ap), b = S([R * Math.cos(ph), R * Math.sin(ph), 0]); body += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${FC.ink}" stroke-width="2.6" stroke-linecap="round"/>`; }); }
+        if (showLab) { const a = S([0, 0, 0]), b = S(ap); body += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${FC.red}" stroke-width="2" stroke-dasharray="6 5"/>` + lab("O", [0, 0, 0], 14, 12) + lab("S", ap, 0, -16); }
+      }
+    }
+    return solidSvgWrap(s, body);
+  }
+  const m = solidModel(s), all = { ...m.P, ...m.M }, keys = Object.keys(m.P), cen = [0, 1, 2].map((i) => keys.reduce((a, k) => a + m.P[k][i], 0) / keys.length);
+  let Rm = 0.01; Object.values(all).forEach((p) => { Rm = Math.max(Rm, Math.hypot(p[0] - cen[0], p[1] - cen[1], p[2] - cen[2])); });
+  const SC = 170 / Rm, S = (p) => { const q = [p[0] - cen[0], p[1] - cen[1], p[2] - cen[2]]; return [CX + dot3(q, r) * SC, CY - dot3(q, u) * SC]; };
+  const fc = m.faces.map((f) => { const pts = f.map((k) => m.P[k]), g = [0, 1, 2].map((i) => pts.reduce((a, p) => a + p[i], 0) / pts.length), a = pts[0], b = pts[1], d = pts[2], n = [(b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1]), (b[2] - a[2]) * (d[0] - a[0]) - (b[0] - a[0]) * (d[2] - a[2]), (b[0] - a[0]) * (d[1] - a[1]) - (b[1] - a[1]) * (d[0] - a[0])]; const out = dot3(n, [g[0] - cen[0], g[1] - cen[1], g[2] - cen[2]]) >= 0 ? n : n.map((v) => -v); return { f, front: dot3(out, c) > 1e-6 }; });
+  (s.planes || []).forEach((pl) => { const q = arr(pl.pts, []).map((k) => all[k]).filter(Boolean); if (q.length > 2) { const col = SPC[pl.color] || SPC.yellow; body += `<polygon points="${q.map((p) => S(p).map((v) => v.toFixed(1)).join(",")).join(" ")}" fill="${col}" fill-opacity=".32" stroke="${col}" stroke-width="2.4" stroke-linejoin="round"/>`; } });
+  if (fill) fc.forEach((F, i) => { if (F.front) body += `<polygon points="${F.f.map((k) => S(m.P[k]).map((v) => v.toFixed(1)).join(",")).join(" ")}" fill="${FC.pale[i % 5]}" fill-opacity=".5"/>`; });
+  const eds = new Map(); fc.forEach((F) => { F.f.forEach((k, i) => { const k2 = F.f[(i + 1) % F.f.length], id = [k, k2].sort().join("|"); const e = eds.get(id) || { a: k, b: k2, vis: false }; if (F.front) e.vis = true; eds.set(id, e); }); });
+  const line = (a, b, v, col, w) => { const p = S(a), q = S(b); return `<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" stroke="${col || FC.ink}" stroke-width="${v ? w || 2.6 : (w || 2.6) * 0.72}" stroke-linecap="round"${v ? "" : ' stroke-dasharray="7 6" opacity=".75"'}/>`; };
+  if (showHid) eds.forEach((e) => { if (!e.vis) body += line(m.P[e.a], m.P[e.b], false); });
+  eds.forEach((e) => { if (e.vis || !fc.length) body += line(m.P[e.a], m.P[e.b], true); });
+  m.segs.forEach((sg) => { const a = all[sg[0]], b = all[sg[1]]; if (a && b) body += line(a, b, sg[3] === "solid", SPC[sg[2]] || FC.ink, 2.4); });
+  const sc0 = S(cen);
+  Object.entries(all).forEach(([k, p]) => { const q = S(p), isM = !m.P[k]; body += `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="${isM ? 3.2 : 3.6}" fill="${isM ? FC.red : FC.ink}"/>`; if (showLab) { let dx = q[0] - sc0[0], dy = q[1] - sc0[1]; const L = Math.hypot(dx, dy) || 1; body += txt(q[0] + dx / L * 17, q[1] + dy / L * 17, k, { fs: 17, b: 1, c: isM ? FC.red : FC.ink }); } });
+  return solidSvgWrap(s, body);
+}
+FIGS.solid = figSolid;
+
 /* ===== Hình tương tác: đồ thị kéo thanh trượt (dùng chung cho trình soạn và Lớp học) ===== */
-const vizOn = (f) => !!f && f.type === "func";
+const vizOn = (f) => !!f && (f.type === "func" || f.type === "solid");
 function vizMount(box, spec) {
+  if (spec && spec.type === "solid") return vizMountSolid(box, spec);
   box.innerHTML = ""; box.classList.add("vzbox");
   let pr; try { pr = funcPrep(spec); } catch (e) { box.innerHTML = '<div style="padding:14px;color:#c0392b">Chưa vẽ được: ' + fx(e.message === "no fn" ? "chưa có hàm số" : e.message) + "</div>"; return { redraw() {} }; }
   const st = { pv: { ...pr.P }, vertex: !!spec.vertex, roots: !!spec.roots, grid: spec.grid !== false };
@@ -402,6 +503,31 @@ function vizMount(box, spec) {
   const rs = document.createElement("button"); rs.textContent = "↺ Về giá trị ban đầu"; rs.style.cssText = "padding:5px 12px;border-radius:8px;border:1px solid #1f6feb;background:transparent;color:#1f6feb;font-weight:600;cursor:pointer"; rs.onclick = () => { st.pv = { ...pr.P }; ctl.querySelectorAll("input[type=range]").forEach((r, i) => { r.value = st.pv[pr.ids[i]]; r.oninput(); }); };
   opt.appendChild(rs); ctl.appendChild(opt); box.append(svg, ctl); draw();
   return { redraw: draw };
+}
+
+function vizMountSolid(box, spec) {
+  box.innerHTML = ""; box.classList.add("vzbox");
+  const kind = spec.kind || "cube", defs = (SOLID_DEFS[kind] || { p: [] }).p, v0 = spec.view || {};
+  const st = { az: num(v0.az, -35), el: num(v0.el, 22), pv: {}, hid: spec.hidden !== false, faces: spec.faces !== false, labels: spec.labels !== false, spin: null };
+  defs.forEach((d) => { st.pv[d.k] = solidP(spec, d.k); });
+  const sv = document.createElement("div"); sv.className = "vzsvg"; sv.style.cssText = "background:#fff;border-radius:10px;border:1px solid #dbe2ee;padding:4px;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab";
+  const hint = document.createElement("div"); hint.style.cssText = "font-size:13px;color:#5d6b82;margin:4px 2px"; hint.textContent = "👆 Kéo chuột (hoặc kéo ngón tay) trên hình để xoay và nhìn các mặt.";
+  const ctl = document.createElement("div"); ctl.style.cssText = "margin-top:6px;display:grid;gap:8px";
+  const draw = () => { try { sv.innerHTML = figSolid({ ...spec, view: { az: st.az, el: st.el }, pv: st.pv, hidden: st.hid, faces: st.faces, labels: st.labels }).svg; const s = sv.querySelector("svg"); if (s) { s.removeAttribute("width"); s.removeAttribute("height"); s.style.cssText = "max-width:100%;width:auto;height:min(56vh,620px);pointer-events:none"; } } catch (e) { sv.textContent = "Không vẽ được hình: " + e.message; } };
+  let px = 0, py = 0, dn = false;
+  sv.onpointerdown = (e) => { dn = true; px = e.clientX; py = e.clientY; try { sv.setPointerCapture(e.pointerId); } catch (x) {} sv.style.cursor = "grabbing"; if (st.spin) spin(false); };
+  sv.onpointermove = (e) => { if (!dn) return; st.az -= (e.clientX - px) * 0.55; st.el = Math.max(-85, Math.min(85, st.el + (e.clientY - py) * 0.45)); px = e.clientX; py = e.clientY; draw(); };
+  sv.onpointerup = sv.onpointercancel = () => { dn = false; sv.style.cursor = "grab"; };
+  const spin = (on) => { if (st.spin) { clearInterval(st.spin); st.spin = null; } if (on) st.spin = setInterval(() => { if (!box.isConnected) { clearInterval(st.spin); st.spin = null; return; } st.az += 1.4; draw(); }, 40); sp.textContent = on ? "⏸ Dừng xoay" : "⟳ Tự xoay"; };
+  const btn = (t, f) => { const b = document.createElement("button"); b.textContent = t; b.style.cssText = "padding:5px 12px;border-radius:8px;border:1px solid #1f6feb;background:transparent;color:#1f6feb;font-weight:600;cursor:pointer"; b.onclick = f; return b; };
+  const sp = btn("⟳ Tự xoay", () => spin(!st.spin));
+  defs.forEach((d) => { const row = document.createElement("div"); row.style.cssText = "display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center"; const lab = document.createElement("b"); lab.style.cssText = "font-size:15px;color:#183F69"; const rg = document.createElement("input"); rg.type = "range"; rg.min = d.min; rg.max = d.max; rg.step = d.step; rg.value = st.pv[d.k]; rg.style.cssText = "width:100%;height:26px"; const sh = () => { lab.textContent = d.l + " = " + fnFmt(st.pv[d.k]); }; sh(); rg.oninput = () => { st.pv[d.k] = +rg.value; sh(); draw(); }; row.append(lab, rg); ctl.appendChild(row); });
+  const opt = document.createElement("div"); opt.style.cssText = "display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:15px";
+  [["hid", "Hiện nét khuất (nét đứt)"], ["faces", "Tô màu các mặt"], ["labels", "Hiện tên đỉnh"]].forEach(([k, t]) => { const l = document.createElement("label"), c = document.createElement("input"); c.type = "checkbox"; c.checked = st[k]; c.style.cssText = "width:auto;margin-right:6px"; c.onchange = () => { st[k] = c.checked; draw(); }; l.append(c, t); opt.appendChild(l); });
+  const bt = document.createElement("div"); bt.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+  bt.append(sp, btn("↺ Góc nhìn ban đầu", () => { spin(false); st.az = num(v0.az, -35); st.el = num(v0.el, 22); draw(); }), btn("⬆ Nhìn từ trên", () => { spin(false); st.el = 85; draw(); }), btn("◼ Nhìn thẳng mặt trước", () => { spin(false); st.az = 0; st.el = 0; draw(); }));
+  ctl.append(opt, bt); box.append(sv, hint, ctl); draw();
+  return { redraw: draw, stop: () => spin(false) };
 }
 function vizModal(spec, title) {
   const o = document.createElement("div"); o.className = "vzov"; o.style.cssText = "position:fixed;inset:0;z-index:95;background:#000c;overflow:auto;padding:12px";
@@ -760,7 +886,7 @@ ACT.vzopen=d=>{const s=LESSON&&LESSON.slides[+d.i];if(s&&s.fig)vizModal(s.fig,s.
 function slideHtml(i,stp){const s=LESSON.slides[i],th=THEMES[STY]||THEMES.sang;let h=`<div style="position:absolute;inset:0;background:#${th.bg};display:block"></div>`;
  for(const o of layoutSlide({...s,visual:visualOf(s)},th,{idx:i,total:LESSON.slides.length,logo:slideBrand().logo,brand:slideBrand().name})){if(o.fb!=null)continue;const hide=o.step>=stp&&o.step>=0;
   let css=`left:${o.x/SW*100}%;top:${o.y/SH*100}%;width:${o.w/SW*100}%;height:${o.h/SH*100}%;`;
-  if(o.k==="img"){h+=`<img class="${hide?"h":""}" src="${o.src}" style="${css}${o.round?"border-radius:50%;":""}">`;if(o.name==="hinh"&&vzOn(s))h+=`<div class="vzb" data-act="vzopen" data-i="${i}" style="left:${(o.x+o.w)/SW*100}%;top:${(o.y+o.h)/SH*100}%">🎛 Chạm để kéo thanh trượt</div>`;continue}
+  if(o.k==="img"){h+=`<img class="${hide?"h":""}" src="${o.src}" style="${css}${o.round?"border-radius:50%;":""}">`;if(o.name==="hinh"&&vzOn(s))h+=`<div class="vzb" data-act="vzopen" data-i="${i}" style="left:${(o.x+o.w)/SW*100}%;top:${(o.y+o.h)/SH*100}%">${s.fig.type==="solid"?"🧊 Chạm để xoay hình":"🎛 Chạm để kéo thanh trượt"}</div>`;continue}
   if(o.fill)css+=`background:#${o.fill};`;if(o.line)css+=`border:${(o.lw||1)*K}cqw solid #${o.line};`;if(o.k==="ellipse")css+="border-radius:50%;";if(o.k==="round")css+="border-radius:1.2cqw;";
   if(o.text!=null){css+=`font-size:${o.fs*K}cqw;color:#${o.c};font-weight:${o.b?700:400};justify-content:${o.al==="c"?"center":o.al==="r"?"flex-end":"flex-start"};align-items:${o.va==="m"?"center":"flex-start"};text-align:${o.al==="c"?"center":o.al==="r"?"right":"left"};`;css+=o.k==="text"?"padding:0;":`padding:${4*K}cqw ${(o.mr||7)*K}cqw ${4*K}cqw ${7*K}cqw;`}
   h+=`<div class="${hide?"h":""}" style="${css}">${o.text!=null?`<span style="display:block;width:100%">${esc(o.text)}</span>`:""}</div>`}
@@ -1479,7 +1605,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795284833";
+const BUILD="1795285759";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
