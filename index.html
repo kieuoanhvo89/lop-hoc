@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lớp Toán tư duy cô Oanh – Lớp học</title>
+<title>Lớp học – quản lý lớp, soạn bài, thi đấu</title>
 <style>
 :root{--bg:#f5f7fb;--card:#fff;--tx:#1b2433;--mu:#5d6b82;--bd:#dbe2ee;--pr:#1f6feb;--ok:#1e9e55;--no:#d64545;--wa:#c98a00}
 @media (prefers-color-scheme:dark){:root{--bg:#111723;--card:#1a2233;--tx:#e8edf6;--mu:#9aa8c0;--bd:#2c3750;--pr:#5b9dff;--ok:#3fcf7e;--no:#ff7070;--wa:#ffc247}}
@@ -300,10 +300,11 @@ function layoutSlide(s, th, ctx) {
 
   if (isTitle) {
     if (ctx.logo) add({ k: "img", name: "logo", x: 0.9, y: 1.7, w: 2.0, h: 2.0, src: ctx.logo, round: true, step: -1 });
-    const fs = fitFs(s.title, 6.1, 1.7, [38, 34, 30, 26, 22]);
-    add({ k: "text", name: "tieude", x: 3.3, y: 1.5, w: 6.1, h: 1.8, text: s.title, fs, b: true, c: th.title, al: "l", va: "m", field: { f: "title" }, step: -1 });
-    if (s.subtitle) add({ k: "text", name: "phude", x: 3.3, y: 3.35, w: 6.1, h: 1.0, text: s.subtitle, fs: 18, c: th.text, al: "l", va: "t", field: { f: "subtitle" }, step: -1 });
-    add({ k: "text", name: "chantrang", x: 3.3, y: 4.7, w: 6, h: 0.3, text: "Lớp Toán tư duy cô Oanh", fs: 11, c: th.muted, al: "l", va: "m", step: -1 });
+    const tx = ctx.logo ? 3.3 : 0.9, tw = ctx.logo ? 6.1 : 8.2;
+    const fs = fitFs(s.title, tw, 1.7, [38, 34, 30, 26, 22]);
+    add({ k: "text", name: "tieude", x: tx, y: 1.5, w: tw, h: 1.8, text: s.title, fs, b: true, c: th.title, al: "l", va: "m", field: { f: "title" }, step: -1 });
+    if (s.subtitle) add({ k: "text", name: "phude", x: tx, y: 3.35, w: tw, h: 1.0, text: s.subtitle, fs: 18, c: th.text, al: "l", va: "t", field: { f: "subtitle" }, step: -1 });
+    if (ctx.brand) add({ k: "text", name: "chantrang", x: tx, y: 4.7, w: tw, h: 0.3, text: ctx.brand, fs: 11, c: th.muted, al: "l", va: "m", step: -1 });
     return o;
   }
   // tiêu đề + logo nhỏ
@@ -311,7 +312,7 @@ function layoutSlide(s, th, ctx) {
   add({ k: "text", name: "tieude", x: 0.5, y: 0.2, w: 8.3, h: 0.65, text: s.title, fs: tfs, b: true, c: th.title, al: "l", va: "m", field: { f: "title" }, step: -1 });
   if (th.deco === "bar") add({ k: "rect", name: "thanh", x: 0.55, y: 0.88, w: 0.9, h: 0.05, fill: th.accent, step: -1 });
   if (ctx.logo) add({ k: "img", name: "logo", x: 9.05, y: 0.15, w: 0.7, h: 0.7, src: ctx.logo, round: true, step: -1 });
-  add({ k: "text", name: "chantrang", x: 0.5, y: 5.3, w: 4, h: 0.25, text: "Lớp Toán tư duy cô Oanh", fs: 9, c: th.muted, al: "l", va: "m", step: -1 });
+  if (ctx.brand) add({ k: "text", name: "chantrang", x: 0.5, y: 5.3, w: 4, h: 0.25, text: ctx.brand, fs: 9, c: th.muted, al: "l", va: "m", step: -1 });
   add({ k: "text", name: "so", x: 8.5, y: 5.3, w: 1.0, h: 0.25, text: ctx.idx + 1 + " / " + ctx.total, fs: 9, c: th.muted, al: "r", va: "m", step: -1 });
 
   const L = 0.5, TOP = 1.05, BOTTOM = 5.22;
@@ -454,7 +455,7 @@ async function buildPptx(PptxGenJS, JSZipLib, slides, themeKey, ctx, svgToPng) {
   for (let i = 0; i < slides.length; i++) {
     const s = slides[i];
     const sl = p.addSlide(); sl.background = { color: th.bg };
-    const objs = layoutSlide(s, th, { idx: i, total: slides.length, logo: ctx.logo });
+    const objs = layoutSlide(s, th, { idx: i, total: slides.length, logo: ctx.logo, brand: ctx.brand });
     const plan = { main: [], inter: [] }; const nClick = clickCount(s);
     for (let c = 0; c < nClick; c++) plan.main.push([]);
     for (const ob of objs) {
@@ -493,8 +494,20 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const FB_CFG={"apiKey":"AIzaSyA5rsBYJRyrdKZbrTAbo5XN-AB_urSLlSo","authDomain":"lop-toan-co-oanh.firebaseapp.com","projectId":"lop-toan-co-oanh","storageBucket":"lop-toan-co-oanh.firebasestorage.app","messagingSenderId":"681397017588","appId":"1:681397017588:web:348431d89f1b6cc7d837a1"};
 const EMAIL_DOM="hs.lop-co-oanh.app",SEEN_MS=20000,CH=180000;
-const LOGO_IMG='<img src="'+LOGO+'" alt="">';
 let DB=null,UID=null,ME=null,SIGNUP_BUSY=false,T={tab:"lop",cid:null};
+const NEUTRAL_LOGO="data:image/svg+xml;base64,"+btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#1f6feb"/><path d="M50 24 14 40l36 16 36-16z" fill="#fff"/><path d="M28 51v14c0 6 10 11 22 11s22-5 22-11V51L50 62z" fill="#fff" opacity=".9"/><rect x="82" y="40" width="3" height="22" rx="1.5" fill="#fde68a"/></svg>');
+let BRAND=null;
+const isOwnerAcc=()=>!!(ME&&ME.role==="teacher"&&((ME.email||"").toLowerCase()==="kieuoanhvo89@gmail.com"||(ME.emailjs&&ME.emailjs.s==="service_j3ofeni")));
+const resolveLogo=l=>l==="@oanh"?LOGO:(l||"");
+const OANH_NAME="Lớp Toán tư duy cô Oanh";
+/* Thương hiệu riêng từng giáo viên: giáo viên dùng logo/tên của mình; học sinh, khách dùng thương hiệu của giáo viên lấy từ bài giao/quiz; logo cô Oanh chỉ dành cho tài khoản của cô */
+function slideBrand(){if(ME&&ME.role==="teacher")return{logo:ME.logo||(isOwnerAcc()?LOGO:""),name:ME.brand||(isOwnerAcc()?OANH_NAME:"")};return{logo:resolveLogo(BRAND&&BRAND.logo),name:(BRAND&&BRAND.n)||""}}
+function myBrand(){const s=slideBrand();return{n:s.name||(ME&&ME.role==="teacher"?"Lớp của "+ME.name:"Lớp học"),logo:s.logo||NEUTRAL_LOGO}}
+const brandLogo=()=>myBrand().logo;
+const logoImg=()=>'<img src="'+brandLogo()+'" alt="">';
+const snapLogo=()=>ME&&ME.logo?ME.logo:(isOwnerAcc()?"@oanh":"");
+function setBrand(n,logo){BRAND=(n||logo)?{n:n||"",logo:logo||""}:null;const im=document.querySelector(".top img");if(im)im.src=brandLogo()}
+
 const toEmail=u=>{u=String(u).trim().toLowerCase();return u.includes("@")?u:u+"@"+EMAIL_DOM};
 const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const fmtT=ms=>{ms=Math.round((ms||0)/1000);const m=Math.floor(ms/60),s=ms%60;return m>=60?Math.floor(m/60)+" giờ "+(m%60)+" phút":m+":"+String(s).padStart(2,"0")};
@@ -529,7 +542,7 @@ function fbAdapter(){firebase.initializeApp(FB_CFG);const auth=firebase.auth(),f
   onDoc:(p,cb,er)=>fs.doc(p).onSnapshot(s=>cb(s.exists?dd(s):null),er),onList:(p,w,cb,er)=>q(p,w).onSnapshot(s=>cb(s.docs.map(dd)),er)}}
 
 /* ===== Đăng nhập ===== */
-function viewLogin(){$("app").innerHTML=`<div class="wrap narrow"><div style="text-align:center">${LOGO_IMG.replace('<img','<img style="width:92px;height:92px;border-radius:50%"')}<h1>Lớp Toán tư duy cô Oanh</h1><p class="sub">Đăng nhập để vào lớp học</p></div>
+function viewLogin(){$("app").innerHTML=`<div class="wrap narrow"><div style="text-align:center">${logoImg().replace('<img','<img style="width:92px;height:92px;border-radius:50%"')}<h1>${esc(BRAND&&BRAND.n||"Lớp học trực tuyến")}</h1><p class="sub">Đăng nhập để vào lớp học</p></div>
  <div class="panel"><label class="l">Tên đăng nhập (hoặc email của cô)</label><input id="lu" autocomplete="username" autocapitalize="none">
  <label class="l">Mật khẩu</label><input id="lp" type="password" autocomplete="current-password">
  <div class="row" style="margin-top:14px"><button data-act="login" id="lgo">Đăng nhập</button><span class="note" id="lmsg"></span></div></div>
@@ -547,17 +560,18 @@ ACT.tsign2=async()=>{const n=$("sn").value.trim(),e=$("se").value.trim().toLower
  catch(er){SIGNUP_BUSY=false;$("smsg").textContent=authErr(er);$("sgo").disabled=false}};
 ACT.logout=async()=>{stopPlayer(true);stopQS();await DB.signOut()};
 const GL=new URLSearchParams(location.search).get("live");let GLDONE=false;
-const liveLink=aid=>location.href.split("?")[0].split("#")[0]+"?live="+aid;
-function viewGuest(){$("app").innerHTML=`<div class="wrap narrow"><div style="text-align:center">${LOGO_IMG.replace('<img','<img style="width:92px;height:92px;border-radius:50%"')}<h1>${GQ?"Vào thi đấu Quiz":"Vào học trực tiếp"}</h1><p class="sub">Lớp Toán tư duy cô Oanh</p></div>
+const liveLink=aid=>location.href.split("?")[0].split("#")[0]+"?live="+aid+(UID&&ME&&ME.role==="teacher"?"&t="+UID:"");
+function viewGuest(){$("app").innerHTML=`<div class="wrap narrow"><div style="text-align:center">${logoImg().replace('<img','<img style="width:92px;height:92px;border-radius:50%"')}<h1>${GQ?"Vào thi đấu Quiz":"Vào học trực tiếp"}</h1><p class="sub">${esc(BRAND&&BRAND.n||"")}</p></div>
  <div class="panel"><label class="l">Em tên là gì?</label><input id="gn" placeholder="Họ và tên của em" value="${esc(localStorage.getItem("gname")||"")}" autocomplete="name">
  <div class="row" style="margin-top:14px"><button data-act="gjoin" id="ggo">Vào học</button><span class="note" id="gmsg"></span></div></div>
  <p class="note" style="text-align:center">Em có tài khoản của lớp? <a class="lk" data-act="glogin">Đăng nhập</a></p></div>`;$("gn").onkeydown=e=>{if(e.key==="Enter")ACT.gjoin()}}
 ACT.glogin=viewLogin;
 ACT.gjoin=async()=>{const n=$("gn").value.trim();if(n.length<2){$("gmsg").textContent="Em nhập tên của em nhé.";return}try{localStorage.setItem("gname",n)}catch(e){}$("ggo").disabled=true;$("gmsg").textContent="Đang vào…";try{await DB.signAnon()}catch(e){$("gmsg").textContent=authErr(e);$("ggo").disabled=false}};
-function guestShell(){$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><span class="note">(khách)</span><span class="grow"></span><button class="sec sm" data-act="logout">Thoát</button></div><div class="wrap" id="sv"><p class="note">Đang vào buổi học…</p></div>`;GQ?ACT.joinquiz({id:GQ}):ACT.joinlive({id:GL})}
+function guestShell(){$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><span class="note">(khách)</span><span class="grow"></span><button class="sec sm" data-act="logout">Thoát</button></div><div class="wrap" id="sv"><p class="note">Đang vào buổi học…</p></div>`;GQ?ACT.joinquiz({id:GQ}):ACT.joinlive({id:GL})}
 function guestHome(){const v=$("sv");if(v)v.innerHTML=`<div class="panel"><b>Em đã thoát buổi học.</b><div class="row" style="margin-top:10px"><button data-act="gagain">Vào lại</button></div></div>`}
 ACT.gagain=()=>GQ?ACT.joinquiz({id:GQ}):ACT.joinlive({id:GL});
-async function boot(u){if(SIGNUP_BUSY)return;if(!u){UID=null;ME=null;(GL||GQ)?viewGuest():viewLogin();return}
+async function gateBrand(){const tt=new URLSearchParams(location.search).get("t");if(!tt||BRAND)return;try{const b=await DB.get("brands/"+tt);if(b&&!ME){setBrand(b.n,b.logo);(GL||GQ)?viewGuest():viewLogin()}}catch(e){}}
+async function boot(u){if(SIGNUP_BUSY)return;if(!u){UID=null;ME=null;(GL||GQ)?viewGuest():viewLogin();gateBrand();return}
  UID=u.uid;if(u.anon){if(!GL&&!GQ){await DB.signOut();return}ME={id:UID,role:"guest",name:localStorage.getItem("gname")||"Khách",classIds:[]};guestShell();return}
  try{ME=await DB.get("users/"+UID)}catch(e){ME=null}
  if(!ME){$("app").innerHTML='<div class="wrap narrow"><div class="panel"><b>Tài khoản chưa được xếp vào lớp.</b><p class="note">Em nhờ cô tạo tài khoản học sinh cho em nhé.</p><button data-act="logout">Đăng xuất</button></div></div>';return}
@@ -581,7 +595,7 @@ function visualOf(s){const m=(LESSON.form&&LESSON.form.img)||"both",pick=s.pick,
  if(m!=="doc"&&s.fig){const f=renderFigure(s.fig);if(f)return{src:svgUri(f.svg),ratio:f.ratio}}
  if(m!=="doc"&&s.svg&&/<svg/i.test(s.svg))return{src:svgUri(s.svg),ratio:svgRatio(s.svg)};return null}
 function slideHtml(i,stp){const s=LESSON.slides[i],th=THEMES[STY]||THEMES.sang;let h=`<div style="position:absolute;inset:0;background:#${th.bg};display:block"></div>`;
- for(const o of layoutSlide({...s,visual:visualOf(s)},th,{idx:i,total:LESSON.slides.length,logo:LOGO})){if(o.fb!=null)continue;const hide=o.step>=stp&&o.step>=0;
+ for(const o of layoutSlide({...s,visual:visualOf(s)},th,{idx:i,total:LESSON.slides.length,logo:slideBrand().logo,brand:slideBrand().name})){if(o.fb!=null)continue;const hide=o.step>=stp&&o.step>=0;
   let css=`left:${o.x/SW*100}%;top:${o.y/SH*100}%;width:${o.w/SW*100}%;height:${o.h/SH*100}%;`;
   if(o.k==="img"){h+=`<img class="${hide?"h":""}" src="${o.src}" style="${css}${o.round?"border-radius:50%;":""}">`;continue}
   if(o.fill)css+=`background:#${o.fill};`;if(o.line)css+=`border:${(o.lw||1)*K}cqw solid #${o.line};`;if(o.k==="ellipse")css+="border-radius:50%;";if(o.k==="round")css+="border-radius:1.2cqw;";
@@ -609,7 +623,7 @@ function dlBlob(name,blob){const a=document.createElement("a");a.href=URL.create
 ACT.dlppt=async(d,b)=>{const old=b.textContent;b.disabled=true;b.textContent="Đang tạo…";
  try{await ensurePptx();const l=await DB.get("lessons/"+d.id);const L=await loadLesson(d.id);LESSON=L;STY=(L.form&&L.form.sty)||"sang";
   const vs=L.slides.map(s=>({...s,visual:visualOf(s)}));
-  const buf=await buildPptx(PptxGenJS,JSZip,vs,STY,{logo:LOGO,title:l.title},async u=>u.startsWith("data:image/svg")?await svgToPng(u):u);
+  const buf=await buildPptx(PptxGenJS,JSZip,vs,STY,{logo:slideBrand().logo,brand:slideBrand().name,title:l.title},async u=>u.startsWith("data:image/svg")?await svgToPng(u):u);
   dlBlob((l.title.replace(/[^\p{L}\p{N}]+/gu,"_")||"bai-giang")+".pptx",new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"}));toast("Đã tạo file PowerPoint. Bấm chuột trong PowerPoint để các bước hiện lần lượt.")}
  catch(e){alert("Chưa tạo được PowerPoint: "+(e.message||e))}b.disabled=false;b.textContent=old};
 
@@ -744,7 +758,7 @@ ACT.sunkick=d=>{if(!H)return;H.kick=H.kick.filter(x=>x!==d.u);hostPush();hostPan
 
 /* ===== Chiếu trực tiếp (giáo viên) – đồng bộ cả lớp qua Firestore ===== */
 let H=null;
-ACT.golive=async d=>{toast("Đang mở phòng chiếu…");try{const a=await DB.get("assignments/"+d.id);const up={};if(!a.live)up.live=true;if(a.guest===undefined)up.guest=true;if(Object.keys(up).length){await DB.update("assignments/"+a.id,up);Object.assign(a,up);await syncGuest(a.lessonId)}const L=await loadLesson(a.lessonId);const us=await DB.list("users",[["teacherId","==",UID]]);
+ACT.golive=async d=>{toast("Đang mở phòng chiếu…");try{const a=await DB.get("assignments/"+d.id);const up={};if(!a.live)up.live=true;if(a.guest===undefined)up.guest=true;if(Object.keys(up).length){await DB.update("assignments/"+a.id,up);Object.assign(a,up);await syncGuest(a.lessonId)}try{const bp={brand:brand(),blogo:snapLogo()};if(a.brand!==bp.brand||a.blogo!==bp.blogo){await DB.update("assignments/"+a.id,bp);Object.assign(a,bp)}}catch(e){}const L=await loadLesson(a.lessonId);const us=await DB.list("users",[["teacherId","==",UID]]);
   startHost(a,L,us.filter(u=>u.role==="student"&&(u.classIds||[]).includes(a.classId)),us.map(u=>u.id))}catch(e){alert("Không mở được: "+authErr(e))}};
 async function cleanGuests(aid,allIds,minAge){let n=0;try{const rs=await DB.list(`assignments/${aid}/results`);for(const r of rs){if(allIds.has(r.id))continue;if(minAge&&Date.now()-(r.lastAt||0)<minAge)continue;try{await DB.del(`assignments/${aid}/results/${r.id}`);n++}catch(e){}}}catch(e){}return n}
 async function kickGuests(aid,ids){try{const lv=await DB.get("live/"+aid);if(lv){const k=(lv.kick||[]).slice();ids.forEach(x=>{if(!k.includes(x))k.push(x)});await DB.update("live/"+aid,{kick:k})}}catch(e){}}
@@ -828,7 +842,7 @@ ACT.remind=async d=>{try{const a=await DB.get("assignments/"+d.a);const [st,rs]=
 /* ===== Quiz thi đua (giáo viên điều khiển, học sinh thi đua trực tiếp) ===== */
 const GQ=new URLSearchParams(location.search).get("quiz");let GQDONE=false;
 const REV_MS=5000,ONL=30000;let QH=null,QS=null,QZU=[];
-const qLink=id=>location.href.split("?")[0].split("#")[0]+"?quiz="+id;
+const qLink=id=>location.href.split("?")[0].split("#")[0]+"?quiz="+id+(UID&&ME&&ME.role==="teacher"?"&t="+UID:"");
 const qLet=i=>String.fromCharCode(65+i);
 const qClamp=n=>Math.max(5,Math.min(300,Math.round(+n||30)));
 function qsInfo(L){LESSON=L;STY=(L.form&&L.form.sty)||"sang";const out=[];L.slides.forEach((s,i)=>{const it=interactiveOf(i);if(!it||(it.kind==="mc"&&it.correct==null))return;
@@ -858,7 +872,7 @@ ACT.quizsetup=async d=>{toast("Đang chuẩn bị quiz…");let l,cl,L;
   try{let a=(await DB.list("assignments",[["teacherId","==",UID]])).find(x=>x.lessonId===l.id&&x.classId===c.id);
    if(!a)a=await mkAssign(l,c,{quizOnly:true,guest});else if(guest&&!a.guest)await DB.update("assignments/"+a.id,{guest:true});
    if(guest)await syncGuest(l.id);
-   const id=nid(),q={teacherId:UID,aid:a.id,classId:c.id,className:c.name,lessonId:l.id,title:l.title,guest,shuf,strict,status:"lobby",qi:-1,t0:0,t1:0,dur:0,qs:sel,rk:{},board:[],np:0,final:[],createdAt:Date.now()};
+   const id=nid(),q={brand:brand(),blogo:snapLogo(),teacherId:UID,aid:a.id,classId:c.id,className:c.name,lessonId:l.id,title:l.title,guest,shuf,strict,status:"lobby",qi:-1,t0:0,t1:0,dur:0,qs:sel,rk:{},board:[],np:0,final:[],createdAt:Date.now()};
    await DB.set("quizzes/"+id,q);o.remove();startQuizHost({id,...q},L)}catch(e){alert(authErr(e));$("qgo").disabled=false}}};
 
 function startQuizHost(q,L){if(QH)return;LESSON=L;STY=(L.form&&L.form.sty)||"sang";QH={q,pl:{},tick:0,unsub:null,alerts:[],pub:"",pubAt:0,lp:""};
@@ -949,7 +963,7 @@ function qOrder(q,uid){const n=q.qs.length,a=[...Array(n).keys()];if(!q.shuf)ret
  for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const plPath=()=>`quizzes/${QS.q.id}/pl/${UID}`;
 ACT.joinquiz=async d=>{if(QS)return;toast("Đang vào phòng thi…");
- try{const q=await DB.get("quizzes/"+d.id);if(!q)throw new Error("Không tìm thấy phòng quiz này.");if(q.status==="end"){alert("Quiz này đã kết thúc rồi em nhé.");if(ME.role==="guest")guestHome();return}
+ try{const q=await DB.get("quizzes/"+d.id);if(!q)throw new Error("Không tìm thấy phòng quiz này.");if(ME&&ME.role!=="teacher")setBrand(q.brand,q.blogo);if(q.status==="end"){alert("Quiz này đã kết thúc rồi em nhé.");if(ME.role==="guest")guestHome();return}
   if(q.status==="q"||q.status==="rev"){alert("Phòng quiz này tạo bằng phiên bản cũ. Em nhờ cô tạo phòng mới nhé.");return}
   const L=await loadLesson(q.lessonId);LESSON=L;STY=(L.form&&L.form.sty)||"sang";
   let old=null;try{old=await DB.get(`quizzes/${q.id}/pl/${UID}`)}catch(e){}
@@ -1020,7 +1034,7 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
  const inp=$("qsans");if(inp){inp.onkeydown=e=>{if(e.key==="Enter")ACT.qsend()};inp.focus()};if(rev)qsBoard();qsTick()}
 
 /* ===== Giáo viên ===== */
-function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
+function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab)}
 function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("")}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
 /* ===== Báo cáo, biểu đồ & nhận xét ===== */
@@ -1164,10 +1178,11 @@ const ADMIN_EMAIL="kieuoanhvo89@gmail.com";let VU=null;
 const BGKEY="bg-oanh-2026-soan-bai-k1";
 async function bgSign(d){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(BGKEY),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return[...new Uint8Array(await crypto.subtle.sign("HMAC",k,new TextEncoder().encode(d)))].slice(0,8).map(x=>x.toString(16).padStart(2,"0")).join("")}
 ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Math.floor(Date.now()/D),u=s.until?Math.floor(s.until/D):0,exp=today+7;
- const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(","),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
+ const bo={n:ME.brand||(isOwnerAcc()?OANH_NAME:"")};if(ME.logo){const l=await shrinkUrl(ME.logo,128,.8);if(l)bo.l=l}else if(isOwnerAcc())bo.o=1;
+ const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795276218";
+const BUILD="1795276775";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
@@ -1295,10 +1310,21 @@ async function tabLop(){const v=$("tv");v.innerHTML='<p class="note">Đang tải
  const mc=mailCfg()||{};v.innerHTML=`<div class="row"><h2 class="grow">Các lớp của cô</h2><button data-act="newclass">+ Tạo lớp</button></div>`+(cl.length?`<div class="cards">${cl.map(c=>{const n=st.filter(s=>(s.classIds||[]).includes(c.id)).length;return`<div class="card"><b style="font-size:18px">${esc(c.name)}</b><span class="note">${n} học sinh</span><div class="row"><button class="sm" data-act="openclass" data-id="${c.id}">Mở lớp</button></div></div>`}).join("")}</div>`:'<div class="panel">Cô chưa có lớp nào. Bấm “+ Tạo lớp” để bắt đầu.</div>')+`<div class="panel" style="margin-top:18px"><h2>📧 Email tự động cho phụ huynh</h2><p class="note">Khi giao bài, khi con hoàn thành bài và khi gửi báo cáo, phụ huynh nhận email (cần điền email phụ huynh ở từng học sinh). Mỗi giáo viên dùng tài khoản EmailJS miễn phí <b>của riêng mình</b> (200 email/tháng, không dùng chung với ai). Thầy/cô điền 3 thông tin từ trang EmailJS:</p>
  <div class="row"><input id="es" placeholder="Service ID" value="${esc(mc.s||"")}" class="grow"><input id="et" placeholder="Template ID" value="${esc(mc.t||"")}" class="grow"><input id="ek" placeholder="Public Key" value="${esc(mc.k||"")}" class="grow"></div>
  <div class="row" style="margin-top:8px"><button class="sm" data-act="savemail">Lưu</button><button class="sec sm" data-act="testmail">Gửi thử cho email của tôi</button><button class="sec sm" data-act="mailguide">📖 Hướng dẫn cài EmailJS từng bước</button><span class="note">${mailCfg()?"Đang bật.":"Chưa bật."}</span></div>
- <label class="l">Tên lớp / trung tâm (hiện trong tiêu đề và tên người gửi email)</label><input id="eb" value="${esc(brand())}" maxlength="60">
+ </div><div class="panel"><h2>🎨 Thương hiệu của lớp</h2><p class="note">Logo và tên lớp của thầy/cô hiện trên slide (góc và chân trang), file PowerPoint, thanh trên của lớp, cổng vào của học sinh và khách, và tên người gửi email.</p>
+ <label class="l">Logo lớp</label><div class="row"><img id="elp" src="${esc(slideBrand().logo||NEUTRAL_LOGO)}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--bd);background:#fff"><input type="file" id="elf" accept="image/*" hidden><button class="sec sm" data-act="pickLogo">Chọn ảnh logo…</button><button class="sec sm" data-act="rmlogo">Bỏ logo</button><span class="note" id="elm">Ảnh vuông hoặc tròn, nên có nền trắng hoặc trong suốt.</span></div>
+ <label class="l">Tên lớp / trung tâm (hiện trong tiêu đề, chân trang slide và tên người gửi email)</label><input id="eb" value="${esc(brand())}" maxlength="60">
  <label class="l">Chữ ký cuối email</label><input id="eg" value="${esc(signer())}" maxlength="60">
- <div class="row" style="margin-top:8px"><button class="sm" data-act="savebrand">Lưu tên lớp & chữ ký</button></div></div><div class="panel"><h2>💾 Sao lưu dữ liệu của tôi</h2><p class="note">Tải về một file gồm lớp, học sinh (không kèm mật khẩu), bài giảng, bài đã giao và toàn bộ kết quả làm bài.</p><div class="row"><button class="sec sm" data-act="backup">Tải file sao lưu (.json)</button><a class="lk" data-act="terms">Điều khoản &amp; bảo mật</a></div></div>`}
-ACT.savebrand=async()=>{const b=$("eb").value.trim(),g=$("eg").value.trim();if(!b||!g){alert("Điền cả tên lớp và chữ ký nhé.");return}await DB.update("users/"+UID,{brand:b,sign:g});ME.brand=b;ME.sign=g;toast("Đã lưu.")};
+ <div class="row" style="margin-top:8px"><button class="sm" data-act="savebrand">Lưu thương hiệu</button></div>
+ <label class="l" style="margin-top:12px">Link đăng nhập cho học sinh của lớp (hiện logo và tên lớp của thầy/cô)</label><div class="row" style="flex-wrap:nowrap"><input readonly value="${esc(appUrl()+"?t="+UID)}" onclick="this.select()" style="font-size:13px"><button class="sm" data-act="copystulink">Chép link</button></div></div><div class="panel"><h2>💾 Sao lưu dữ liệu của tôi</h2><p class="note">Tải về một file gồm lớp, học sinh (không kèm mật khẩu), bài giảng, bài đã giao và toàn bộ kết quả làm bài.</p><div class="row"><button class="sec sm" data-act="backup">Tải file sao lưu (.json)</button><a class="lk" data-act="terms">Điều khoản &amp; bảo mật</a></div></div>`}
+let LOGO_NEW=undefined;
+function shrinkImg(file,px,q){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const s=Math.min(im.naturalWidth,im.naturalHeight),sx=(im.naturalWidth-s)/2,sy=(im.naturalHeight-s)/2,c=document.createElement("canvas");c.width=c.height=px;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,px,px);g.drawImage(im,sx,sy,s,s,0,0,px,px);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",q))};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Không đọc được ảnh"))};im.src=u})}
+function shrinkUrl(url,px,q){return new Promise(res=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=c.height=px;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,px,px);g.drawImage(im,0,0,px,px);res(c.toDataURL("image/jpeg",q))};im.onerror=()=>res("");im.src=url})}
+ACT.pickLogo=()=>{const f=$("elf");f.onchange=async()=>{const x=f.files[0];if(!x)return;try{LOGO_NEW=await shrinkImg(x,160,.88);$("elp").src=LOGO_NEW;$("elm").textContent="Đã chọn ảnh mới – bấm “Lưu thương hiệu” để áp dụng."}catch(e){$("elm").textContent=e.message}f.value=""};f.click()};
+ACT.rmlogo=()=>{LOGO_NEW="";$("elp").src=isOwnerAcc()?LOGO:NEUTRAL_LOGO;$("elm").textContent="Đã bỏ logo – bấm “Lưu thương hiệu” để áp dụng."};
+ACT.copystulink=()=>cpy(appUrl()+"?t="+UID,"Đã chép link đăng nhập cho học sinh.");
+ACT.savebrand=async()=>{const b=$("eb").value.trim(),g=$("eg").value.trim();if(!b||!g){alert("Điền cả tên lớp và chữ ký nhé.");return}const up={brand:b,sign:g};if(LOGO_NEW!==undefined)up.logo=LOGO_NEW;await DB.update("users/"+UID,up);ME.brand=b;ME.sign=g;if(LOGO_NEW!==undefined){ME.logo=LOGO_NEW;LOGO_NEW=undefined}
+ try{await DB.set("brands/"+UID,{n:b,logo:snapLogo(),at:Date.now()})}catch(e){}
+ const im=document.querySelector(".top img");if(im)im.src=brandLogo();toast("Đã lưu thương hiệu.")};
 const MAIL_TPL='<div style="font-family: Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #1b2433; white-space: pre-wrap">{{message}}</div>';
 const MAIL_AI='Tôi là giáo viên, chưa biết dùng EmailJS. Hãy hướng dẫn tôi từng bước, MỖI LẦN CHỈ 1 BƯỚC rồi hỏi tôi "xong chưa" mới sang bước tiếp. Mục tiêu: (1) tạo tài khoản emailjs.com; (2) tạo Email Service kết nối Gmail của tôi và lấy Service ID; (3) tạo Email Template với To Email = {{to_email}}, From Name = {{from_name}}, Subject = {{subject}}, nội dung (Code Editor) chỉ có một dòng: '+MAIL_TPL+' rồi lấy Template ID; (4) lấy Public Key ở Account > General. Cuối cùng tôi sẽ dán 3 mã đó vào trang web lớp học của tôi. Nếu tôi gửi ảnh chụp màn hình thì hãy chỉ cho tôi bấm vào đâu. Hãy nói tiếng Việt, đơn giản.';
 const cpy=async(t,msg)=>{try{await navigator.clipboard.writeText(t);toast(msg||"Đã sao chép.")}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast(msg||"Đã sao chép.")}catch(x){alert("Chưa sao chép được – thầy/cô bôi đen và Ctrl+C nhé.")}a.remove()}};
@@ -1372,7 +1398,7 @@ ACT.dellesson=async d=>{if(!confirm("Xóa bài giảng này? Các bài đã giao
 async function findAssign(lid,cid){return(await DB.list("assignments",[["teacherId","==",UID]])).find(a=>!a.quizOnly&&a.lessonId===lid&&a.classId===cid)||null}
 async function syncGuest(lid){const as=(await DB.list("assignments",[["teacherId","==",UID]])).filter(a=>a.lessonId===lid);try{await DB.update("lessons/"+lid,{guestOpen:as.some(a=>a.guest)})}catch(e){}}
 async function mkAssign(l,c,extra){const aid=nid(),a={teacherId:UID,classId:c.id,className:c.name,lessonId:l.id,lessonTitle:l.title,title:l.title,mode:"homework",due:null,slideCount:l.slideCount,createdAt:Date.now(),...extra};
- const mc=mailCfg();if(mc)a.mail=mc;a.brand=brand();a.sign=signer();await DB.set("assignments/"+aid,a);if(!(l.classIds||[]).includes(c.id)){l.classIds=[...(l.classIds||[]),c.id];await DB.update("lessons/"+l.id,{classIds:l.classIds})}return{id:aid,...a}}
+ const mc=mailCfg();if(mc)a.mail=mc;a.brand=brand();a.blogo=snapLogo();a.sign=signer();await DB.set("assignments/"+aid,a);if(!(l.classIds||[]).includes(c.id)){l.classIds=[...(l.classIds||[]),c.id];await DB.update("lessons/"+l.id,{classIds:l.classIds})}return{id:aid,...a}}
 const hasLive=a=>a.live||a.mode==="live";
 ACT.assignLive=async d=>{const [l,cl]=await Promise.all([DB.get("lessons/"+d.id),DB.list("classes",[["teacherId","==",UID]])]);if(!cl.length){alert("Cô tạo lớp trước nhé (tab Lớp học).");return}
  const o=modal(`<h2>Chiếu trực tiếp “${esc(l.title)}”</h2><label class="l">Cho lớp</label><select id="ac">${cl.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select><p class="note">Học sinh trong lớp và cả em chưa có tài khoản (qua link) đều vào xem và trả lời được.</p>
@@ -1422,10 +1448,10 @@ async function showDetail(a,sname,r){let L;try{L=await loadLesson(a.lessonId)}ca
  <div style="overflow:auto"><table><tr><th>#</th><th>Slide</th><th class="n">Thời gian</th><th>Học</th><th class="n">Lần thử</th><th>Kết quả</th><th class="n">Điểm</th></tr>${tr}</table></div>`)}
 
 /* ===== Học sinh ===== */
-async function studentShell(){$("app").innerHTML=`<div class="top">${LOGO_IMG}<b>${esc(ME.name)}</b><span class="grow"></span><button class="sec sm" data-act="chpw">Đổi mật khẩu</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" style="padding-bottom:0" id="nt"></div><div class="wrap" style="padding-bottom:0" id="qzb"></div><div class="wrap" id="sv"><p class="note">Đang tải…</p></div>`;watchNotices();watchQuizzes();studentHome();if(GQ&&!GQDONE){GQDONE=true;ACT.joinquiz({id:GQ})}else if(GL&&!GLDONE){GLDONE=true;ACT.joinlive({id:GL})}}
+async function studentShell(){$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><span class="grow"></span><button class="sec sm" data-act="chpw">Đổi mật khẩu</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div class="wrap" style="padding-bottom:0" id="nt"></div><div class="wrap" style="padding-bottom:0" id="qzb"></div><div class="wrap" id="sv"><p class="note">Đang tải…</p></div>`;watchNotices();watchQuizzes();studentHome();if(GQ&&!GQDONE){GQDONE=true;ACT.joinquiz({id:GQ})}else if(GL&&!GLDONE){GLDONE=true;ACT.joinlive({id:GL})}}
 ACT.chpw=async()=>{const p=prompt("Mật khẩu mới (ít nhất 6 ký tự):");if(!p)return;try{await DB.changePw(p);try{await DB.update("users/"+UID,{pw:p})}catch(x){}toast("Đã đổi mật khẩu.")}catch(e){alert(String(e.code||"").includes("requires-recent-login")?"Em đăng xuất, đăng nhập lại rồi đổi mật khẩu nhé.":authErr(e))}};
 async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds||[];if(!cids.length){v.innerHTML='<div class="panel"><b>Em chưa được xếp vào lớp nào.</b><p class="note">Em nhờ cô xếp lớp cho em nhé.</p></div>';return}
- let as=[];for(const c of cids)as=as.concat((await DB.list("assignments",[["classId","==",c]])).filter(a=>!a.quizOnly));as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+ let as=[];for(const c of cids)as=as.concat((await DB.list("assignments",[["classId","==",c]])).filter(a=>!a.quizOnly));as.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));{const ab=as.find(x=>x.blogo||x.brand);if(ab)setBrand(ab.brand,ab.blogo)}
  const rs={};await Promise.all(as.map(async a=>{try{rs[a.id]=await DB.get(`assignments/${a.id}/results/${UID}`)}catch(e){}}));
  const card=a=>{const r=rs[a.id];const pct=r?r.pct||0:0;const live=hasLive(a);return`<div class="card"><b>${esc(a.title)}</b><span class="note">${esc(a.className)}${a.due?" · hạn "+fmtDay(a.due):""}</span><div class="row"><span class="chip pr">Bài tập về nhà</span>${live?'<span class="chip wa">Có học trực tiếp</span>':""}${r&&r.completedAt?'<span class="chip ok">Đã hoàn thành</span>':""}</div>
   <div class="row" style="flex-wrap:nowrap"><div class="bar ${pct>=100?"ok":""}" style="flex:1"><i style="width:${pct}%"></i></div><span class="note">${pct}%</span></div>${r?`<span class="note">Điểm ${r.score||0}/${r.maxScore||0}</span>`:""}
@@ -1435,7 +1461,7 @@ async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds
 
 /* ===== Trình học bài (học sinh làm bài về nhà) ===== */
 let P=null;
-ACT.joinlive=async d=>{toast("Đang vào lớp…");try{const a=await DB.get("assignments/"+d.id);const L=await loadLesson(a.lessonId);const lv=await DB.get("live/"+a.id);if(lv&&(lv.kick||[]).includes(UID)){alert("Cô đã mời em ra khỏi buổi học này.");return}const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev,true)}catch(e){alert("Không vào được lớp: "+authErr(e))}};
+ACT.joinlive=async d=>{toast("Đang vào lớp…");try{const a=await DB.get("assignments/"+d.id);if(ME&&ME.role!=="teacher")setBrand(a.brand,a.blogo);const L=await loadLesson(a.lessonId);const lv=await DB.get("live/"+a.id);if(lv&&(lv.kick||[]).includes(UID)){alert("Cô đã mời em ra khỏi buổi học này.");return}const prev=await DB.get(`assignments/${a.id}/results/${UID}`);startPlayer(a,L,prev,true)}catch(e){alert("Không vào được lớp: "+authErr(e))}};
 function whoNow(){if(P&&P.live)DB.set(`live/${P.a.id}/who/${UID}`,{name:ME.name,t:Date.now(),hand:P.hand||0}).catch(()=>{})}
 function updHandBtn(){const b=$("phb");if(!b||!P)return;b.className=P.hand?"go":"";b.textContent=P.hand?"✋ Đang giơ tay · bấm để hạ":"✋ Giơ tay"}
 ACT.phand=()=>{if(!P||!P.live||P.wait)return;P.hand=P.hand?0:Date.now();whoNow();updHandBtn();toast(P.hand?"Em đã giơ tay, chờ cô gọi nhé ✋":"Em đã hạ tay.")};
@@ -1467,7 +1493,7 @@ async function savePlayer(quiet){if(!P)return;if(ME&&ME.role==="guest"&&(P.over|
  const doc={uid:UID,name:ME.name,aid:P.a.id,classId:P.a.classId,mailSent:!!P.mailSent,startedAt:P.startedAt,lastAt:Date.now(),completedAt:P.completedAt||null,totalMs:P.totalMs,last:P.cur,slideCount:P.n,...S,slides:sl};
  P.dirty=false;P.lastSave=Date.now();try{await DB.set(`assignments/${P.a.id}/results/${UID}`,doc);
   if(newly&&!P.mailSent&&P.a.mail&&ME.parentEmail&&ME.role==="student"){P.mailSent=true;const a=P.a,pe=ME.parentEmail,nm=ME.name,aid=a.id;
-   sendMail(a.mail,{brand:a.brand,to:pe,name:nm,subject:"["+(a.brand||"Lớp Toán tư duy cô Oanh")+"] "+nm+" đã hoàn thành bài “"+a.title+"”",message:"Kính gửi phụ huynh,\n\nEm "+nm+" vừa hoàn thành bài “"+a.title+"” (lớp "+a.className+").\n\n• Đã học: "+S.pct+"% số slide\n• Câu đúng: "+S.qOk+"/"+S.qTotal+"\n• Điểm: "+S.score+"/"+S.maxScore+"\n• Thời gian học: "+fmtT(P&&P.totalMs||doc.totalMs)+"\n• Hoàn thành lúc: "+fmtD(doc.completedAt)+"\n\nTrân trọng,\n"+(a.sign||"Cô Oanh – Lớp Toán tư duy")}).then(()=>DB.update(`assignments/${aid}/results/${UID}`,{mailSent:true})).catch(()=>{if(P)P.mailSent=false})}
+   sendMail(a.mail,{brand:a.brand,to:pe,name:nm,subject:"["+(a.brand||"Lớp học")+"] "+nm+" đã hoàn thành bài “"+a.title+"”",message:"Kính gửi phụ huynh,\n\nEm "+nm+" vừa hoàn thành bài “"+a.title+"” (lớp "+a.className+").\n\n• Đã học: "+S.pct+"% số slide\n• Câu đúng: "+S.qOk+"/"+S.qTotal+"\n• Điểm: "+S.score+"/"+S.maxScore+"\n• Thời gian học: "+fmtT(P&&P.totalMs||doc.totalMs)+"\n• Hoàn thành lúc: "+fmtD(doc.completedAt)+"\n\nTrân trọng,\n"+(a.sign||"Giáo viên")}).then(()=>DB.update(`assignments/${aid}/results/${UID}`,{mailSent:true})).catch(()=>{if(P)P.mailSent=false})}
  }catch(e){P.dirty=true;if(!quiet)toast("Chưa lưu được kết quả: "+authErr(e))}}
 function stopPlayer(noSave){if(!P)return;clearInterval(P.tick);if(P.unsub)P.unsub();if(P.unInk)P.unInk();if(P.hb){clearInterval(P.hb);if(ME&&ME.role==="guest")DB.del(`live/${P.a.id}/who/${UID}`).catch(()=>{});else DB.set(`live/${P.a.id}/who/${UID}`,{name:ME.name,t:0}).catch(()=>{})}INKS.tool="none";document.removeEventListener("visibilitychange",onVis);removeEventListener("beforeunload",onUnload);removeEventListener("keydown",onKey);const p=P;P=null;const o=$("pl");if(o)o.remove();document.body.style.overflow="";
  if(!noSave){P=p;savePlayer(true).finally(()=>{P=null;if(ME&&ME.role==="student")studentHome();else if(ME&&ME.role==="guest")guestHome()})}else if(ME&&ME.role==="guest")guestHome()}
