@@ -19,6 +19,7 @@ service cloud.firestore {
       allow read: if signed() && (request.auth.uid == uid || resource.data.teacherId == request.auth.uid);
       allow create: if signed() && ((request.auth.uid == uid && request.resource.data.role == 'teacher' && request.resource.data.teacherId == uid) || (isTeacher() && request.resource.data.role == 'student' && request.resource.data.teacherId == request.auth.uid));
       allow update: if signed() && ((resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == resource.data.teacherId && request.resource.data.role == resource.data.role) || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pw'])));
+      allow delete: if signed() && resource.data.teacherId == request.auth.uid && resource.data.role == 'student';
     }
     match /classes/{cid} {
       allow read: if signed() && (resource.data.teacherId == request.auth.uid || inClass(cid));
