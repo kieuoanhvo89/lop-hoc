@@ -14,6 +14,7 @@ button.sec{background:transparent;color:var(--pr);border:2px solid var(--pr);pad
 button.red{background:transparent;color:var(--no);border:2px solid var(--no);padding:6px 12px}button.sm{padding:6px 12px;font-size:14px}
 button:disabled{opacity:.5;cursor:default}
 input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:2px solid var(--bd);border-radius:11px;background:var(--bg);color:var(--tx)}
+input[type=checkbox],input[type=radio]{width:auto;padding:0;margin:0 6px 0 0;vertical-align:middle;accent-color:#2f6fe0}
 textarea{min-height:110px}label.l{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.note{font-size:13px;color:var(--mu)}.grow{flex:1}
 .hide{display:none!important}a.lk{color:var(--pr);cursor:pointer;font-weight:700}
@@ -1652,7 +1653,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795366080";
+const BUILD="1795369437";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
@@ -1969,9 +1970,9 @@ ACT.mtf=d=>{MT.f=d.f;mDraw()};
 ACT.madd=()=>{if(!MT.cls.length){alert("Cô tạo lớp trước ở tab “Lớp học” nhé.");return}const vid=MT.f==="vid";
  const o=modal(`<h2>${vid?"🎬 Thêm video buổi học":"📚 Thêm tài liệu học tập"}</h2>
  ${vid?"":`<div class="row" style="margin-bottom:8px"><label><input type="radio" name="mk" value="file" checked> Tải tệp từ máy lên</label><label><input type="radio" name="mk" value="link"> Dán link (Drive, web…)</label></div>
- <div id="mkf"><input type="file" id="mfile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp"><p class="note">PDF, Word, Excel, PowerPoint, ảnh, TXT; tối đa 10 MB mỗi tệp. Sách hoặc tệp lớn hơn thì cô đưa lên Google Drive rồi chọn “Dán link”.</p></div>`}
+ <div id="mkf"><input type="file" id="mfile" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp"><div class="note" id="mfn" style="margin-top:4px"></div><p class="note"><b>Chọn được nhiều tệp cùng lúc</b> (giữ Ctrl hoặc Shift khi bấm, tối đa 20 tệp). PDF, Word, Excel, PowerPoint, ảnh, TXT; tối đa 10 MB mỗi tệp. Sách hoặc tệp lớn hơn thì cô đưa lên Google Drive rồi chọn “Dán link”.</p></div>`}
  <div id="mkl" style="${vid?"":"display:none"}"><label class="l">Link ${vid?"video (YouTube, Drive, Zoom…)":"tài liệu"}</label><input id="mur" placeholder="https://…"></div>
- <label class="l">Tiêu đề</label><input id="mti" maxlength="120" placeholder="${vid?"VD: Buổi 12 – Nguyên lý Dirichlet":"VD: Sách Toán tư duy lớp 5 – tập 1"}">
+ <label class="l">Tiêu đề ${vid?"":"(nhiều tệp: tự lấy tên từng tệp)"}</label><input id="mti" maxlength="120" placeholder="${vid?"VD: Buổi 12 – Nguyên lý Dirichlet":"VD: Sách Toán tư duy lớp 5 – tập 1"}">
  ${vid?`<label class="l">Ngày học (không bắt buộc, để trống nếu không cần)</label><input type="date" id="mdt" value=""><label style="display:block;margin-top:8px"><input type="checkbox" id="mpin"> Đây là link <b>thư mục</b> chứa nhiều video của lớp (ghim lên đầu)</label>`:`<label class="l">Nhóm tài liệu</label><input id="mcat" list="mcl" maxlength="40" value="Sách"><datalist id="mcl">${MCATS.map(x=>`<option value="${x}">`).join("")}</datalist>`}
  <label class="l">Ghi chú cho học sinh (không bắt buộc)</label><textarea id="mde" rows="2" maxlength="400"></textarea>
  <label class="l">Dành cho lớp</label><div id="mcl2">${MT.cls.map(c=>`<label style="display:block;margin:2px 0"><input type="checkbox" class="mck" value="${c.id}" ${MT.cid===c.id||(!MT.cid&&MT.cls.length===1)?"checked":""}> ${esc(c.name)}</label>`).join("")}</div>
@@ -1979,17 +1980,27 @@ ACT.madd=()=>{if(!MT.cls.length){alert("Cô tạo lớp trước ở tab “Lớ
  const kind=()=>vid?"link":(o.querySelector('[name=mk]:checked')||{}).value;
  if(!vid)o.querySelectorAll("[name=mk]").forEach(r=>r.onchange=()=>{const f=kind()==="file";$("mkf").style.display=f?"":"none";$("mkl").style.display=f?"none":""});
  $("mcan").onclick=()=>o.remove();
- $("mgo2").onclick=async()=>{const st=$("mst"),bt=$("mgo2"),k=kind(),title=$("mti").value.trim(),cids=[...o.querySelectorAll(".mck:checked")].map(x=>x.value);
-  if(!title){st.textContent="Cô nhập tiêu đề nhé.";return}if(!cids.length){st.textContent="Cô chọn ít nhất một lớp.";return}
-  let url="",file=null;if(k==="link"){url=mUrl($("mur").value);if(!url){st.textContent="Link chưa đúng, cô dán lại (bắt đầu bằng https://).";return}}else{file=$("mfile").files[0];if(!file){st.textContent="Cô chọn tệp cần tải lên.";return}if(!MOK.test(file.name)){st.textContent="Loại tệp này chưa nhận. Cô dùng PDF, Word, Excel, PowerPoint, ảnh hoặc TXT.";return}if(file.size>MMAX){st.textContent="Tệp "+mSize(file.size)+" lớn hơn 10 MB. Cô đưa lên Google Drive rồi dán link nhé.";return}}
-  bt.disabled=true;const gid=mId(),now=Date.now();let fid="",nch=0;
-  try{if(file){st.textContent="Đang đọc tệp…";const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(new Error("Không đọc được tệp"));r.readAsDataURL(file)});
-    nch=Math.ceil(b64.length/MCH);fid=mId();await DB.set(`matfiles/${fid}`,{teacherId:UID,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch,createdAt:now});
-    for(let i=0;i<nch;i++){st.textContent="Đang tải lên… "+Math.round(i/nch*100)+"%";await DB.set(`matfiles/${fid}/c/${i}`,{i,d:b64.slice(i*MCH,(i+1)*MCH)})}}
-   st.textContent="Đang lưu…";const at=vid&&$("mdt").value?new Date($("mdt").value+"T12:00:00").getTime():0,pin=vid&&$("mpin").checked;
-   for(const cid of cids){const c=MT.cls.find(x=>x.id===cid),id=mId(),m={teacherId:UID,gid,folder:vid?"vid":"doc",classId:cid,className:c?c.name:"",kind:k,title,desc:$("mde").value.trim(),cat:vid?"":($("mcat").value.trim()||"Khác"),createdAt:now,...(vid&&at&&!isNaN(at)?{at}:{}),...(pin?{pin:true}:{}),...(k==="link"?{url}:{fid,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch})};await DB.set("materials/"+id,m);MT.items.push({id,...m})}
-   o.remove();toast("Đã thêm "+(vid?"video":"tài liệu")+" cho "+cids.length+" lớp.");mDraw()}
-  catch(e){if(fid){try{for(let i=0;i<nch;i++)await DB.del(`matfiles/${fid}/c/${i}`).catch(()=>{});await DB.del("matfiles/"+fid)}catch(_){}}st.textContent="Chưa lưu được: "+authErr(e);bt.disabled=false}}};
+  const MAXF=20,nameT=n=>n.replace(/\.[^.]+$/,"").replace(/[_]+/g," ").trim().slice(0,120)||n.slice(0,120);
+  const files=()=>[...($("mfile")&&$("mfile").files||[])];
+  const refF=()=>{const fs=files(),ti=$("mti"),nf=$("mfn");if(!nf)return;if(fs.length>1){ti.disabled=true;ti.value="";ti.placeholder="Mỗi tệp lấy tên tệp làm tiêu đề";nf.innerHTML="<b>"+fs.length+" tệp</b> ("+mSize(fs.reduce((a,f)=>a+f.size,0))+"):<br>"+fs.slice(0,12).map(f=>esc(f.name)+" · "+mSize(f.size)).join("<br>")+(fs.length>12?"<br>…":"")}else{ti.disabled=false;ti.placeholder="VD: Sách Toán tư duy lớp 5 – tập 1";nf.textContent=fs.length?fs[0].name+" · "+mSize(fs[0].size):"";if(fs.length&&!ti.value.trim())ti.value=nameT(fs[0].name)}};
+  if(!vid)$("mfile").onchange=refF;
+  $("mgo2").onclick=async()=>{const st=$("mst"),bt=$("mgo2"),k=kind(),title0=$("mti").value.trim(),cids=[...o.querySelectorAll(".mck:checked")].map(x=>x.value);
+   if(!cids.length){st.textContent="Cô chọn ít nhất một lớp.";return}
+   let url="",fs=[];if(k==="link"){if(!title0){st.textContent="Cô nhập tiêu đề nhé.";return}url=mUrl($("mur").value);if(!url){st.textContent="Link chưa đúng, cô dán lại (bắt đầu bằng https://).";return}}
+   else{fs=files();if(!fs.length){st.textContent="Cô chọn tệp cần tải lên (chọn được nhiều tệp cùng lúc).";return}if(fs.length>MAXF){st.textContent="Mỗi lần tối đa "+MAXF+" tệp, cô chọn bớt nhé.";return}
+    for(const f of fs){if(!MOK.test(f.name)){st.textContent="Tệp “"+f.name+"”: loại này chưa nhận. Cô dùng PDF, Word, Excel, PowerPoint, ảnh hoặc TXT.";return}if(f.size>MMAX){st.textContent="Tệp “"+f.name+"” "+mSize(f.size)+" lớn hơn 10 MB. Cô đưa lên Google Drive rồi dán link nhé.";return}}}
+   bt.disabled=true;const at=vid&&$("mdt").value?new Date($("mdt").value+"T12:00:00").getTime():0,pin=vid&&$("mpin").checked,desc=$("mde").value.trim(),cat=vid?"":($("mcat").value.trim()||"Khác");
+   const saveOne=async(file,title,idx,tot)=>{const gid=mId(),now=Date.now()-idx;let fid="",nch=0;const pre=tot>1?"Tệp "+(idx+1)+"/"+tot+": ":"";
+    try{if(file){st.textContent=pre+"đang đọc “"+file.name+"”…";const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(new Error("Không đọc được tệp"));r.readAsDataURL(file)});
+      nch=Math.ceil(b64.length/MCH);fid=mId();await DB.set(`matfiles/${fid}`,{teacherId:UID,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch,createdAt:now});
+      for(let i=0;i<nch;i++){st.textContent=pre+"đang tải lên “"+file.name+"” "+Math.round(i/nch*100)+"%";await DB.set(`matfiles/${fid}/c/${i}`,{i,d:b64.slice(i*MCH,(i+1)*MCH)})}}
+     st.textContent=pre+"đang lưu…";
+     for(const cid of cids){const c=MT.cls.find(x=>x.id===cid),id=mId(),m={teacherId:UID,gid,folder:vid?"vid":"doc",classId:cid,className:c?c.name:"",kind:k,title,desc,cat,createdAt:now,...(vid&&at&&!isNaN(at)?{at}:{}),...(pin?{pin:true}:{}),...(k==="link"?{url}:{fid,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch})};await DB.set("materials/"+id,m);MT.items.push({id,...m})}}
+    catch(e){if(fid){try{for(let i=0;i<nch;i++)await DB.del(`matfiles/${fid}/c/${i}`).catch(()=>{});await DB.del("matfiles/"+fid)}catch(_){}}throw e}};
+   const list=k==="link"?[null]:fs;let done=0;
+   try{for(let i=0;i<list.length;i++){const f=list[i];await saveOne(f,f&&list.length>1?nameT(f.name):(title0||nameT(f.name)),i,list.length);done++}
+    o.remove();toast("Đã thêm "+(vid?"video":(done>1?done+" tài liệu":"tài liệu"))+" cho "+cids.length+" lớp.");mDraw()}
+   catch(e){st.textContent=(done?"Đã lưu "+done+"/"+list.length+" tệp. ":"")+"Dừng ở tệp “"+(list[done]?list[done].name:"")+"”: "+authErr(e)+(done?" Cô bấm Hủy rồi thêm lại các tệp còn lại.":"");bt.disabled=false;if(done)mDraw()}}};
 
 function mParseLines(txt){const out=[];String(txt||"").split(/\r?\n/).forEach(l=>{l=l.trim();if(!l||l[0]==="#")return;const ps=l.split("|").map(s=>s.trim()).filter(Boolean);if(!ps.length)return;let pin=false,at=0,url="";const rest=[];
   ps.forEach(s=>{if(/^(folder|thư mục|thu muc)$/i.test(s)){pin=true;return}if(!url&&/^https?:\/\//i.test(s)){url=s;return}let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(m&&!at){at=new Date(+m[1],+m[2]-1,+m[3],12).getTime();return}m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);if(m&&!at){at=new Date(+m[3],+m[2]-1,+m[1],12).getTime();return}rest.push(s)});
