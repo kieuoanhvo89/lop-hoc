@@ -39,6 +39,22 @@ service cloud.firestore {
       allow create, update: if signed() && request.auth.uid == tid && request.resource.data.keys().hasOnly(['n','logo','at']);
       allow delete: if signed() && request.auth.uid == tid;
     }
+    function mfile(f) { return get(/databases/$(db)/documents/matfiles/$(f)).data; }
+    match /materials/{mid} {
+      allow read: if signed() && (resource.data.teacherId == request.auth.uid || inClass(resource.data.classId));
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid && request.resource.data.folder in ['doc','vid'] && request.resource.data.title is string && request.resource.data.title.size() <= 120 && (request.resource.data.get('url', '') == '' || request.resource.data.url.matches('https?://.*'));
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+    match /matfiles/{fid} {
+      allow read: if signed() && (resource.data.teacherId == request.auth.uid || me().teacherId == resource.data.teacherId);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid && request.resource.data.size <= 10485760;
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      match /c/{k} {
+        allow read: if signed() && (mfile(fid).teacherId == request.auth.uid || me().teacherId == mfile(fid).teacherId);
+        allow create: if isTeacher() && mfile(fid).teacherId == request.auth.uid && request.resource.data.keys().hasOnly(['i','d']) && request.resource.data.d is string && request.resource.data.d.size() <= 800000;
+        allow delete: if isTeacher() && mfile(fid).teacherId == request.auth.uid;
+      }
+    }
     match /chats/{sid} {
       allow read: if signed() && (request.auth.uid == sid || resource.data.teacherId == request.auth.uid);
       allow create, update: if signed() && request.resource.data.keys().hasOnly(['teacherId','studentId','name','last','lastAt','lastBy']) && request.resource.data.studentId == sid && (request.auth.uid == sid || isMyStu(sid)) && request.resource.data.teacherId == get(/databases/$(db)/documents/users/$(sid)).data.teacherId;

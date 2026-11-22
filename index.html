@@ -1371,7 +1371,7 @@ function qsRender(){const o=$("qs");if(!o||!QS)return;const q=QS.q,d=QS.doc,me=q
 
 /* ===== Giáo viên ===== */
 function teacherShell(){pingOpener();$("app").innerHTML=`<div class="top">${logoImg()}<b>${esc(ME.name)}</b><div class="tabs" id="tabs"></div><span class="grow"></span><button class="sm sec" id="licb" data-act="upgrade"></button><button class="sec sm" data-act="feedback" title="Góp ý / báo lỗi">💬</button><button class="sec sm" data-act="logout">Đăng xuất</button></div><div id="licbar"></div><div class="wrap" id="tv"></div>`;licChip();tabs();showTab(T.tab);watchChat()}
-function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"],["chat","💬 Trò chuyện"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("");chatTick()}
+function tabs(){const t=[["lop","Lớp học"],["bai","Bài giảng"],["giao","Bài đã giao"],["bao","Báo cáo"],["tl","📚 Tài liệu"],["chat","💬 Trò chuyện"]];if(IS_ADMIN)t.push(["quan","⚙ Quản trị"]);$("tabs").innerHTML=t.map(x=>`<button class="${T.tab===x[0]?"on":""}" data-act="tab" data-t="${x[0]}">${x[1]}</button>`).join("");chatTick()}
 ACT.tab=d=>{T.tab=d.t;T.cid=null;tabs();showTab(d.t)};
 /* ===== Trò chuyện (cô ↔ từng em) và nhóm làm nhiệm vụ có thời hạn ===== */
 const CHS={chats:{},groups:[],doc:null,cur:null,un:[],tm:0,msgs:[],unMsg:null,filter:"",cf:"",open:false,stu:[],cls:[],cleaning:{},i1:false,i2:false,lastSend:0};
@@ -1652,7 +1652,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795348649";
+const BUILD="1795362452";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
@@ -1776,7 +1776,7 @@ ACT.terms=()=>modal(`<div class="row"><h2 class="grow" style="margin:0">Điều 
  <b>6. Thanh toán.</b> Phí được chuyển khoản theo mã QR; tài khoản được nâng cấp sau khi người vận hành xác nhận đã nhận tiền. Phí đã thanh toán không hoàn lại cho thời gian đã sử dụng, trừ trường hợp lỗi do dịch vụ.<br><br>
  <b>7. Thay đổi.</b> Điều khoản có thể được cập nhật; việc tiếp tục sử dụng nghĩa là chấp nhận bản mới.</div>`);
 
-function showTab(t){if(t!=="chat"&&isT()&&CHS.open){CHS.open=false;chatClose()}({lop:tabLop,bai:tabBai,giao:tabGiao,bao:tabBao,chat:tabChat,quan:tabQuan})[t]()}
+function showTab(t){if(t!=="chat"&&isT()&&CHS.open){CHS.open=false;chatClose()}({lop:tabLop,bai:tabBai,giao:tabGiao,bao:tabBao,chat:tabChat,tl:tabTl,quan:tabQuan})[t]()}
 async function tabLop(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';
  if(T.cid)return classView(T.cid);
  const [cl,us]=await Promise.all([DB.list("classes",[["teacherId","==",UID]]),DB.list("users",[["teacherId","==",UID]])]);
@@ -1931,7 +1931,81 @@ async function studentHome(){const v=$("sv");if(!v)return;const cids=ME.classIds
   <div class="row" style="flex-wrap:nowrap"><div class="bar ${pct>=100?"ok":""}" style="flex:1"><i style="width:${pct}%"></i></div><span class="note">${pct}%</span></div>${r?`<span class="note">Điểm ${r.score||0}/${r.maxScore||0}</span>`:""}
   <div class="row">${live?`<button class="sm" data-act="joinlive" data-id="${a.id}">▶ Vào học trực tiếp</button>`:""}<button class="${live?"sec ":""}sm" data-act="play" data-id="${a.id}">${r?(r.completedAt?"Học lại":"Tiếp tục làm bài"):"Làm bài tập"}</button></div></div>`};
  const todo=as.filter(a=>!(rs[a.id]&&rs[a.id].completedAt)),fin=as.filter(a=>rs[a.id]&&rs[a.id].completedAt);
- v.innerHTML=`<h2>Bài của em</h2>`+(todo.length?`<div class="cards">${todo.map(card).join("")}</div>`:'<div class="panel">Em chưa có bài nào cần làm. 🎉</div>')+(fin.length?`<h2 style="margin-top:22px">Đã hoàn thành</h2><div class="cards">${fin.map(card).join("")}</div>`:"")}
+ v.innerHTML=`<div id="mtl"></div><h2>Bài của em</h2>`+(todo.length?`<div class="cards">${todo.map(card).join("")}</div>`:'<div class="panel">Em chưa có bài nào cần làm. 🎉</div>')+(fin.length?`<h2 style="margin-top:22px">Đã hoàn thành</h2><div class="cards">${fin.map(card).join("")}</div>`:"");mStudent()}
+
+/* ===== Tài liệu học tập và video buổi học ===== */
+const MT={items:[],cls:[],f:"doc",cid:"",map:{}};
+const MCATS=["Sách","Bài tập","Đề thi","Tài liệu tham khảo","Phiếu học tập","Khác"];
+const MOK=/\.(pdf|docx?|xlsx?|pptx?|txt|csv|png|jpe?g|gif|webp)$/i,MMAX=10*1048576,MCH=700000;
+const mSize=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round((n||0)/1024))+" KB";
+const mIcon=(n,k)=>k==="link"?"🔗":/\.pdf$/i.test(n||"")?"📕":/\.docx?$/i.test(n||"")?"📘":/\.xlsx?$/i.test(n||"")?"📗":/\.pptx?$/i.test(n||"")?"📙":/\.(png|jpe?g|gif|webp)$/i.test(n||"")?"🖼":"📄";
+const mId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const mUrl=u=>{u=String(u||"").trim();if(u&&!/^https?:\/\//i.test(u))u="https://"+u;try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch(e){return""}};
+const mMime=(n,t)=>t||({pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",txt:"text/plain",csv:"text/csv"}[(String(n).split(".").pop()||"").toLowerCase()])||"application/octet-stream";
+function mGroups(items){const g={};items.forEach(m=>{const k=m.gid||m.id;(g[k]=g[k]||{...m,classes:[],ids:[]});g[k].classes.push(m.className||"");g[k].ids.push(m.id)});return Object.values(g)}
+function mRow(m,teacher){MT.map[m.id]=m;const vid=m.folder==="vid",day=vid&&m.at?fmtDay(m.at):fmtDay(m.createdAt);const isNew=Date.now()-(m.createdAt||0)<7*864e5;
+ const canView=m.kind==="file"&&/\.(pdf|png|jpe?g|gif|webp)$/i.test(m.fname||"");
+ return`<div class="card"><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span style="font-size:28px;line-height:1">${vid?"🎬":mIcon(m.fname,m.kind)}</span><div class="grow"><b>${esc(m.title)}</b> ${isNew&&!teacher?'<span class="chip wa">Mới</span>':""}<div class="note">${vid?"Buổi học ngày "+day:day}${m.cat&&!vid?" · "+esc(m.cat):""}${m.kind==="file"?" · "+mSize(m.size):""}${teacher?" · Lớp: "+esc(m.classes.join(", ")):""}</div>${m.desc?`<div class="note" style="color:var(--tx)">${esc(m.desc)}</div>`:""}</div></div>
+ <div class="row">${m.kind==="link"?`<button class="sm" data-act="mgo" data-id="${m.id}">${vid?"▶ Xem video":"↗ Mở link"}</button>`:`<button class="sm" data-act="mdl" data-id="${m.id}">⬇ Tải về</button>${canView?`<button class="sec sm" data-act="mview" data-id="${m.id}">🖨 Mở / In</button>`:""}`}${teacher?`<button class="sec sm" data-act="mdel" data-id="${m.id}">🗑 Xóa</button>`:""}</div></div>`}
+async function mBlob(m){const cs=await DB.list(`matfiles/${m.fid}/c`);if(!cs.length||cs.length<(m.nch||1))throw new Error("Tệp chưa đủ dữ liệu, nhờ cô tải lên lại.");cs.sort((a,b)=>a.i-b.i);const bin=atob(cs.map(c=>c.d).join("")),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:mMime(m.fname,m.mime)})}
+ACT.mgo=d=>{const m=MT.map[d.id];const u=m&&mUrl(m.url);if(!u){toast("Link chưa đúng.");return}window.open(u,"_blank","noopener")};
+ACT.mdl=async d=>{const m=MT.map[d.id];if(!m)return;toast("Đang tải tệp…");try{const b=await mBlob(m);recDl(new File([b],m.fname||"tai-lieu",{type:b.type}),m.fname||"tai-lieu");toast("Đã tải: "+(m.fname||"tệp"))}catch(e){alert("Không tải được: "+(e&&e.message||authErr(e)))}};
+ACT.mview=async d=>{const m=MT.map[d.id];if(!m)return;const w=window.open("","_blank");toast("Đang mở tệp…");try{const b=await mBlob(m),u=URL.createObjectURL(b);if(w)w.location.href=u;else recDl(new File([b],m.fname||"tai-lieu",{type:b.type}),m.fname||"tai-lieu");setTimeout(()=>URL.revokeObjectURL(u),300000)}catch(e){if(w)w.close();alert("Không mở được: "+(e&&e.message||authErr(e)))}};
+/* --- giáo viên --- */
+async function tabTl(){const v=$("tv");v.innerHTML='<p class="note">Đang tải…</p>';const[ms,cl]=await Promise.all([DB.list("materials",[["teacherId","==",UID]]),DB.list("classes",[["teacherId","==",UID]])]);if(T.tab!=="tl")return;MT.items=ms;MT.cls=cl.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));mDraw()}
+function mDraw(){const v=$("tv");if(!v||T.tab!=="tl")return;const vid=MT.f==="vid";
+ const all=MT.items.filter(m=>(m.folder||"doc")===MT.f&&(!MT.cid||m.classId===MT.cid));let gs=mGroups(all);gs.sort(vid?(a,b)=>(b.at||b.createdAt||0)-(a.at||a.createdAt||0):(a,b)=>(b.createdAt||0)-(a.createdAt||0));
+ const used=new Set(),tot=MT.items.reduce((s,m)=>{if(m.kind==="file"&&m.fid&&!used.has(m.fid)){used.add(m.fid);return s+(m.size||0)}return s},0);
+ let body="";if(!gs.length)body=`<div class="panel">${vid?"Chưa có video buổi học nào. Cô quay màn hình buổi dạy (nút ⏺ Ghi hình), đưa lên YouTube hoặc Drive rồi dán link vào đây.":"Chưa có tài liệu nào. Cô bấm “+ Thêm tài liệu” để tải sách, phiếu bài tập… cho học sinh."}</div>`;
+ else if(vid)body=`<div class="cards">${gs.map(m=>mRow(m,true)).join("")}</div>`;
+ else{const by={};gs.forEach(m=>(by[m.cat||"Khác"]=by[m.cat||"Khác"]||[]).push(m));body=Object.keys(by).sort((a,b)=>(MCATS.indexOf(a)<0?99:MCATS.indexOf(a))-(MCATS.indexOf(b)<0?99:MCATS.indexOf(b))).map(k=>`<h3 style="margin:16px 0 6px">📁 ${esc(k)} <span class="note">(${by[k].length})</span></h3><div class="cards">${by[k].map(m=>mRow(m,true)).join("")}</div>`).join("")}
+ v.innerHTML=`<div class="row"><h2 class="grow" style="margin:0">📚 Tài liệu và video buổi học</h2><button data-act="madd">${vid?"+ Thêm video":"+ Thêm tài liệu"}</button></div>
+ <p class="note" style="margin:4px 0 10px">Học sinh của lớp được chọn sẽ thấy hai thư mục này ngay khi vào lớp (không gồm bài giảng): tải tài liệu về và in ra, xem lại video buổi học. Bài giảng vẫn giao ở tab “Bài giảng”.</p>
+ <div class="row" style="margin-bottom:10px"><button class="${vid?"sec ":""}sm" data-act="mtf" data-f="doc">📁 Tài liệu học tập</button><button class="${vid?"":"sec "}sm" data-act="mtf" data-f="vid">🎬 Video buổi học</button><span class="grow"></span><select id="mtc" style="max-width:220px"><option value="">Tất cả các lớp</option>${MT.cls.map(c=>`<option value="${c.id}"${MT.cid===c.id?" selected":""}>${esc(c.name)}</option>`).join("")}</select></div>${body}
+ <p class="note" style="margin-top:14px">Tệp tải lên đang chiếm ${mSize(tot)} trong bộ nhớ miễn phí của Lớp học (tổng cả hệ thống 1 GB)${tot>300*1048576?". Gần đầy, cô nên xóa bớt hoặc dùng link Drive cho tệp lớn":""}.</p>`;
+ $("mtc").onchange=e=>{MT.cid=e.target.value;mDraw()}}
+ACT.mtf=d=>{MT.f=d.f;mDraw()};
+ACT.madd=()=>{if(!MT.cls.length){alert("Cô tạo lớp trước ở tab “Lớp học” nhé.");return}const vid=MT.f==="vid";
+ const o=modal(`<h2>${vid?"🎬 Thêm video buổi học":"📚 Thêm tài liệu học tập"}</h2>
+ ${vid?"":`<div class="row" style="margin-bottom:8px"><label><input type="radio" name="mk" value="file" checked> Tải tệp từ máy lên</label><label><input type="radio" name="mk" value="link"> Dán link (Drive, web…)</label></div>
+ <div id="mkf"><input type="file" id="mfile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp"><p class="note">PDF, Word, Excel, PowerPoint, ảnh, TXT; tối đa 10 MB mỗi tệp. Sách hoặc tệp lớn hơn thì cô đưa lên Google Drive rồi chọn “Dán link”.</p></div>`}
+ <div id="mkl" style="${vid?"":"display:none"}"><label class="l">Link ${vid?"video (YouTube, Drive, Zoom…)":"tài liệu"}</label><input id="mur" placeholder="https://…"></div>
+ <label class="l">Tiêu đề</label><input id="mti" maxlength="120" placeholder="${vid?"VD: Buổi 12 – Nguyên lý Dirichlet":"VD: Sách Toán tư duy lớp 5 – tập 1"}">
+ ${vid?`<label class="l">Ngày học</label><input type="date" id="mdt" value="${new Date().toISOString().slice(0,10)}">`:`<label class="l">Nhóm tài liệu</label><input id="mcat" list="mcl" maxlength="40" value="Sách"><datalist id="mcl">${MCATS.map(x=>`<option value="${x}">`).join("")}</datalist>`}
+ <label class="l">Ghi chú cho học sinh (không bắt buộc)</label><textarea id="mde" rows="2" maxlength="400"></textarea>
+ <label class="l">Dành cho lớp</label><div id="mcl2">${MT.cls.map(c=>`<label style="display:block;margin:2px 0"><input type="checkbox" class="mck" value="${c.id}" ${MT.cid===c.id||(!MT.cid&&MT.cls.length===1)?"checked":""}> ${esc(c.name)}</label>`).join("")}</div>
+ <div class="row" style="margin-top:12px"><button id="mgo2">Lưu</button><button class="sec" id="mcan">Hủy</button></div><p class="note" id="mst"></p>`);
+ const kind=()=>vid?"link":(o.querySelector('[name=mk]:checked')||{}).value;
+ if(!vid)o.querySelectorAll("[name=mk]").forEach(r=>r.onchange=()=>{const f=kind()==="file";$("mkf").style.display=f?"":"none";$("mkl").style.display=f?"none":""});
+ $("mcan").onclick=()=>o.remove();
+ $("mgo2").onclick=async()=>{const st=$("mst"),bt=$("mgo2"),k=kind(),title=$("mti").value.trim(),cids=[...o.querySelectorAll(".mck:checked")].map(x=>x.value);
+  if(!title){st.textContent="Cô nhập tiêu đề nhé.";return}if(!cids.length){st.textContent="Cô chọn ít nhất một lớp.";return}
+  let url="",file=null;if(k==="link"){url=mUrl($("mur").value);if(!url){st.textContent="Link chưa đúng, cô dán lại (bắt đầu bằng https://).";return}}else{file=$("mfile").files[0];if(!file){st.textContent="Cô chọn tệp cần tải lên.";return}if(!MOK.test(file.name)){st.textContent="Loại tệp này chưa nhận. Cô dùng PDF, Word, Excel, PowerPoint, ảnh hoặc TXT.";return}if(file.size>MMAX){st.textContent="Tệp "+mSize(file.size)+" lớn hơn 10 MB. Cô đưa lên Google Drive rồi dán link nhé.";return}}
+  bt.disabled=true;const gid=mId(),now=Date.now();let fid="",nch=0;
+  try{if(file){st.textContent="Đang đọc tệp…";const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(new Error("Không đọc được tệp"));r.readAsDataURL(file)});
+    nch=Math.ceil(b64.length/MCH);fid=mId();await DB.set(`matfiles/${fid}`,{teacherId:UID,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch,createdAt:now});
+    for(let i=0;i<nch;i++){st.textContent="Đang tải lên… "+Math.round(i/nch*100)+"%";await DB.set(`matfiles/${fid}/c/${i}`,{i,d:b64.slice(i*MCH,(i+1)*MCH)})}}
+   st.textContent="Đang lưu…";const at=vid?new Date($("mdt").value+"T12:00:00").getTime():0;
+   for(const cid of cids){const c=MT.cls.find(x=>x.id===cid),id=mId(),m={teacherId:UID,gid,folder:vid?"vid":"doc",classId:cid,className:c?c.name:"",kind:k,title,desc:$("mde").value.trim(),cat:vid?"":($("mcat").value.trim()||"Khác"),createdAt:now,...(vid&&at&&!isNaN(at)?{at}:{}),...(k==="link"?{url}:{fid,fname:file.name,size:file.size,mime:mMime(file.name,file.type),nch})};await DB.set("materials/"+id,m);MT.items.push({id,...m})}
+   o.remove();toast("Đã thêm "+(vid?"video":"tài liệu")+" cho "+cids.length+" lớp.");mDraw()}
+  catch(e){if(fid){try{for(let i=0;i<nch;i++)await DB.del(`matfiles/${fid}/c/${i}`).catch(()=>{});await DB.del("matfiles/"+fid)}catch(_){}}st.textContent="Chưa lưu được: "+authErr(e);bt.disabled=false}}};
+ACT.mdel=async d=>{const m=MT.map[d.id];if(!m)return;const ids=mGroups(MT.items.filter(x=>(x.gid||x.id)===(m.gid||m.id)))[0].ids;if(!confirm("Xóa “"+m.title+"” khỏi "+ids.length+" lớp? Học sinh sẽ không còn thấy nữa."))return;
+ try{for(const id of ids)await DB.del("materials/"+id);const fid=m.fid;MT.items=MT.items.filter(x=>!ids.includes(x.id));
+  if(fid&&!MT.items.some(x=>x.fid===fid)){const cs=await DB.list(`matfiles/${fid}/c`);for(const c of cs)await DB.del(`matfiles/${fid}/c/${c.id}`);await DB.del("matfiles/"+fid)}
+  toast("Đã xóa.");mDraw()}catch(e){alert("Chưa xóa được: "+authErr(e))}};
+/* --- học sinh --- */
+async function mStudent(){const box=$("mtl");if(!box)return;const cids=ME.classIds||[];let ms=[];try{for(const c of cids)ms=ms.concat(await DB.list("materials",[["classId","==",c]]))}catch(e){return}
+ const seen=new Set();ms=ms.filter(m=>{const k=m.gid||m.id;if(seen.has(k))return false;seen.add(k);return true});MT.sm=ms;
+ const nd=ms.filter(m=>m.folder!=="vid"),nv=ms.filter(m=>m.folder==="vid");if(!ms.length){box.innerHTML="";return}
+ const nw=l=>l.filter(m=>Date.now()-(m.createdAt||0)<7*864e5).length;
+ box.innerHTML=`<h2>Thư viện của lớp</h2><div class="cards" style="margin-bottom:18px"><div class="card"><b>📚 Tài liệu học tập</b><span class="note">${nd.length} tài liệu${nw(nd)?" · "+nw(nd)+" mới":""}. Sách, phiếu bài tập… em tải về và in ra được.</span><div class="row"><button class="sm" data-act="mlib" data-f="doc">Mở thư mục</button></div></div><div class="card"><b>🎬 Video buổi học</b><span class="note">${nv.length} video${nw(nv)?" · "+nw(nv)+" mới":""}. Xem lại các buổi học của lớp.</span><div class="row"><button class="sm" data-act="mlib" data-f="vid">Mở thư mục</button></div></div></div>`}
+ACT.mlib=d=>{const vid=d.f==="vid",l=(MT.sm||[]).filter(m=>(m.folder==="vid")===vid);
+ const draw=q=>{q=(q||"").toLowerCase();const f=l.filter(m=>!q||(m.title+" "+(m.desc||"")+" "+(m.cat||"")).toLowerCase().includes(q));let h="";
+  if(!f.length)h='<p class="note">Không có mục nào.</p>';else if(vid)h=f.sort((a,b)=>(b.at||b.createdAt||0)-(a.at||a.createdAt||0)).map(m=>mRow(m,false)).join("");
+  else{const by={};f.forEach(m=>(by[m.cat||"Khác"]=by[m.cat||"Khác"]||[]).push(m));h=Object.keys(by).sort((a,b)=>(MCATS.indexOf(a)<0?99:MCATS.indexOf(a))-(MCATS.indexOf(b)<0?99:MCATS.indexOf(b))).map(k=>`<h3 style="margin:12px 0 6px">📁 ${esc(k)}</h3>`+by[k].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(m=>mRow(m,false)).join("")).join("")}
+  $("mlb").innerHTML=h};
+ const o=modal(`<div class="row"><h2 class="grow" style="margin:0">${vid?"🎬 Video buổi học":"📚 Tài liệu học tập"}</h2><button class="sec sm" id="mlx">✕ Đóng</button></div><input id="mls" placeholder="Tìm theo tên…" style="margin:10px 0"><div id="mlb" style="max-height:62vh;overflow:auto"></div>`);
+ $("mlx").onclick=()=>o.remove();$("mls").oninput=e=>draw(e.target.value);draw("")};
 
 /* ===== Trình học bài (học sinh làm bài về nhà) ===== */
 let P=null;
