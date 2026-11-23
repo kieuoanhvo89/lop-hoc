@@ -61,7 +61,7 @@ input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;
 })();
 
 
-const GAME='Gấp hộp 3D',KEY='cube_stars';
+const GAME='Gấp hộp 3D',KEY='cube_stars30';
 const app=G.$('app');
 // ---- enumerate the 35 free hexominoes
 function norm(c){let mr=Math.min(...c.map(x=>x[0])),mc=Math.min(...c.map(x=>x[1]));return c.map(([r,q])=>[r-mr,q-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])}
@@ -86,20 +86,21 @@ function netSvg(c,col){const w=Math.max(...c.map(x=>x[1]))+1,h=Math.max(...c.map
 let cur=0,qs,qi,errs,t0=0,locked=false,done=false;
 function home(){app.innerHTML=`<div class="top"><h1>📦 Gấp hộp 3D</h1><button class="btn sec" id="mu"></button></div>
 <div class="card how"><b>Cách chơi:</b> một tấm bìa gồm 6 ô vuông có thể <b>gấp lại thành một hình lập phương (hộp)</b> không? Mỗi màn có 3 câu. Có câu hỏi em chọn tấm bìa <b>gấp được</b>, có câu chọn tấm bìa <b>không gấp được</b>. Sau khi trả lời, các mặt <b>đối diện nhau</b> của hộp sẽ được tô cùng một màu.</div>
-<div class="lv" id="lv"></div><p class="note">Màn 1–3: chọn 1 trong 3 hình. Màn 4–6: chọn 1 trong 4 hình. Màn 7–10: nhiều câu "không gấp được" hơn.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),10,KEY,i=>G.askName(()=>play(i)))}
-function mkq(level){const wantOk=level<3?true:Math.random()<(level<6?.5:.35);const n=level<3?3:4;
+<div class="lv" id="lv"></div><p class="note">Màn 1–3: chọn 1 trong 3 hình. Màn 4–10: 4 hình. Màn 11–20: 5 hình, 4 câu mỗi màn. Màn 21–30: 5 hình, 5 câu mỗi màn, nhiều câu "không gấp được" hơn.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),30,KEY,i=>G.askName(()=>play(i)))}
+const NQ=l=>l<10?3:l<20?4:5;
+function mkq(level){const wantOk=level<3?true:Math.random()<(level<10?.5:level<20?.4:.3);const n=level<3?3:level<10?4:5;
  if(wantOk){const good=randSym(rnd(OKS));const bads=shuf(BAD).slice(0,n-1).map(randSym);const opts=shuf([{c:good,ok:true},...bads.map(c=>({c,ok:false}))]);return{text:'Tấm bìa nào <u>gấp được</u> thành hình lập phương?',opts,target:true}}
  const bad=randSym(rnd(BAD));const goods=shuf(OKS).slice(0,n-1).map(randSym);const opts=shuf([{c:bad,ok:false},...goods.map(c=>({c,ok:true}))]);return{text:'Tấm bìa nào <u>KHÔNG gấp được</u> thành hình lập phương?',opts,target:false}}
-function play(i){cur=i;qs=[0,1,2].map(()=>mkq(i));qi=0;errs=0;t0=Date.now();done=false;show()}
-function show(){const q=qs[qi];locked=false;app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${cur+1} <small class="note">(câu ${qi+1}/3)</small></h1><button class="btn sec" id="mu"></button></div>
+function play(i){cur=i;qs=Array.from({length:NQ(i)},()=>mkq(i));qi=0;errs=0;t0=Date.now();done=false;show()}
+function show(){const q=qs[qi];locked=false;app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${cur+1} <small class="note">(câu ${qi+1}/${qs.length})</small></h1><button class="btn sec" id="mu"></button></div>
 <div class="card q">${q.text}</div><div id="opts">${q.opts.map((o,k)=>`<div class="op" data-k="${k}">${netSvg(o.c,false)}</div>`).join('')}</div><p class="note" id="msg" style="text-align:center;min-height:20px"></p><div class="row"><button class="btn ok hide" id="nx">Tiếp ➜</button></div>`;
  G.muteBtn(G.$('mu'));G.$('bk').onclick=home;
  G.$('opts').onclick=e=>{const b=e.target.closest('.op');if(!b||locked)return;pick(+b.dataset.k)}}
 function pick(k){const q=qs[qi],o=q.opts[k];const right=(o.ok===q.target);const els=[...document.querySelectorAll('.op')];
- if(right){locked=true;G.snd.ok();els.forEach((el,j)=>{const oo=q.opts[j];el.innerHTML=netSvg(oo.c,oo.ok);el.classList.add(j===k?'good':'dim')});G.$('msg').textContent=q.target?'Đúng rồi! Các mặt đối diện cùng màu.':'Đúng rồi! Những tấm bìa còn lại gấp được (các mặt đối diện cùng màu).';G.$('nx').classList.remove('hide');G.$('nx').onclick=()=>{qi++;if(qi<3)show();else win()}}
+ if(right){locked=true;G.snd.ok();els.forEach((el,j)=>{const oo=q.opts[j];el.innerHTML=netSvg(oo.c,oo.ok);el.classList.add(j===k?'good':'dim')});G.$('msg').textContent=q.target?'Đúng rồi! Các mặt đối diện cùng màu.':'Đúng rồi! Những tấm bìa còn lại gấp được (các mặt đối diện cùng màu).';G.$('nx').classList.remove('hide');G.$('nx').onclick=()=>{qi++;if(qi<qs.length)show();else win()}}
  else{errs++;G.snd.bad();els[k].classList.add('bad');els[k].style.pointerEvents='none';G.$('msg').textContent='Chưa đúng, em thử hình khác nhé.'}}
 function win(){done=true;const sec=(Date.now()-t0)/1000,st=errs===0?3:errs<=2?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:3,total:3,errors:errs,timeSec:Math.round(sec)});
- const nx=cur+1<10;const o=G.overlay(`<h2>🎉 Hoàn thành màn ${cur+1}!</h2><div class="stars">${G.stars(st)}</div><p>Em chọn sai ${errs} lần.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ const nx=cur+1<30;const o=G.overlay(`<h2>🎉 Hoàn thành màn ${cur+1}!</h2><div class="stars">${G.stars(st)}</div><p>Em chọn sai ${errs} lần.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
  G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
 home();
 </script></body></html>

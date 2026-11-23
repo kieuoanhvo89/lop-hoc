@@ -57,8 +57,8 @@ input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;
 })();
 
 
-const GAME='Nối mê cung',KEY='maze_stars';
-const SZ=[5,6,7,8,9,10,11,12,14,16];
+const GAME='Nối mê cung',KEY='maze_stars30';
+const SZ=[5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,20];
 const app=G.$('app');let cur=0,n,W,path,vis,t0=0,done=false,hints=0,drag=false,hintCells=[];
 function rng(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
 function genMaze(n,seed){const r=rng(seed);const w=Array.from({length:n},()=>Array.from({length:n},()=>({N:1,E:1,S:1,W:1})));const seen=Array.from({length:n},()=>Array(n).fill(false));const st=[[0,0]];seen[0][0]=true;
@@ -66,7 +66,7 @@ function genMaze(n,seed){const r=rng(seed);const w=Array.from({length:n},()=>Arr
  while(st.length){const[a,b]=st[st.length-1];const o=D.filter(d=>{const x=a+d[1],y=b+d[2];return x>=0&&y>=0&&x<n&&y<n&&!seen[x][y]});if(!o.length){st.pop();continue}const d=o[Math.floor(r()*o.length)];const x=a+d[1],y=b+d[2];w[a][b][d[0]]=0;w[x][y][d[3]]=0;seen[x][y]=true;st.push([x,y])}return w}
 function home(){app.innerHTML=`<div class="top"><h1>🌀 Nối mê cung</h1><button class="btn sec" id="mu"></button></div>
 <div class="card how"><b>Cách chơi:</b> đặt ngón tay (hoặc chuột) vào <b>ô xanh</b> ở góc trên bên trái, rồi kéo đường đi qua mê cung đến <b>ô cờ 🏁</b> ở góc dưới bên phải. Đường đi không được xuyên qua tường. Kéo lùi để sửa đường nếu đi vào ngõ cụt.</div>
-<div class="lv" id="lv"></div><p class="note">Mê cung lớn dần từ 5×5 đến 16×16.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),SZ.length,KEY,i=>G.askName(()=>play(i)))}
+<div class="lv" id="lv"></div><p class="note">Mê cung lớn dần từ 5×5 đến 20×20 (30 màn).</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),SZ.length,KEY,i=>G.askName(()=>play(i)))}
 function play(i){cur=i;n=SZ[i];W=genMaze(n,1000+i*77);path=[[0,0]];vis=new Set(['0,0']);t0=Date.now();done=false;hints=0;hintCells=[];
  app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1} <small class="note">(${n}×${n})</small></h1><button class="btn sec" id="mu"></button></div>
 <div class="stats"><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Bước đi</small><b id="st">0</b></div></div>

@@ -63,16 +63,17 @@ input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;
 })();
 
 
-const GAME='Tìm cặp giống nhau',KEY='pairs_stars';
-const LV=[{p:3,c:3,m:0},{p:4,c:4,m:0},{p:6,c:4,m:0},{p:8,c:4,m:0},{p:10,c:5,m:0},{p:12,c:6,m:0},{p:4,c:4,m:1},{p:6,c:4,m:1},{p:8,c:4,m:1},{p:10,c:5,m:1}];
+const GAME='Tìm cặp giống nhau',KEY='pairs_stars30';
+const LV=[[3,3],[4,4],[5,5],[6,4],[7,4],[8,4],[9,6],[10,5],[12,6],[14,6],[16,6],[18,6]].map(x=>({p:x[0],c:x[1],m:0})).concat([[4,4,9],[5,5,9],[6,4,9],[7,4,12],[8,4,12],[9,6,15],[10,5,15],[12,6,20],[14,6,20],[16,6,20]].map(x=>({p:x[0],c:x[1],m:1,r:x[2]})),[[4,4],[5,5],[6,4],[8,4],[10,5],[12,6],[14,6],[16,6]].map(x=>({p:x[0],c:x[1],m:2})));
 const EM=['🐶','🐱','🐰','🦊','🐼','🐸','🦁','🐵','🐷','🐮','🐔','🐧','🐢','🐙','🦋','🐞','🌻','🍎','🍌','🍇','⭐','🚗','✈️','⚽'];
 const app=G.$('app');let cur=0,L,cards,open,moves,found,t0=0,done=false,lock=false;
 function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function home(){app.innerHTML=`<div class="top"><h1>🃏 Tìm cặp giống nhau</h1><button class="btn sec" id="mu"></button></div>
-<div class="card how"><b>Cách chơi:</b> lật hai thẻ mỗi lượt. Nếu hai thẻ <b>giống nhau</b> thì chúng được giữ lại; nếu khác nhau thì úp xuống, em phải nhớ vị trí để lật lần sau. Màn 1–6: tìm hai hình giống nhau. Màn 7–10: tìm <b>phép tính và kết quả</b> của nó (ví dụ 3+4 và 7).</div>
+<div class="card how"><b>Cách chơi:</b> lật hai thẻ mỗi lượt. Nếu hai thẻ <b>giống nhau</b> thì chúng được giữ lại; nếu khác nhau thì úp xuống, em phải nhớ vị trí để lật lần sau. Màn 1–12: tìm hai hình giống nhau. Màn 13–22: tìm <b>phép cộng, trừ và kết quả</b> của nó (ví dụ 3+4 và 7). Màn 23–30: tìm <b>phép nhân và kết quả</b> (ví dụ 6×7 và 42).</div>
 <div class="lv" id="lv"></div>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),LV.length,KEY,i=>G.askName(()=>play(i)))}
 function make(l){const out=[];if(!l.m){shuf(EM).slice(0,l.p).forEach((e,i)=>{out.push({p:i,t:e},{p:i,t:e})})}
- else{const used=new Set();let i=0;while(i<l.p){const a=1+Math.floor(Math.random()*(l.p>6?15:9)),b=1+Math.floor(Math.random()*(l.p>6?15:9)),pl=Math.random()<.65||a<=b;const r=pl?a+b:a-b;if(used.has(r)||r<0)continue;used.add(r);out.push({p:i,t:pl?a+'+'+b:a+'−'+b,txt:1},{p:i,t:String(r),txt:1});i++}}
+ else if(l.m===2){const used=new Set();let i=0;while(i<l.p){const a=2+Math.floor(Math.random()*8),b=2+Math.floor(Math.random()*8),r=a*b;if(used.has(r))continue;used.add(r);out.push({p:i,t:a+'×'+b,txt:1},{p:i,t:String(r),txt:1});i++}}
+ else{const used=new Set();let i=0;const R=l.r||9;while(i<l.p){const a=1+Math.floor(Math.random()*R),b=1+Math.floor(Math.random()*R),pl=Math.random()<.65||a<=b;const r=pl?a+b:a-b;if(used.has(r)||r<0)continue;used.add(r);out.push({p:i,t:pl?a+'+'+b:a+'−'+b,txt:1},{p:i,t:String(r),txt:1});i++}}
  return shuf(out)}
 function play(i){cur=i;L=LV[i];cards=make(L);open=[];moves=0;found=0;t0=Date.now();done=false;lock=false;
  app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1} <small class="note">(${L.p} cặp)</small></h1><button class="btn sec" id="mu"></button></div>
