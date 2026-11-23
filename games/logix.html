@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Logix</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+#bd{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:300px;margin:0 auto;background:#0d2a6b;padding:6px;border-radius:14px}
+.bc{aspect-ratio:1/1;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:3px solid transparent}
+.bc.hi{border-color:#fbc02d;background:#fffbe0}.bc.bad{background:#ffe3e1}
+.bc svg{width:78%;height:78%}
+#tray{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
+.tk{aspect-ratio:1/1;background:#fff;border:3px solid #f1d58a;border-radius:10px;padding:2px;cursor:pointer}
+.tk.sel{border-color:#2f6fe0;background:#e3edff}.tk.used{opacity:.25}
+.tk svg{width:100%;height:100%}
+#cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cdd{background:#fff;border:3px solid #f1d58a;border-radius:12px;padding:6px;display:flex;align-items:center;gap:6px}
+.cdd.sel{border-color:#2f6fe0}.cdd.bad{border-color:#e53935;background:#fff1f0}.cdd.good{border-color:#43a047}
+.cdd .ic{width:24px;flex:none}.cdd .mini{flex:1;min-width:0;width:100%;height:auto}.cdd{min-width:0}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Logix',KEY='logix_stars';
+const LV=[{"sol":[3,0,2,7,1,6,5,8,4],"cards":[{"must":3,"no":[]},{"must":0,"no":[]},{"must":2,"no":[]},{"must":7,"no":[]},{"must":1,"no":[]},{"must":-1,"no":[]},{"must":5,"no":[]},{"must":8,"no":[]},{"must":4,"no":[]}]},{"sol":[2,3,7,8,4,5,1,6,0],"cards":[{"must":-1,"no":[]},{"must":3,"no":[]},{"must":-1,"no":[2]},{"must":8,"no":[]},{"must":4,"no":[]},{"must":5,"no":[]},{"must":1,"no":[]},{"must":6,"no":[]},{"must":0,"no":[]}]},{"sol":[7,0,4,1,6,5,3,2,8],"cards":[{"must":-1,"no":[]},{"must":-1,"no":[6,7]},{"must":4,"no":[]},{"must":1,"no":[]},{"must":-1,"no":[7]},{"must":5,"no":[]},{"must":3,"no":[]},{"must":2,"no":[]},{"must":8,"no":[]}]},{"sol":[7,0,4,1,2,6,8,3,5],"cards":[{"must":7,"no":[]},{"must":-1,"no":[]},{"must":-1,"no":[0]},{"must":1,"no":[]},{"must":2,"no":[]},{"must":6,"no":[]},{"must":8,"no":[]},{"must":3,"no":[]},{"must":-1,"no":[0,4]}]},{"sol":[7,2,4,8,1,5,6,3,0],"cards":[{"must":7,"no":[]},{"must":2,"no":[]},{"must":4,"no":[]},{"must":-1,"no":[1,3]},{"must":-1,"no":[]},{"must":5,"no":[]},{"must":-1,"no":[1,3,8]},{"must":-1,"no":[1]},{"must":0,"no":[]}]},{"sol":[2,0,7,4,6,1,8,5,3],"cards":[{"must":-1,"no":[1,6,7]},{"must":0,"no":[]},{"must":-1,"no":[1,6]},{"must":4,"no":[]},{"must":-1,"no":[]},{"must":-1,"no":[6]},{"must":-1,"no":[1,2,6,7]},{"must":5,"no":[]},{"must":3,"no":[]}]},{"sol":[8,6,5,1,2,0,7,4,3],"cards":[{"must":8,"no":[]},{"must":6,"no":[]},{"must":-1,"no":[0,1]},{"must":-1,"no":[]},{"must":2,"no":[]},{"must":-1,"no":[1]},{"must":-1,"no":[0,1,5]},{"must":-1,"no":[0,1,5,7]},{"must":-1,"no":[0,1,4,5,7]}]},{"sol":[6,4,1,7,3,5,0,2,8],"cards":[{"must":-1,"no":[0,1,2,4,5]},{"must":-1,"no":[0,5]},{"must":-1,"no":[0,4,5]},{"must":7,"no":[]},{"must":3,"no":[]},{"must":-1,"no":[0]},{"must":-1,"no":[]},{"must":-1,"no":[0,1,4,5]},{"must":-1,"no":[0,1,2,4,5,6]}]},{"sol":[2,8,5,6,1,4,0,7,3],"cards":[{"must":-1,"no":[]},{"must":8,"no":[]},{"must":-1,"no":[0,2]},{"must":-1,"no":[0,2,5,7]},{"must":-1,"no":[0,2,5,6,7]},{"must":-1,"no":[0,1,2,5,6,7]},{"must":-1,"no":[2]},{"must":-1,"no":[0,2,5]},{"must":3,"no":[]}]},{"sol":[6,4,2,8,1,3,7,0,5],"cards":[{"must":-1,"no":[0,1,2,4,5,7,8]},{"must":-1,"no":[1]},{"must":-1,"no":[0,1,4]},{"must":-1,"no":[0,1,2,4]},{"must":-1,"no":[]},{"must":3,"no":[]},{"must":-1,"no":[0,1,2,4,5,8]},{"must":-1,"no":[1,4]},{"must":-1,"no":[0,1,2,4,8]}]}];
+const COL=['#fbc02d','#1e88e5','#e53935'],CN=['vàng','xanh dương','đỏ'],SN=['tròn','vuông','tam giác'];
+const app=G.$('app');let cur=0,L,board,sel=-1,errs=0,hints=0,t0=0,done=false;
+function fig(f,sz){const c=COL[Math.floor(f/3)],s=f%3;const sh=s===0?`<circle cx="50" cy="50" r="34" fill="${c}"/>`:s===1?`<rect x="18" y="18" width="64" height="64" rx="4" fill="${c}"/>`:`<polygon points="50,12 90,84 10,84" fill="${c}"/>`;return `<svg viewBox="0 0 100 100">${sh}</svg>`}
+function mini(c){let s='<svg viewBox="0 0 90 90" class="mini">';for(let i=0;i<9;i++){const r=Math.floor(i/3),k=i%3,x=k*30,y=r*30;const must=c.must===i,no=c.no.includes(i);s+=`<rect x="${x+1}" y="${y+1}" width="28" height="28" fill="${must?'#5f6368':'#fff'}" stroke="#0d2a6b" stroke-width="2"/>`;if(no)s+=`<path d="M${x+3} ${y+3}L${x+27} ${y+27}M${x+27} ${y+3}L${x+3} ${y+27}" stroke="#0d2a6b" stroke-width="2"/>`}return s+'</svg>'}
+function home(){app.innerHTML=`<div class="top"><h1>🔷 Logix</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> đặt <b>9 hình</b> (3 màu × 3 hình dạng) vào <b>bảng 3×3</b>, mỗi ô một hình, sao cho mỗi hình thỏa thẻ điều kiện của nó:<br>▪ <b>ô xám</b> = hình đó phải nằm đúng ô này;<br>▪ <b>ô gạch chéo ✕</b> = hình đó không được nằm ở ô này.<br>Chạm một hình rồi chạm ô trên bảng để đặt. Chạm hình đã đặt để nhấc ra.</div>
+<div class="lv" id="lv"></div><p class="note">10 màn, mỗi màn chỉ có đúng một cách xếp. Màn sau có ít ô xám hơn nên khó hơn.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),LV.length,KEY,i=>G.askName(()=>play(i)))}
+function play(i){cur=i;L=LV[i];board=Array(9).fill(-1);sel=-1;errs=0;hints=0;t0=Date.now();done=false;
+ app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1}</h1><button class="btn sec" id="mu"></button></div>
+<div class="stats"><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Đã đặt</small><b id="pl">0/9</b></div></div>
+<div id="bd"></div><div id="tray"></div><div id="cards"></div>
+<div class="row"><button class="btn warn" id="hn">💡 Gợi ý</button><button class="btn sec" id="rs">↺ Làm lại</button></div>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;G.$('rs').onclick=()=>play(cur);G.$('hn').onclick=hint;
+ const tm=setInterval(()=>{if(!G.$('tt')||done){clearInterval(tm);return}G.$('tt').textContent=G.fmt((Date.now()-t0)/1000)},500);
+ G.$('bd').onclick=e=>{const b=e.target.closest('.bc');if(b&&!done)cell(+b.dataset.i)};
+ G.$('tray').onclick=e=>{const b=e.target.closest('.tk');if(!b||done)return;const f=+b.dataset.f;if(board.includes(f))return;sel=sel===f?-1:f;G.snd.tap();draw()};
+ G.$('cards').onclick=e=>{const b=e.target.closest('.cdd');if(!b||done)return;const f=+b.dataset.f;if(!board.includes(f)){sel=sel===f?-1:f;draw()}};draw()}
+function ok(f,c){const k=L.cards[f];return k.must>=0?k.must===c:!k.no.includes(c)}
+function cell(i){if(board[i]>=0&&sel<0){board[i]=-1;G.snd.tap();draw();return}if(sel<0)return;if(board[i]>=0)board[i]=-1;board[i]=sel;if(!ok(sel,i)){errs++;G.snd.bad()}else G.snd.tap();sel=-1;draw();check()}
+function draw(){const bd=G.$('bd');bd.innerHTML=board.map((f,i)=>{const bad=f>=0&&!ok(f,i);return`<div class="bc${bad?' bad':''}" data-i="${i}">${f>=0?fig(f):''}</div>`}).join('');
+ G.$('tray').innerHTML=Array.from({length:9},(_,f)=>`<div class="tk${sel===f?' sel':''}${board.includes(f)?' used':''}" data-f="${f}">${fig(f)}</div>`).join('');
+ G.$('cards').innerHTML=Array.from({length:9},(_,f)=>{const p=board.indexOf(f);const cls=sel===f?' sel':p>=0?(ok(f,p)?' good':' bad'):'';return`<div class="cdd${cls}" data-f="${f}"><div class="ic">${fig(f)}</div>${mini(L.cards[f])}</div>`}).join('');
+ G.$('pl').textContent=board.filter(x=>x>=0).length+'/9'}
+function hint(){if(done)return;hints++;for(let f=0;f<9;f++){if(board[L.sol[f]]===f)continue;const c=L.sol[f];if(board[c]>=0)board[c]=-1;const p=board.indexOf(f);if(p>=0)board[p]=-1;board[c]=f;G.snd.ok();draw();check();return}}
+function check(){if(board.some(x=>x<0))return;for(let i=0;i<9;i++)if(!ok(board[i],i))return;done=true;const sec=(Date.now()-t0)/1000,st=hints===0&&errs<=1?3:hints<=1&&errs<=4?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:st,total:3,timeSec:Math.round(sec)});
+ const nx=cur+1<LV.length;const o=G.overlay(`<h2>🎉 Xếp đúng rồi!</h2><div class="stars">${G.stars(st)}</div><p>Thời gian ${G.fmt(sec)}.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
+home();
+</script></body></html>

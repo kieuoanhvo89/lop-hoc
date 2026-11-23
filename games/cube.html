@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Gấp hộp 3D</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+.q{font-size:18px;font-weight:800;text-align:center;line-height:1.3}
+#opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.op{background:#fff;border:4px solid #f1d58a;border-radius:16px;padding:8px;cursor:pointer;min-height:48px}
+.op svg{width:100%;height:auto;display:block}
+.op.good{border-color:#43a047;background:#eafbe9}.op.bad{border-color:#e53935;background:#fff1f0}
+.op.dim{opacity:.55}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Gấp hộp 3D',KEY='cube_stars';
+const app=G.$('app');
+// ---- enumerate the 35 free hexominoes
+function norm(c){let mr=Math.min(...c.map(x=>x[0])),mc=Math.min(...c.map(x=>x[1]));return c.map(([r,q])=>[r-mr,q-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])}
+function key(c){return norm(c).map(x=>x.join(',')).join(';')}
+function syms(c){const out=[];let cur=c;for(let f=0;f<2;f++){for(let r=0;r<4;r++){out.push(norm(cur));cur=cur.map(([a,b])=>[b,-a])}cur=cur.map(([a,b])=>[a,-b])}return out}
+function canon(c){return syms(c).map(key).sort()[0]}
+const HEX=(()=>{let cur=new Map([[canon([[0,0]]),[[0,0]]]]);for(let n=1;n<6;n++){const nx=new Map();cur.forEach(c=>{c.forEach(([r,q])=>[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>{const t=[r+a,q+b];if(c.some(x=>x[0]===t[0]&&x[1]===t[1]))return;const nc=c.concat([t]);const k=canon(nc);if(!nx.has(k))nx.set(k,norm(nc))}))});cur=nx}return[...cur.values()]})();
+// ---- cube folding by rolling: returns map cell-> face id (0..5) or null if invalid
+function fold(c){const set=new Map(c.map(x=>[x[0]+','+x[1],1]));const face={};
+ // orientation: [bottom,top,north,south,east,west]
+ const roll=(o,d)=>{const[b,t,n,s,e,w]=o;return d==='N'?[n,s,t,b,e,w]:d==='S'?[s,n,b,t,e,w]:d==='E'?[e,w,n,s,t,b]:[w,e,n,s,b,t]};
+ const st=[[c[0][0],c[0][1],[0,1,2,3,4,5]]];face[c[0][0]+','+c[0][1]]=0;const seen=new Set([c[0][0]+','+c[0][1]]);
+ while(st.length){const[r,q,o]=st.pop();for(const[d,dr,dq]of[['N',-1,0],['S',1,0],['E',0,1],['W',0,-1]]){const k=(r+dr)+','+(q+dq);if(!set.has(k)||seen.has(k))continue;const no=roll(o,d);seen.add(k);face[k]=no[0];st.push([r+dr,q+dq,no])}}
+ const v=Object.values(face);return new Set(v).size===6?face:null}
+const OKS=HEX.filter(c=>fold(c)),BAD=HEX.filter(c=>!fold(c));
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function randSym(c){return rnd(syms(c))}
+const PAL=['#ef5350','#42a5f5','#66bb6a'];
+function netSvg(c,col){const w=Math.max(...c.map(x=>x[1]))+1,h=Math.max(...c.map(x=>x[0]))+1,f=col?fold(c):null;let s=`<svg viewBox="-0.2 -0.2 ${w+.4} ${h+.4}">`;
+ c.forEach(([r,q])=>{const fill=f?PAL[Math.floor(f[r+','+q]/2)]:'#ffd54f';s+=`<rect x="${q}" y="${r}" width="1" height="1" fill="${fill}" stroke="#5d4037" stroke-width=".05"/>`});return s+'</svg>'}
+let cur=0,qs,qi,errs,t0=0,locked=false,done=false;
+function home(){app.innerHTML=`<div class="top"><h1>📦 Gấp hộp 3D</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> một tấm bìa gồm 6 ô vuông có thể <b>gấp lại thành một hình lập phương (hộp)</b> không? Mỗi màn có 3 câu. Có câu hỏi em chọn tấm bìa <b>gấp được</b>, có câu chọn tấm bìa <b>không gấp được</b>. Sau khi trả lời, các mặt <b>đối diện nhau</b> của hộp sẽ được tô cùng một màu.</div>
+<div class="lv" id="lv"></div><p class="note">Màn 1–3: chọn 1 trong 3 hình. Màn 4–6: chọn 1 trong 4 hình. Màn 7–10: nhiều câu "không gấp được" hơn.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),10,KEY,i=>G.askName(()=>play(i)))}
+function mkq(level){const wantOk=level<3?true:Math.random()<(level<6?.5:.35);const n=level<3?3:4;
+ if(wantOk){const good=randSym(rnd(OKS));const bads=shuf(BAD).slice(0,n-1).map(randSym);const opts=shuf([{c:good,ok:true},...bads.map(c=>({c,ok:false}))]);return{text:'Tấm bìa nào <u>gấp được</u> thành hình lập phương?',opts,target:true}}
+ const bad=randSym(rnd(BAD));const goods=shuf(OKS).slice(0,n-1).map(randSym);const opts=shuf([{c:bad,ok:false},...goods.map(c=>({c,ok:true}))]);return{text:'Tấm bìa nào <u>KHÔNG gấp được</u> thành hình lập phương?',opts,target:false}}
+function play(i){cur=i;qs=[0,1,2].map(()=>mkq(i));qi=0;errs=0;t0=Date.now();done=false;show()}
+function show(){const q=qs[qi];locked=false;app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${cur+1} <small class="note">(câu ${qi+1}/3)</small></h1><button class="btn sec" id="mu"></button></div>
+<div class="card q">${q.text}</div><div id="opts">${q.opts.map((o,k)=>`<div class="op" data-k="${k}">${netSvg(o.c,false)}</div>`).join('')}</div><p class="note" id="msg" style="text-align:center;min-height:20px"></p><div class="row"><button class="btn ok hide" id="nx">Tiếp ➜</button></div>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;
+ G.$('opts').onclick=e=>{const b=e.target.closest('.op');if(!b||locked)return;pick(+b.dataset.k)}}
+function pick(k){const q=qs[qi],o=q.opts[k];const right=(o.ok===q.target);const els=[...document.querySelectorAll('.op')];
+ if(right){locked=true;G.snd.ok();els.forEach((el,j)=>{const oo=q.opts[j];el.innerHTML=netSvg(oo.c,oo.ok);el.classList.add(j===k?'good':'dim')});G.$('msg').textContent=q.target?'Đúng rồi! Các mặt đối diện cùng màu.':'Đúng rồi! Những tấm bìa còn lại gấp được (các mặt đối diện cùng màu).';G.$('nx').classList.remove('hide');G.$('nx').onclick=()=>{qi++;if(qi<3)show();else win()}}
+ else{errs++;G.snd.bad();els[k].classList.add('bad');els[k].style.pointerEvents='none';G.$('msg').textContent='Chưa đúng, em thử hình khác nhé.'}}
+function win(){done=true;const sec=(Date.now()-t0)/1000,st=errs===0?3:errs<=2?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:3,total:3,errors:errs,timeSec:Math.round(sec)});
+ const nx=cur+1<10;const o=G.overlay(`<h2>🎉 Hoàn thành màn ${cur+1}!</h2><div class="stars">${G.stars(st)}</div><p>Em chọn sai ${errs} lần.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
+home();
+</script></body></html>
