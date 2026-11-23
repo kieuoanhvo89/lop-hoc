@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Tô màu</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+#bd{width:100%;max-width:460px;margin:0 auto;background:#fff;border:3px solid #f1d58a;border-radius:12px;touch-action:manipulation;user-select:none}
+#bd svg{width:100%;display:block}
+.pal{display:flex;gap:10px;justify-content:center}
+.pal button{width:64px;height:64px;border-radius:50%;border:5px solid #fff;box-shadow:0 0 0 3px #d9c58a;cursor:pointer}
+.pal button.on{box-shadow:0 0 0 5px #3b2a14}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Tô màu',KEY='color_stars';
+const LV=[{"r":5,"c":5,"g":[[0,0,2,5,5],[0,0,2,5,5],[6,6,2,1,1],[6,6,2,2,3],[4,2,2,3,3]],"given":{"0":3,"3":1,"2":2},"sol":[3,0,2,1,3,3,0]},{"r":5,"c":6,"g":[[2,2,2,2,3,3],[2,2,2,2,8,7],[1,1,6,2,8,0],[1,1,6,4,8,0],[1,5,5,5,5,0]],"given":{"6":2,"7":0,"4":3},"sol":[1,3,0,3,3,0,2,0,2]},{"r":6,"c":6,"g":[[9,9,1,2,2,2],[9,3,1,1,8,2],[9,3,3,10,7,7],[4,3,3,7,7,7],[4,3,0,0,0,7],[4,3,5,5,6,6]],"given":{"0":2,"4":1,"2":0,"10":1},"sol":[2,2,0,0,1,3,0,3,1,3,1]},{"r":6,"c":7,"g":[[11,5,5,2,2,4,6],[11,11,9,3,2,2,6],[11,3,3,3,12,12,6],[11,0,0,0,0,12,6],[0,0,8,8,7,7,6],[1,1,1,8,10,10,10]],"given":{"0":0,"1":1,"5":0,"7":3},"sol":[0,1,3,2,1,0,2,3,2,3,1,1,1]},{"r":7,"c":7,"g":[[9,10,7,7,0,0,14],[9,9,7,4,4,13,13],[1,1,7,3,4,11,11],[5,5,7,3,2,2,11],[5,8,8,3,3,3,6],[5,8,8,3,3,3,6],[8,8,8,12,12,3,3]],"given":{"12":1,"5":3,"14":1,"6":1},"sol":[0,0,2,3,1,3,1,2,0,3,0,0,1,3,1]},{"r":7,"c":8,"g":[[10,10,11,11,11,11,16,2],[10,11,11,11,11,5,13,12],[1,1,9,11,11,5,13,12],[1,1,9,15,15,5,13,12],[1,1,9,17,15,15,14,14],[0,1,8,17,6,4,14,14],[3,7,8,6,6,4,4,14]],"given":{"7":3,"16":0,"4":0,"9":0,"10":1},"sol":[3,2,1,2,0,0,2,3,1,0,1,3,0,2,3,1,0,3]},{"r":8,"c":8,"g":[[6,6,17,1,1,8,18,18],[6,6,14,1,0,8,8,18],[6,6,14,4,7,7,18,18],[11,10,5,5,5,19,19,18],[10,10,5,5,9,19,19,15],[10,13,13,13,9,19,3,15],[10,10,12,13,9,19,16,15],[2,2,2,2,9,19,19,19]],"given":{"18":1,"16":2,"15":0,"5":1,"6":1},"sol":[3,1,1,1,3,1,1,0,2,0,3,2,0,2,2,0,2,0,1,3]},{"r":8,"c":9,"g":[[0,0,0,15,15,15,9,9,1],[0,0,0,21,2,2,1,1,1],[0,0,2,2,2,2,4,4,22],[19,0,20,20,20,20,11,22,22],[19,5,17,17,17,17,6,22,8],[19,5,5,12,12,17,6,6,8],[19,16,10,10,10,14,14,13,8],[16,16,7,7,18,14,14,3,3]],"given":{"5":2,"14":3,"3":2,"18":1,"19":0},"sol":[3,2,1,2,3,2,2,2,3,1,0,1,3,0,3,2,1,0,1,0,2,0,0]}];
+const CL=['#43a047','#8e24aa','#e53935','#fdd835'],NM=['xanh lá','tím','đỏ','vàng'];
+const app=G.$('app');let cur=0,L,col,pick=0,adj,t0=0,done=false,moves=0,R,C;
+function home(){app.innerHTML=`<div class="top"><h1>🎨 Tô màu</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> tô mỗi miền còn trống bằng một trong bốn màu: <b>xanh lá, tím, đỏ, vàng</b> sao cho hai miền kề nhau (chung cạnh) <b>không cùng màu</b>. Chọn màu ở dưới rồi chạm vào miền cần tô. Miền có viền đỏ nghĩa là đang trùng màu với miền bên cạnh.</div>
+<div class="lv" id="lv"></div>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),LV.length,KEY,i=>G.askName(()=>play(i)))}
+function play(i){cur=i;L=LV[i];R=L.r;C=L.c;const n=L.sol.length;col=Array(n).fill(-1);Object.entries(L.given).forEach(([k,v])=>col[+k]=v);adj=Array.from({length:n},()=>new Set());
+ for(let r=0;r<R;r++)for(let c=0;c<C;c++){[[0,1],[1,0]].forEach(([a,b])=>{const r2=r+a,c2=c+b;if(r2<R&&c2<C&&L.g[r][c]!==L.g[r2][c2]){adj[L.g[r][c]].add(L.g[r2][c2]);adj[L.g[r2][c2]].add(L.g[r][c])}})}
+ pick=0;t0=Date.now();done=false;moves=0;
+ app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1} <small class="note">(${n} miền)</small></h1><button class="btn sec" id="mu"></button></div>
+<div class="stats"><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Đã tô</small><b id="dn">0</b></div></div>
+<div id="bd"></div><div class="pal" id="pl">${CL.map((c,k)=>`<button data-k="${k}" style="background:${c}" aria-label="${NM[k]}"></button>`).join('')}<button data-k="-1" style="background:#fff;font-size:26px">⌫</button></div>
+<div class="row"><button class="btn warn" id="hn">💡 Gợi ý</button><button class="btn sec" id="rs">↺ Làm lại</button></div>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;G.$('rs').onclick=()=>play(cur);G.$('hn').onclick=hint;
+ G.$('pl').onclick=e=>{const k=e.target.dataset&&e.target.dataset.k;if(k==null)return;pick=+k;G.snd.tap();pal()};
+ const tm=setInterval(()=>{if(!G.$('tt')||done){clearInterval(tm);return}G.$('tt').textContent=G.fmt((Date.now()-t0)/1000)},500);
+ G.$('bd').onclick=e=>{if(done)return;const s=G.$('bd').querySelector('svg').getBoundingClientRect();const c=Math.floor((e.clientX-s.left)/s.width*C),r=Math.floor((e.clientY-s.top)/s.height*R);if(r<0||c<0||r>=R||c>=C)return;paint(L.g[r][c])};
+ pal();draw()}
+function pal(){[...G.$('pl').children].forEach(b=>b.classList.toggle('on',+b.dataset.k===pick))}
+function paint(id){if(L.given[id]!==undefined){G.toast('Miền này đã có màu sẵn, không đổi được nhé');return}col[id]=pick;moves++;if(pick>=0){bad().has(id)?G.snd.bad():G.snd.tap()}draw();check()}
+function bad(){const b=new Set();col.forEach((c,i)=>{if(c<0)return;adj[i].forEach(j=>{if(col[j]===c){b.add(i);b.add(j)}})});return b}
+function draw(){const S=60,W=C*S,H=R*S;let s=`<svg viewBox="0 0 ${W} ${H}">`;const B=bad();
+ for(let r=0;r<R;r++)for(let c=0;c<C;c++){const id=L.g[r][c];s+=`<rect x="${c*S}" y="${r*S}" width="${S}" height="${S}" fill="${col[id]>=0?CL[col[id]]:'#fff'}"/>`}
+ for(let r=0;r<R;r++)for(let c=0;c<C;c++){const id=L.g[r][c];
+  if(c+1<C&&L.g[r][c+1]!==id)s+=`<line x1="${(c+1)*S}" y1="${r*S}" x2="${(c+1)*S}" y2="${(r+1)*S}" stroke="#0d2a6b" stroke-width="3"/>`;
+  if(r+1<R&&L.g[r+1][c]!==id)s+=`<line x1="${c*S}" y1="${(r+1)*S}" x2="${(c+1)*S}" y2="${(r+1)*S}" stroke="#0d2a6b" stroke-width="3"/>`}
+ for(let r=0;r<R;r++)for(let c=0;c<C;c++){const id=L.g[r][c];if(B.has(id)){const e=[[c===0||L.g[r][c-1]!==id,c*S,r*S,c*S,(r+1)*S],[c===C-1||L.g[r][c+1]!==id,(c+1)*S,r*S,(c+1)*S,(r+1)*S],[r===0||L.g[r-1][c]!==id,c*S,r*S,(c+1)*S,r*S],[r===R-1||L.g[r+1][c]!==id,c*S,(r+1)*S,(c+1)*S,(r+1)*S]];e.forEach(x=>{if(x[0])s+=`<line x1="${x[1]}" y1="${x[2]}" x2="${x[3]}" y2="${x[4]}" stroke="#ff1744" stroke-width="6" stroke-dasharray="6 5"/>`})}}
+ s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#0d2a6b" stroke-width="4"/></svg>`;G.$('bd').innerHTML=s;G.$('dn').textContent=col.filter(x=>x>=0).length+'/'+col.length}
+function hint(){if(done)return;for(let i=0;i<col.length;i++){if(col[i]<0||bad().has(i)){if(L.given[i]!==undefined)continue;col[i]=L.sol[i];moves+=3;G.snd.ok();draw();check();return}}}
+function check(){if(col.some(c=>c<0)||bad().size)return;done=true;const sec=(Date.now()-t0)/1000,n=col.length,free=n-Object.keys(L.given).length,st=moves<=free+2?3:moves<=free*2?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:st,total:3,timeSec:Math.round(sec)});
+ const nx=cur+1<LV.length;const o=G.overlay(`<h2>🎉 Tô xong rồi!</h2><div class="stars">${G.stars(st)}</div><p>Thời gian ${G.fmt(sec)}.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
+home();
+</script></body></html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Bài toán nối</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+#bd{width:100%;max-width:460px;margin:0 auto;aspect-ratio:1/1;background:#fff;border:3px solid #f1d58a;border-radius:16px;touch-action:none;user-select:none}
+#bd svg{width:100%;height:100%;display:block}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Bài toán nối',KEY='noi_stars';
+const LV=[{"n":5,"pairs":[[[4,0],[0,3]],[[4,4],[4,1]],[[0,0],[0,2]]],"sol":[[[4,0],[3,0],[3,1],[2,1],[2,0],[1,0],[1,1],[1,2],[1,3],[1,4],[0,4],[0,3]],[[4,4],[4,3],[3,3],[3,4],[2,4],[2,3],[2,2],[3,2],[4,2],[4,1]],[[0,0],[0,1],[0,2]]]},{"n":5,"pairs":[[[4,2],[2,1]],[[1,1],[4,0]],[[0,2],[0,0]],[[3,4],[4,3]]],"sol":[[[4,2],[3,2],[3,3],[2,3],[2,4],[1,4],[0,4],[0,3],[1,3],[1,2],[2,2],[2,1]],[[1,1],[1,0],[2,0],[3,0],[3,1],[4,1],[4,0]],[[0,2],[0,1],[0,0]],[[3,4],[4,4],[4,3]]]},{"n":6,"pairs":[[[4,3],[5,4]],[[1,1],[0,5]],[[5,5],[4,4]],[[1,3],[2,3]]],"sol":[[[4,3],[3,3],[3,2],[4,2],[4,1],[3,1],[3,0],[4,0],[5,0],[5,1],[5,2],[5,3],[5,4]],[[1,1],[2,1],[2,0],[1,0],[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[2,5],[1,5],[0,5]],[[5,5],[4,5],[3,5],[3,4],[4,4]],[[1,3],[1,2],[2,2],[2,3]]]},{"n":6,"pairs":[[[3,4],[2,0]],[[0,5],[1,0]],[[4,1],[3,0]],[[2,2],[3,3]],[[0,2],[0,0]]],"sol":[[[3,4],[3,5],[4,5],[5,5],[5,4],[4,4],[4,3],[5,3],[5,2],[4,2],[3,2],[3,1],[2,1],[2,0]],[[0,5],[1,5],[2,5],[2,4],[1,4],[0,4],[0,3],[1,3],[1,2],[1,1],[1,0]],[[4,1],[5,1],[5,0],[4,0],[3,0]],[[2,2],[2,3],[3,3]],[[0,2],[0,1],[0,0]]]},{"n":7,"pairs":[[[1,3],[3,2]],[[5,0],[3,6]],[[4,2],[3,1]],[[5,6],[5,5]],[[3,5],[3,3]]],"sol":[[[1,3],[1,2],[0,2],[0,3],[0,4],[1,4],[1,5],[0,5],[0,6],[1,6],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2]],[[5,0],[6,0],[6,1],[5,1],[5,2],[6,2],[6,3],[5,3],[4,3],[4,4],[4,5],[4,6],[3,6]],[[4,2],[4,1],[4,0],[3,0],[2,0],[1,0],[0,0],[0,1],[1,1],[2,1],[3,1]],[[5,6],[6,6],[6,5],[6,4],[5,4],[5,5]],[[3,5],[3,4],[3,3]]]},{"n":7,"pairs":[[[4,6],[1,4]],[[2,0],[2,5]],[[3,3],[4,4]],[[5,1],[6,1]],[[1,0],[0,0]],[[3,6],[0,6]]],"sol":[[[4,6],[5,6],[6,6],[6,5],[6,4],[6,3],[6,2],[5,2],[5,3],[5,4],[5,5],[4,5],[3,5],[3,4],[2,4],[1,4]],[[2,0],[3,0],[4,0],[4,1],[3,1],[2,1],[2,2],[2,3],[1,3],[1,2],[0,2],[0,3],[0,4],[0,5],[1,5],[2,5]],[[3,3],[3,2],[4,2],[4,3],[4,4]],[[5,1],[5,0],[6,0],[6,1]],[[1,0],[1,1],[0,1],[0,0]],[[3,6],[2,6],[1,6],[0,6]]]},{"n":8,"pairs":[[[6,6],[0,5]],[[7,3],[2,0]],[[0,3],[0,2]],[[4,3],[5,4]],[[2,7],[1,7]],[[3,0],[5,1]]],"sol":[[[6,6],[7,6],[7,7],[6,7],[5,7],[5,6],[4,6],[4,7],[3,7],[3,6],[3,5],[3,4],[3,3],[2,3],[2,4],[2,5],[1,5],[0,5]],[[7,3],[7,2],[7,1],[7,0],[6,0],[6,1],[6,2],[6,3],[5,3],[5,2],[4,2],[4,1],[3,1],[3,2],[2,2],[2,1],[2,0]],[[0,3],[0,4],[1,4],[1,3],[1,2],[1,1],[1,0],[0,0],[0,1],[0,2]],[[4,3],[4,4],[4,5],[5,5],[6,5],[7,5],[7,4],[6,4],[5,4]],[[2,7],[2,6],[1,6],[0,6],[0,7],[1,7]],[[3,0],[4,0],[5,0],[5,1]]]},{"n":8,"pairs":[[[1,6],[7,7]],[[6,1],[1,1]],[[5,2],[1,2]],[[7,6],[6,5]],[[0,4],[0,3]],[[3,7],[2,6]],[[7,1],[6,0]]],"sol":[[[1,6],[1,7],[0,7],[0,6],[0,5],[1,5],[2,5],[2,4],[3,4],[3,5],[3,6],[4,6],[4,7],[5,7],[5,6],[6,6],[6,7],[7,7]],[[6,1],[6,2],[7,2],[7,3],[6,3],[5,3],[5,4],[5,5],[4,5],[4,4],[4,3],[4,2],[3,2],[3,3],[2,3],[2,2],[2,1],[1,1]],[[5,2],[5,1],[5,0],[4,0],[4,1],[3,1],[3,0],[2,0],[1,0],[0,0],[0,1],[0,2],[1,2]],[[7,6],[7,5],[7,4],[6,4],[6,5]],[[0,4],[1,4],[1,3],[0,3]],[[3,7],[2,7],[2,6]],[[7,1],[7,0],[6,0]]]},{"n":9,"pairs":[[[3,6],[6,6]],[[0,2],[6,1]],[[3,4],[1,2]],[[5,0],[7,1]],[[4,6],[6,7]],[[0,8],[2,8]],[[4,0],[2,0]]],"sol":[[[3,6],[3,7],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[8,7],[7,7],[7,6],[8,6],[8,5],[7,5],[6,5],[6,4],[5,4],[5,5],[5,6],[6,6]],[[0,2],[0,1],[0,0],[1,0],[1,1],[2,1],[2,2],[2,3],[3,3],[3,2],[3,1],[4,1],[4,2],[4,3],[5,3],[6,3],[6,2],[5,2],[5,1],[6,1]],[[3,4],[4,4],[4,5],[3,5],[2,5],[2,4],[1,4],[1,5],[1,6],[2,6],[2,7],[1,7],[0,7],[0,6],[0,5],[0,4],[0,3],[1,3],[1,2]],[[5,0],[6,0],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[7,4],[7,3],[7,2],[7,1]],[[4,6],[4,7],[5,7],[6,7]],[[0,8],[1,8],[2,8]],[[4,0],[3,0],[2,0]]]},{"n":9,"pairs":[[[6,3],[1,3]],[[2,8],[6,7]],[[7,1],[0,4]],[[3,8],[2,7]],[[0,3],[0,0]],[[0,8],[0,5]],[[8,2],[7,0]],[[4,4],[4,2]]],"sol":[[[6,3],[5,3],[5,2],[6,2],[6,1],[6,0],[5,0],[5,1],[4,1],[4,0],[3,0],[2,0],[2,1],[3,1],[3,2],[3,3],[2,3],[2,2],[1,2],[1,3]],[[2,8],[1,8],[1,7],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[6,5],[7,5],[8,5],[8,6],[7,6],[7,7],[8,7],[8,8],[7,8],[6,8],[6,7]],[[7,1],[7,2],[7,3],[8,3],[8,4],[7,4],[6,4],[5,4],[5,5],[4,5],[3,5],[3,4],[2,4],[2,5],[1,5],[1,4],[0,4]],[[3,8],[4,8],[5,8],[5,7],[4,7],[3,7],[2,7]],[[0,3],[0,2],[0,1],[1,1],[1,0],[0,0]],[[0,8],[0,7],[0,6],[0,5]],[[8,2],[8,1],[8,0],[7,0]],[[4,4],[4,3],[4,2]]]}];
+const COL=['#e53935','#fbc02d','#2e7d32','#1e88e5','#8e24aa','#f57c00','#00acc1','#d81b60'];
+const app=G.$('app');let cur=0,n=5,L,P=[],own=[],act=-1,t0=0,done=false,hints=0,resets=0;
+function home(){app.innerHTML=`<div class="top"><h1>🔗 Bài toán nối</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> nối hai số giống nhau bằng một đường chạy dọc theo các ô vuông. Các đường không được cắt nhau hay đi chung ô, và <b>mỗi ô vuông phải có đúng một đường đi qua</b> (phủ kín cả bảng). Kéo ngón tay (hoặc chuột) từ một số để vẽ đường.</div>
+<div class="lv" id="lv"></div><p class="note">Màn 1–10: bảng từ 5×5 đến 9×9, càng về sau càng nhiều cặp số.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),LV.length,KEY,i=>G.askName(()=>play(i)))}
+function play(i){cur=i;L=LV[i];n=L.n;P=L.pairs.map(()=>[]);own=Array.from({length:n},()=>Array(n).fill(-1));act=-1;t0=Date.now();done=false;hints=0;resets=0;
+ app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1} <small class="note">(${n}×${n}, ${L.pairs.length} cặp)</small></h1><button class="btn sec" id="mu"></button></div>
+<div class="stats"><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Phủ kín</small><b id="cv">0%</b></div></div>
+<div id="bd"></div><div class="row"><button class="btn warn" id="hn">💡 Gợi ý</button><button class="btn sec" id="rs">↺ Làm lại</button></div>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;G.$('rs').onclick=()=>play(cur);G.$('hn').onclick=hint;
+ const tm=setInterval(()=>{if(!G.$('tt')||done){clearInterval(tm);return}G.$('tt').textContent=G.fmt((Date.now()-t0)/1000)},500);
+ const bd=G.$('bd');bd.onpointerdown=e=>{if(done)return;bd.setPointerCapture(e.pointerId);const c=cellAt(e);if(c)down(c)};
+ bd.onpointermove=e=>{if(act<0||done)return;const c=cellAt(e);if(c)move(c)};bd.onpointerup=bd.onpointercancel=()=>{act=-1;check()};draw()}
+function cellAt(e){const r=G.$('bd').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*n,y=(e.clientY-r.top)/r.height*n;const c=Math.floor(x),rr=Math.floor(y);if(c<0||rr<0||c>=n||rr>=n)return null;return [rr,c]}
+function endIdx(r,c){for(let k=0;k<L.pairs.length;k++){const[a,b]=L.pairs[k];if(a[0]===r&&a[1]===c||b[0]===r&&b[1]===c)return k}return -1}
+function clearPath(k,from){const p=P[k];while(p.length>from){const[r,c]=p.pop();own[r][c]=-1}}
+function down(cell){const[r,c]=cell;const e=endIdx(r,c);if(e>=0){if(P[e].length)resets++;clearPath(e,0);P[e]=[[r,c]];own[r][c]=e;act=e;G.snd.tap();draw();return}
+ const k=own[r][c];if(k<0)return;const idx=P[k].findIndex(x=>x[0]===r&&x[1]===c);clearPath(k,idx+1);act=k;draw()}
+function move(cell){const k=act,p=P[k];let[hr,hc]=p[p.length-1];let[r,c]=cell;let guard=0;
+ while((hr!==r||hc!==c)&&guard++<12){let nr=hr,nc=hc;if(hr!==r)nr+=r>hr?1:-1;else nc+=c>hc?1:-1;
+  if(!step(k,nr,nc))break;[hr,hc]=p[p.length-1]}draw()}
+function step(k,r,c){const p=P[k];const [lr,lc]=p[p.length-1];if(Math.abs(lr-r)+Math.abs(lc-c)!==1)return false;
+ if(p.length>1&&p[p.length-2][0]===r&&p[p.length-2][1]===c){own[lr][lc]=-1;p.pop();return true}
+ if(p.length>1&&isEnd(k,lr,lc))return false;
+ if(own[r][c]>=0)return false;
+ const e=endIdx(r,c);if(e>=0&&e!==k)return false;
+ p.push([r,c]);own[r][c]=k;G.snd.tap();return true}
+function isEnd(k,r,c){const[a,b]=L.pairs[k];return a[0]===r&&a[1]===c||b[0]===r&&b[1]===c}
+function connected(k){const p=P[k];if(p.length<2)return false;const[a,b]=L.pairs[k];const f=p[0],l=p[p.length-1];return isEnd(k,f[0],f[1])&&isEnd(k,l[0],l[1])&&(f[0]!==l[0]||f[1]!==l[1])}
+function draw(){let s=`<svg viewBox="0 0 ${n*100} ${n*100}">`;
+ for(let i=0;i<=n;i++)s+=`<line x1="${i*100}" y1="0" x2="${i*100}" y2="${n*100}" stroke="#e7dcc0" stroke-width="2"/><line y1="${i*100}" x1="0" y2="${i*100}" x2="${n*100}" stroke="#e7dcc0" stroke-width="2"/>`;
+ P.forEach((p,k)=>{if(p.length>1)s+=`<polyline fill="none" stroke="${COL[k]}" stroke-opacity=".85" stroke-width="${Math.max(34,64-n*3)}" stroke-linecap="round" stroke-linejoin="round" points="${p.map(x=>(x[1]*100+50)+','+(x[0]*100+50)).join(' ')}"/>`});
+ L.pairs.forEach((pr,k)=>pr.forEach(([r,c])=>{s+=`<circle cx="${c*100+50}" cy="${r*100+50}" r="38" fill="${COL[k]}" stroke="#fff" stroke-width="5"/><text x="${c*100+50}" y="${r*100+50}" text-anchor="middle" dominant-baseline="central" font-size="46" font-weight="800" fill="#fff">${k+1}</text>`}));
+ G.$('bd').innerHTML=s+'</svg>';let cnt=0;own.forEach(r=>r.forEach(v=>{if(v>=0)cnt++}));G.$('cv').textContent=Math.round(cnt*100/(n*n))+'%'}
+function hint(){if(done)return;for(let k=0;k<L.pairs.length;k++){if(!connected(k)){clearPath(k,0);P[k]=L.sol[k].map(x=>x.slice());P[k].forEach(([r,c])=>{if(own[r][c]>=0&&own[r][c]!==k)clearPath(own[r][c],0)});
+   // clear any others overlapping and then place
+   P[k].forEach(([r,c])=>{own[r][c]=k});hints++;G.snd.ok();draw();check();return}}}
+function check(){if(done)return;for(let k=0;k<L.pairs.length;k++)if(!connected(k))return;let cnt=0;own.forEach(r=>r.forEach(v=>{if(v>=0)cnt++}));if(cnt<n*n)return;
+ done=true;const sec=(Date.now()-t0)/1000,k=L.pairs.length;const st=hints===0&&sec<=k*20?3:hints<=1&&sec<=k*45?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:st,total:3,hints:hints,timeSec:Math.round(sec)});
+ const nx=cur+1<LV.length;const o=G.overlay(`<h2>🎉 Nối xong rồi!</h2><div class="stars">${G.stars(st)}</div><p>Thời gian ${G.fmt(sec)}${hints?', dùng '+hints+' gợi ý':''}.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
+home();
+</script></body></html>

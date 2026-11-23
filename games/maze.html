@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Nối mê cung</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+#bd{width:100%;max-width:460px;margin:0 auto;aspect-ratio:1/1;background:#fff;border:3px solid #f1d58a;border-radius:12px;touch-action:none;user-select:none}
+#bd svg{width:100%;height:100%;display:block}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Nối mê cung',KEY='maze_stars';
+const SZ=[5,6,7,8,9,10,11,12,14,16];
+const app=G.$('app');let cur=0,n,W,path,vis,t0=0,done=false,hints=0,drag=false,hintCells=[];
+function rng(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function genMaze(n,seed){const r=rng(seed);const w=Array.from({length:n},()=>Array.from({length:n},()=>({N:1,E:1,S:1,W:1})));const seen=Array.from({length:n},()=>Array(n).fill(false));const st=[[0,0]];seen[0][0]=true;
+ const D=[['N',-1,0,'S'],['S',1,0,'N'],['E',0,1,'W'],['W',0,-1,'E']];
+ while(st.length){const[a,b]=st[st.length-1];const o=D.filter(d=>{const x=a+d[1],y=b+d[2];return x>=0&&y>=0&&x<n&&y<n&&!seen[x][y]});if(!o.length){st.pop();continue}const d=o[Math.floor(r()*o.length)];const x=a+d[1],y=b+d[2];w[a][b][d[0]]=0;w[x][y][d[3]]=0;seen[x][y]=true;st.push([x,y])}return w}
+function home(){app.innerHTML=`<div class="top"><h1>🌀 Nối mê cung</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> đặt ngón tay (hoặc chuột) vào <b>ô xanh</b> ở góc trên bên trái, rồi kéo đường đi qua mê cung đến <b>ô cờ 🏁</b> ở góc dưới bên phải. Đường đi không được xuyên qua tường. Kéo lùi để sửa đường nếu đi vào ngõ cụt.</div>
+<div class="lv" id="lv"></div><p class="note">Mê cung lớn dần từ 5×5 đến 16×16.</p>`;G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),SZ.length,KEY,i=>G.askName(()=>play(i)))}
+function play(i){cur=i;n=SZ[i];W=genMaze(n,1000+i*77);path=[[0,0]];vis=new Set(['0,0']);t0=Date.now();done=false;hints=0;hintCells=[];
+ app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1} <small class="note">(${n}×${n})</small></h1><button class="btn sec" id="mu"></button></div>
+<div class="stats"><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Bước đi</small><b id="st">0</b></div></div>
+<div id="bd"></div><div class="row"><button class="btn warn" id="hn">💡 Gợi ý</button><button class="btn sec" id="rs">↺ Đi lại từ đầu</button></div>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;G.$('rs').onclick=()=>play(cur);G.$('hn').onclick=hint;
+ const tm=setInterval(()=>{if(!G.$('tt')||done){clearInterval(tm);return}G.$('tt').textContent=G.fmt((Date.now()-t0)/1000)},500);
+ const bd=G.$('bd');bd.onpointerdown=e=>{if(done)return;bd.setPointerCapture(e.pointerId);drag=true;mv(e)};bd.onpointermove=e=>{if(drag&&!done)mv(e)};bd.onpointerup=bd.onpointercancel=()=>{drag=false};draw()}
+function cellAt(e){const r=G.$('bd').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*n,y=(e.clientY-r.top)/r.height*n;const c=Math.floor(x),rr=Math.floor(y);return(c<0||rr<0||c>=n||rr>=n)?null:[rr,c]}
+function mv(e){const t=cellAt(e);if(!t)return;let guard=0;while(guard++<40){const[a,b]=path[path.length-1];if(a===t[0]&&b===t[1])break;let dir,na=a,nb=b;if(a!==t[0]){na+=t[0]>a?1:-1;dir=t[0]>a?'S':'N'}else{nb+=t[1]>b?1:-1;dir=t[1]>b?'E':'W'}
+  if(path.length>1){const p=path[path.length-2];if(p[0]===na&&p[1]===nb){path.pop();vis.delete(a+','+b);continue}}
+  if(W[a][b][dir]||vis.has(na+','+nb))break;path.push([na,nb]);vis.add(na+','+nb);G.snd.tap()}
+ hintCells=[];draw();if(path[path.length-1][0]===n-1&&path[path.length-1][1]===n-1)win()}
+function solve(from){const q=[from],prev={};prev[from]=null;const D=[['N',-1,0],['S',1,0],['E',0,1],['W',0,-1]];while(q.length){const[a,b]=q.shift();if(a===n-1&&b===n-1)break;D.forEach(([d,x,y])=>{const na=a+x,nb=b+y;if(na<0||nb<0||na>=n||nb>=n||W[a][b][d]||(na+','+nb in prev))return;prev[na+','+nb]=[a,b];q.push([na,nb])})}
+ const res=[];let k=(n-1)+','+(n-1);while(k){const[a,b]=k.split(',').map(Number);res.push([a,b]);const p=prev[k];k=p?p[0]+','+p[1]:null}return res.reverse()}
+function hint(){if(done)return;hints++;const h=path[path.length-1];const s=solve(h);hintCells=s.slice(1,6);G.snd.ok();draw()}
+function draw(){let s=`<svg viewBox="-4 -4 ${n*40+8} ${n*40+8}">`;s+=`<rect x="0" y="0" width="40" height="40" fill="#c8f0c8"/><rect x="${(n-1)*40}" y="${(n-1)*40}" width="40" height="40" fill="#ffe3a6"/><text x="${(n-1)*40+20}" y="${(n-1)*40+21}" font-size="24" text-anchor="middle" dominant-baseline="central">🏁</text>`;
+ hintCells.forEach(([a,b])=>s+=`<rect x="${b*40+10}" y="${a*40+10}" width="20" height="20" rx="6" fill="#fbc02d" opacity=".8"/>`);
+ s+=`<polyline fill="none" stroke="#e53935" stroke-width="${Math.max(8,18-n/2)}" stroke-linecap="round" stroke-linejoin="round" opacity=".85" points="${path.map(p=>(p[1]*40+20)+','+(p[0]*40+20)).join(' ')}"/>`;
+ const h=path[path.length-1];s+=`<circle cx="${h[1]*40+20}" cy="${h[0]*40+20}" r="${Math.max(7,12-n/3)}" fill="#fff" stroke="#e53935" stroke-width="3"/>`;
+ let wl='';for(let a=0;a<n;a++)for(let b=0;b<n;b++){const c=W[a][b],x=b*40,y=a*40;if(c.N)wl+=`M${x} ${y}L${x+40} ${y}`;if(c.W)wl+=`M${x} ${y}L${x} ${y+40}`;if(a===n-1&&c.S)wl+=`M${x} ${y+40}L${x+40} ${y+40}`;if(b===n-1&&c.E)wl+=`M${x+40} ${y}L${x+40} ${y+40}`}
+ s+=`<path d="${wl}" stroke="#3b2a14" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg>`;G.$('bd').innerHTML=s;G.$('st').textContent=path.length-1}
+function win(){done=true;const sec=(Date.now()-t0)/1000,st=hints===0&&sec<=n*6?3:hints<=1&&sec<=n*14?2:1;G.snd.win();G.saveStars(KEY,cur,st);G.report(GAME,{level:cur+1,score:st*10,correct:st,total:3,hints:hints,timeSec:Math.round(sec)});
+ const nx=cur+1<SZ.length;const o=G.overlay(`<h2>🎉 Ra khỏi mê cung rồi!</h2><div class="stars">${G.stars(st)}</div><p>Thời gian ${G.fmt(sec)}.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+ G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o3').onclick=()=>{o.remove();home()}}
+home();
+</script></body></html>
