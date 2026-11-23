@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Giải cứu xe đỏ</title>
+<style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#fff8e6;color:#3b2a14;background-image:radial-gradient(#f3e3b8 1.5px,transparent 1.5px);background-size:22px 22px;display:flex;justify-content:center;touch-action:manipulation}
+#app{width:100%;max-width:560px;padding:10px 12px 24px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:20px;margin:0;flex:1;line-height:1.15}
+.btn{min-height:48px;min-width:48px;border:0;border-radius:14px;background:#2f6fe0;color:#fff;font-size:17px;font-weight:700;padding:0 16px;cursor:pointer;box-shadow:0 4px 0 #1d4ea8}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d4ea8}
+.btn.sec{background:#fff;color:#2f6fe0;border:2px solid #2f6fe0;box-shadow:0 4px 0 #b9cdf3}
+.btn.ok{background:#27a95b;box-shadow:0 4px 0 #1b7d41}
+.btn.warn{background:#f59e0b;box-shadow:0 4px 0 #b97500}
+.btn[disabled]{opacity:.45}
+.card{background:#fff;border:3px solid #f1d58a;border-radius:20px;padding:12px}
+.how{font-size:15px;line-height:1.45}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:#fff;border:2px solid #f1d58a;border-radius:14px;text-align:center;padding:6px 4px}
+.stat small{display:block;font-size:12px;color:#8a6a2a;font-weight:700;text-transform:uppercase}
+.stat b{font-size:22px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lv button{min-height:72px;border-radius:16px;border:3px solid #f1d58a;background:#fff;font-size:22px;font-weight:800;color:#3b2a14;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lv button small{font-size:15px;letter-spacing:1px;color:#f59e0b;min-height:18px}
+.lv button.done{background:#eafbe9;border-color:#7ed28a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov{position:fixed;inset:0;background:rgba(40,25,5,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.ov .box{background:#fff;border-radius:24px;padding:20px;max-width:420px;width:100%;text-align:center;border:4px solid #f1d58a}
+.ov h2{margin:0 0 6px;font-size:26px}
+.stars{font-size:46px;letter-spacing:4px;color:#f59e0b}
+input.tx{width:100%;min-height:48px;border:3px solid #f1d58a;border-radius:14px;font-size:18px;padding:0 12px;text-align:center}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#3b2a14;color:#fff;padding:10px 16px;border-radius:14px;font-weight:700;z-index:30;max-width:92%;text-align:center}
+.hide{display:none!important}
+.note{font-size:13px;color:#8a6a2a}
+
+
+.wrap{position:relative;padding-right:34px}
+#bd{position:relative;width:100%;aspect-ratio:1/1;background:#e9dcc0;border:5px solid #8a6a2a;border-radius:14px;touch-action:none;background-image:linear-gradient(#d9c9a3 1px,transparent 1px),linear-gradient(90deg,#d9c9a3 1px,transparent 1px);background-size:16.6667% 16.6667%}
+.car{position:absolute;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;transition:left .12s,top .12s;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.3);margin:2px;box-sizing:border-box}
+.car.drag{transition:none;cursor:grabbing;z-index:5}
+.car i{display:block;background:rgba(255,255,255,.55);border-radius:6px}
+.car.h i{width:22%;height:56%;margin:0 4px}
+.car.v i{height:22%;width:56%;margin:4px 0}
+.car.v{flex-direction:column}
+.car.hint{animation:pl .6s infinite alternate}
+@keyframes pl{to{transform:scale(1.08);filter:brightness(1.25)}}
+.exit{position:absolute;right:0;top:calc(5px + 2*(100% - 10px)/6);height:calc((100% - 10px)/6);width:32px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#27a95b;font-weight:900}
+.red{background:linear-gradient(#ff6b5e,#d62828)}
+</style></head><body><div id="app"></div>
+<script>const G=(()=>{
+ const S={mute:false,ctx:null};
+ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+ const $=id=>document.getElementById(id);
+ function tone(f,d,t,v){try{if(S.mute)return;S.ctx=S.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=S.ctx,o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=v||.08;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+ const snd={ok(){tone(660,.12);setTimeout(()=>tone(880,.16),110)},bad(){tone(200,.25,'sawtooth',.06)},tap(){tone(500,.05,'triangle',.05)},win(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*130))}};
+ function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||1800)}
+ function overlay(html){const o=document.createElement('div');o.className='ov';o.innerHTML='<div class="box">'+html+'</div>';document.body.appendChild(o);return o}
+ function name(){return ls.get('g_name','')}
+ function askName(cb){if(name()){cb&&cb();return}const o=overlay('<h2>Em tên là gì?</h2><p class="note">Để cô biết ai đang chơi nhé.</p><input class="tx" id="gnm" maxlength="30" placeholder="Nhập tên của em"><div class="row" style="margin-top:12px"><button class="btn ok" id="gok">Bắt đầu</button><button class="btn sec" id="gsk">Bỏ qua</button></div>');
+  const done=()=>{const v=$('gnm').value.trim();if(v)ls.set('g_name',v);o.remove();cb&&cb()};$('gok').onclick=done;$('gsk').onclick=()=>{o.remove();cb&&cb()};$('gnm').onkeydown=e=>{if(e.key==='Enter')done()}}
+ function report(game,r){try{parent.postMessage(Object.assign({type:'game-result',game:game,name:name()},r),'*')}catch(e){}}
+ function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+ function stars(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
+ function levelGrid(el,n,key,onPick){const st=ls.get(key,{});el.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('button');const s=st[i]||0;if(s)b.className='done';b.innerHTML=(i+1)+'<small>'+(s?stars(s):'')+'</small>';b.onclick=()=>{snd.tap();onPick(i)};el.appendChild(b)}}
+ function saveStars(key,i,s){const st=ls.get(key,{});if((st[i]||0)<s){st[i]=s;ls.set(key,st)}}
+ function muteBtn(b){const u=()=>b.textContent=S.mute?'🔇':'🔊';b.onclick=()=>{S.mute=!S.mute;ls.set('g_mute',S.mute);u()};S.mute=!!ls.get('g_mute',false);u()}
+ return {ls,$,snd,toast,overlay,name,askName,report,fmt,stars,levelGrid,saveStars,muteBtn,S};
+})();
+
+
+const GAME='Giải cứu xe đỏ',KEY='rush_stars',N=6;
+const LV=[{"opt": 6, "cars": [[2, 0, 2, "h"], [5, 3, 2, "h"], [3, 2, 3, "h"], [0, 1, 2, "v"], [1, 3, 2, "h"], [4, 2, 2, "v"], [0, 4, 2, "h"], [4, 1, 2, "v"], [3, 5, 3, "v"], [3, 0, 2, "h"], [4, 3, 2, "h"]]}, {"opt": 8, "cars": [[2, 1, 2, "h"], [1, 3, 3, "v"], [0, 1, 2, "v"], [0, 5, 2, "v"], [0, 4, 2, "v"], [4, 0, 2, "h"], [2, 5, 2, "v"], [5, 0, 3, "h"]]}, {"opt": 10, "cars": [[2, 1, 2, "h"], [5, 1, 3, "h"], [4, 2, 3, "h"], [0, 0, 2, "v"], [3, 0, 3, "h"], [0, 5, 2, "v"], [3, 5, 2, "v"], [2, 3, 2, "v"], [0, 2, 2, "h"], [1, 2, 2, "h"], [4, 0, 2, "h"], [1, 4, 2, "v"]]}, {"opt": 12, "cars": [[2, 0, 2, "h"], [0, 3, 2, "v"], [1, 2, 2, "v"], [1, 4, 2, "v"], [4, 4, 2, "h"], [3, 1, 3, "h"], [3, 0, 3, "v"], [0, 5, 3, "v"], [0, 0, 2, "v"]]}, {"opt": 14, "cars": [[2, 0, 2, "h"], [2, 5, 2, "v"], [2, 2, 2, "v"], [5, 2, 2, "h"], [1, 3, 3, "h"], [4, 0, 3, "h"], [0, 0, 2, "v"], [4, 5, 2, "v"], [3, 3, 2, "h"], [0, 4, 2, "h"], [0, 1, 2, "v"], [3, 0, 2, "h"]]}, {"opt": 16, "cars": [[2, 0, 2, "h"], [1, 2, 2, "h"], [2, 5, 2, "v"], [0, 4, 2, "h"], [2, 4, 3, "v"], [4, 0, 2, "h"], [4, 2, 2, "h"], [5, 1, 2, "h"], [2, 3, 2, "v"], [0, 0, 2, "v"], [5, 3, 2, "h"], [2, 2, 2, "v"]]}, {"opt": 18, "cars": [[2, 1, 2, "h"], [2, 0, 2, "v"], [0, 1, 2, "v"], [3, 4, 2, "v"], [0, 3, 3, "v"], [4, 2, 2, "h"], [5, 2, 3, "h"], [3, 2, 2, "h"], [0, 0, 2, "v"], [4, 1, 2, "v"]]}, {"opt": 20, "cars": [[2, 0, 2, "h"], [2, 4, 2, "v"], [1, 2, 2, "h"], [5, 4, 2, "h"], [4, 4, 2, "h"], [4, 2, 2, "v"], [2, 2, 2, "v"], [0, 0, 2, "v"], [4, 3, 2, "v"], [0, 5, 2, "v"], [0, 3, 2, "h"], [3, 0, 2, "h"]]}, {"opt": 22, "cars": [[2, 0, 2, "h"], [5, 4, 2, "h"], [2, 2, 2, "v"], [3, 3, 3, "h"], [4, 0, 2, "h"], [4, 2, 2, "v"], [0, 0, 3, "h"], [0, 4, 3, "v"]]}, {"opt": 25, "cars": [[2, 2, 2, "h"], [1, 1, 2, "h"], [3, 0, 2, "v"], [5, 3, 2, "h"], [0, 3, 2, "h"], [0, 1, 2, "h"], [4, 1, 2, "v"], [3, 2, 2, "v"], [0, 5, 2, "v"], [1, 4, 3, "v"], [3, 3, 2, "v"], [4, 4, 2, "h"]]}, {"opt": 28, "cars": [[2, 1, 2, "h"], [0, 4, 2, "h"], [1, 4, 2, "v"], [1, 0, 2, "v"], [0, 2, 2, "v"], [3, 1, 2, "h"], [3, 3, 3, "v"], [3, 0, 3, "v"], [5, 1, 2, "h"], [3, 4, 2, "v"], [3, 5, 3, "v"]]}, {"opt": 32, "cars": [[2, 2, 2, "h"], [4, 3, 2, "h"], [0, 1, 2, "h"], [4, 0, 2, "v"], [2, 4, 2, "v"], [3, 5, 2, "v"], [0, 4, 2, "v"], [3, 0, 2, "h"], [5, 2, 2, "h"], [3, 2, 2, "v"], [5, 4, 2, "h"], [1, 1, 2, "v"]]}];
+const COL=['#2f9bf0','#27a95b','#f59e0b','#8e5ad8','#14b8a6','#ec6aa5','#6b7280','#84cc16','#fb923c','#0ea5e9','#a16207'];
+const app=G.$('app');let cur=0,cars=[],moves=0,hist=[],t0=0,tm=null,hints=0,done=false;
+function home(){clearInterval(tm);app.innerHTML=`<div class="top"><h1>🚗 Giải cứu xe đỏ</h1><button class="btn sec" id="mu"></button></div>
+<div class="card how"><b>Cách chơi:</b> kéo các xe tiến hoặc lùi (xe nằm ngang chỉ đi ngang, xe đứng chỉ đi dọc) để mở đường cho <b style="color:#d62828">xe đỏ</b> chạy ra <b style="color:#27a95b">lối ra →</b>. Mỗi xe đi 1 ô tính là 1 bước. Càng ít bước càng được nhiều sao ★.</div>
+<div class="lv" id="lv"></div><p class="note">Mỗi màn đều có lời giải. Em bấm “Gợi ý” nếu bị kẹt nhé.</p>`;
+ G.muteBtn(G.$('mu'));G.levelGrid(G.$('lv'),LV.length,KEY,i=>G.askName(()=>play(i)))}
+function occ(skip){const g=Array.from({length:N},()=>Array(N).fill(-1));cars.forEach((c,i)=>{if(i===skip)return;for(let k=0;k<c.L;k++){const r=c.o==='h'?c.r:c.r+k,cc=c.o==='h'?c.c+k:c.c;g[r][cc]=i}});return g}
+function limits(i){const g=occ(i),c=cars[i];let lo=c.o==='h'?c.c:c.r,hi=lo;const get=p=>c.o==='h'?g[c.r][p]:g[p][c.c];while(lo>0&&get(lo-1)<0)lo--;while(hi+c.L<N&&get(hi+c.L)<0)hi++;return[lo,hi]}
+function play(i){cur=i;done=false;cars=LV[i].cars.map((a,k)=>({r:a[0],c:a[1],L:a[2],o:a[3],red:k===0}));moves=0;hist=[];hints=0;t0=Date.now();
+ app.innerHTML=`<div class="top"><button class="btn sec" id="bk">←</button><h1>Màn ${i+1}</h1><button class="btn sec" id="mu"></button></div>
+<div class="stats"><div class="stat"><small>Số bước</small><b id="mv">0</b></div><div class="stat"><small>Thời gian</small><b id="tt">0:00</b></div><div class="stat"><small>Gợi ý</small><b id="hn">0</b></div></div>
+<div class="wrap"><div id="bd"></div><div class="exit">➜</div></div>
+<div class="row"><button class="btn sec" id="un">↶ Hoàn tác</button><button class="btn sec" id="rs">⟲ Làm lại</button><button class="btn warn" id="ht">💡 Gợi ý</button></div><p class="note" style="text-align:center">Xe đỏ ra tới lối ra là thắng. Kéo xe bằng ngón tay hoặc chuột.</p>`;
+ G.muteBtn(G.$('mu'));G.$('bk').onclick=home;G.$('rs').onclick=()=>play(cur);G.$('un').onclick=undo;G.$('ht').onclick=hint;
+ draw();clearInterval(tm);tm=setInterval(()=>{if(!done)G.$('tt').textContent=G.fmt((Date.now()-t0)/1000)},500)}
+function pos(c){return c.o==='h'?c.c:c.r}
+function place(el,c,p){const q=p==null?pos(c):p,x=c.o==='h'?q:c.c,y=c.o==='h'?c.r:q;el.style.left=x/N*100+'%';el.style.top=y/N*100+'%';el.style.width=(c.o==='h'?c.L:1)/N*100+'%';el.style.height=(c.o==='h'?1:c.L)/N*100+'%'}
+function draw(){const bd=G.$('bd');bd.innerHTML='';cars.forEach((c,i)=>{const e=document.createElement('div');e.className='car '+c.o+(c.red?' red':'');if(!c.red)e.style.background=`linear-gradient(${COL[(i-1)%COL.length]},${COL[(i-1)%COL.length]}cc)`;e.innerHTML='<i></i><i></i>';e.dataset.i=i;place(e,c);bd.appendChild(e);bind(e,i)});G.$('mv').textContent=moves;G.$('hn').textContent=hints}
+function bind(e,i){let sx,sy,sp,lo,hi,cell,moved,c;
+ e.onpointerdown=ev=>{if(done)return;ev.preventDefault();c=cars[i];e.setPointerCapture(ev.pointerId);e.classList.add('drag');sx=ev.clientX;sy=ev.clientY;sp=pos(c);[lo,hi]=limits(i);cell=G.$('bd').clientWidth/N;moved=false;document.querySelectorAll('.hint').forEach(x=>x.classList.remove('hint'))};
+ e.onpointermove=ev=>{if(!e.hasPointerCapture(ev.pointerId))return;const d=((c.o==='h'?ev.clientX-sx:ev.clientY-sy)/cell);let p=Math.max(lo,Math.min(hi,sp+d));if(Math.abs(p-sp)>.05)moved=true;place(e,c,p)};
+ const end=ev=>{if(!e.classList.contains('drag'))return;e.classList.remove('drag');const cs=c.o==='h'?'c':'r';const m=e.style[c.o==='h'?'left':'top'];let p=parseFloat(m)/100*N;let q=Math.round(Math.max(lo,Math.min(hi,p)));place(e,c,q);if(q!==sp){hist.push([i,sp]);c[cs]=q;moves+=Math.abs(q-sp);G.$('mv').textContent=moves;G.snd.tap();check()}};
+ e.onpointerup=end;e.onpointercancel=end}
+function undo(){if(done||!hist.length)return;const[i,p]=hist.pop(),c=cars[i];const cur=pos(c);c[c.o==='h'?'c':'r']=p;moves=Math.max(0,moves-Math.abs(cur-p));draw()}
+function check(){if(cars[0].c===N-2){done=true;clearInterval(tm);const sec=(Date.now()-t0)/1000,opt=LV[cur].opt-2,st=moves<=opt?3:moves<=Math.ceil(opt*1.4)+1?2:1;
+  const e=document.querySelector('.car.red');if(e){e.style.transition='left .6s';e.style.left=(N+0.2)/N*100+'%'}G.snd.win();G.saveStars(KEY,cur,st);
+  G.report(GAME,{level:cur+1,score:st*10,correct:st,total:3,moves:moves,best:opt,timeSec:Math.round(sec)});
+  setTimeout(()=>{const nx=cur+1<LV.length;const o=G.overlay(`<h2>🎉 Xe đỏ thoát rồi!</h2><div class="stars">${G.stars(st)}</div><p>Em dùng <b>${moves}</b> bước (ít nhất là <b>${opt}</b> bước), thời gian ${G.fmt(sec)}.</p><div class="row"><button class="btn ok" id="o1">${nx?'Màn tiếp ➜':'Về chọn màn'}</button><button class="btn sec" id="o2">Chơi lại</button><button class="btn sec" id="o3">Chọn màn</button></div>`);
+   G.$('o1').onclick=()=>{o.remove();nx?play(cur+1):home()};G.$('o2').onclick=()=>{o.remove();play(cur)};G.$('o3').onclick=()=>{o.remove();home()}},700)}}
+function solveFrom(){const meta=cars.map(c=>({L:c.L,o:c.o,f:c.o==='h'?c.r:c.c}));const s0=cars.map(pos);const key=s=>s.join(',');const seen=new Map([[key(s0),null]]);let q=[s0],qi=0;
+ const gridOf=s=>{const g=new Set();meta.forEach((m,i)=>{for(let k=0;k<m.L;k++)g.add(m.o==='h'?m.f*N+s[i]+k:(s[i]+k)*N+m.f)});return g};
+ if(s0[0]===N-2)return null;
+ while(qi<q.length){const s=q[qi++],g=gridOf(s);for(let i=0;i<meta.length;i++){const m=meta[i];for(const dp of[-1,1]){const p=s[i]+dp;if(p<0||p+m.L>N)continue;const nc=dp<0?p:p+m.L-1;const cell=m.o==='h'?m.f*N+nc:nc*N+m.f;if(g.has(cell))continue;const t=s.slice();t[i]=p;const k=key(t);if(seen.has(k))continue;seen.set(k,{from:key(s),i,dp});if(t[0]===N-2){let cur=k,first=null;while(seen.get(cur)){first=seen.get(cur);cur=first.from}return first}q.push(t)}}}return null}
+function hint(){if(done)return;const h=solveFrom();if(!h){G.toast('Xe đỏ đã gần ra rồi!');return}hints++;G.$('hn').textContent=hints;const c=cars[h.i];const dir=c.o==='h'?(h.dp<0?'sang trái':'sang phải'):(h.dp<0?'lên trên':'xuống dưới');const e=document.querySelector(`.car[data-i="${h.i}"]`);if(e)e.classList.add('hint');G.toast('Thử đẩy xe này '+dir+' nhé',2200)}
+home();
+</script></body></html>
