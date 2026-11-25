@@ -1103,12 +1103,12 @@ function lbRender(){const e=$("lbw");if(!e||!H)return;const all=lbRows(),show=H.
 function lbShow(){if(!H)return;let e=$("lbw");if(!e){e=document.createElement("div");e.id="lbw";$("pl").appendChild(e)}H.lbOpen=true;lbRender()}
 
 /* ===== Ghi hình buổi dạy: màn hình + micro + âm thanh máy ===== */
-const REC={r:null,st:null,ctx:null,ds:null,mic:null,ch:[],fh:null,w:null,q:Promise.resolve(),name:"",mime:"",t0:0,acc:0,paused:false,tm:0,fin:null,bytes:0};
+const REC={r:null,st:null,ctx:null,ds:null,mic:null,ch:[],fh:null,w:null,q:Promise.resolve(),name:"",mime:"",t0:0,acc:0,paused:false,tm:0,fin:null,bytes:0,an:null,lv:0,peak:0,quiet:0,warned:false,lt:0,na:0};
 function recMime(){if(!window.MediaRecorder)return"";return["video/mp4;codecs=avc1.640028,mp4a.40.2","video/mp4;codecs=avc1,mp4a.40.2","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}})||""}
 const recSecs=()=>Math.floor((REC.acc+(REC.paused?0:Date.now()-REC.t0))/1000);
 const recFmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 function recUI(){const b=$("recb"),p=$("recp");if(!b)return;if(!REC.r){b.className="sec sm";b.textContent="⏺ Ghi hình";b.title="Ghi màn hình bài giảng kèm tiếng micro và âm thanh máy";if(p)p.style.display="none";return}
- b.className="red sm"+(REC.paused?"":" recon");b.textContent="⏹ "+recFmt(recSecs())+" · Dừng";b.title="Dừng ghi và lưu video về máy";if(p){p.style.display="";p.textContent=REC.paused?"▶ Tiếp tục":"⏸ Tạm dừng"}}
+ b.className="red sm"+(REC.paused?"":" recon");b.textContent="⏹ "+recFmt(recSecs())+(REC.na?(REC.paused?"":(REC.lv>.02?" 🔊":" 🔈")):" 🔇")+" · Dừng";b.title="Dừng ghi và lưu video về máy";if(p){p.style.display="";p.textContent=REC.paused?"▶ Tiếp tục":"⏸ Tạm dừng"}}
 function recDl(file,nm){const u=URL.createObjectURL(file),a=document.createElement("a");a.href=u;a.download=nm;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),120000)}
 async function recRoot(){try{return await navigator.storage.getDirectory()}catch(e){return null}}
 async function recLeft(){const root=await recRoot();if(!root||!root.entries)return[];const out=[];try{for await(const [n,h] of root.entries()){if(h.kind==="file"&&/^rec-/.test(n)){const f=await h.getFile();if(f.size>0)out.push({n,h,f})}}}catch(e){}return out}
@@ -1117,12 +1117,14 @@ async function recRecover(){const L=await recLeft();if(!L.length)return;if(!conf
 ACT.rec=async()=>{if(REC.r){await recStop();return}
  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia||!window.MediaRecorder){alert("Trình duyệt này chưa hỗ trợ ghi màn hình. Cô dùng Chrome hoặc Edge trên máy tính nhé.");return}
  let ds;try{ds=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},systemAudio:"include",selfBrowserSurface:"include",surfaceSwitching:"include"})}catch(e){toast(e&&e.name==="NotAllowedError"?"Cô chưa chọn màn hình để ghi.":"Không bật được ghi màn hình.");return}
- let mic=null;try{mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){}
+ REC.an=null;let mic=null,micErr="";try{mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){micErr=(e&&e.name)||"lỗi"}
  const AC=window.AudioContext||window.webkitAudioContext;let ctx=null,na=0,tr=[...ds.getVideoTracks()];
- try{ctx=new AC();const dst=ctx.createMediaStreamDestination();
-  if(ds.getAudioTracks().length){ctx.createMediaStreamSource(new MediaStream(ds.getAudioTracks())).connect(dst);na|=1}
-  if(mic){const g=ctx.createGain();g.gain.value=1.2;ctx.createMediaStreamSource(mic).connect(g).connect(dst);na|=2}
-  if(na)tr.push(...dst.stream.getAudioTracks());if(ctx.state==="suspended")ctx.resume()}catch(e){}
+ try{try{ctx=new AC({sampleRate:48000,latencyHint:"playback"})}catch(e){ctx=new AC()}const dst=ctx.createMediaStreamDestination(),an=ctx.createAnalyser();an.fftSize=1024;
+  if(ds.getAudioTracks().length){const n=ctx.createMediaStreamSource(new MediaStream(ds.getAudioTracks()));n.connect(dst);n.connect(an);na|=1}
+  if(mic){const g=ctx.createGain();g.gain.value=1.2;ctx.createMediaStreamSource(mic).connect(g);g.connect(dst);g.connect(an);na|=2}
+  if(na){tr.push(...dst.stream.getAudioTracks());REC.an=an}if(ctx.state==="suspended")await ctx.resume()}catch(e){na=0}
+ if(!na){const why=(micErr==="NotAllowedError"?"Trình duyệt đang chặn micro của trang này (bấm biểu tượng ổ khóa cạnh địa chỉ web → Micrô → Cho phép, rồi tải lại trang). ":micErr==="NotFoundError"?"Máy không tìm thấy micro. ":"Không bật được micro. ")+"Cũng chưa có âm thanh máy (khi chọn ghi, phải chọn Tab hoặc Toàn màn hình và tích “Chia sẻ âm thanh”; ghi Cửa sổ thì không có tiếng máy).";
+  if(!confirm("⚠ Video sẽ KHÔNG CÓ TIẾNG.\n\n"+why+"\n\nBấm OK để vẫn ghi không tiếng, bấm Hủy để dừng và sửa lại.")){ds.getTracks().forEach(x=>x.stop());if(mic)mic.getTracks().forEach(x=>x.stop());try{ctx&&ctx.close()}catch(e){}return}}
  const mime=recMime(),ext=/mp4/.test(mime)?"mp4":"webm";
  const slug=((H&&H.a&&H.a.title)||"buoi-day").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/[^\w]+/g,"_").replace(/^_|_$/g,"").slice(0,40);
  const d=new Date(),z=n=>String(n).padStart(2,"0");REC.name="BaiGiang_"+slug+"_"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"_"+z(d.getHours())+z(d.getMinutes())+"."+ext;
@@ -1131,18 +1133,20 @@ ACT.rec=async()=>{if(REC.r){await recStop();return}
  let r;try{r=new MediaRecorder(new MediaStream(tr),{...(mime?{mimeType:mime}:{}),videoBitsPerSecond:2500000,audioBitsPerSecond:128000})}catch(e){ds.getTracks().forEach(x=>x.stop());if(mic)mic.getTracks().forEach(x=>x.stop());toast("Không khởi động được bộ ghi hình.");return}
  r.ondataavailable=e=>{if(!e.data||!e.data.size)return;REC.bytes+=e.data.size;if(REC.w){const w=REC.w;REC.q=REC.q.then(()=>w.write(e.data)).catch(()=>{REC.w=null;REC.ch.push(e.data)})}else REC.ch.push(e.data)};
  r.onstop=()=>recFinish();r.onerror=()=>{toast("Bộ ghi hình gặp lỗi, đang lưu phần đã ghi.");try{r.stop()}catch(e){recFinish()}};
- REC.r=r;REC.ds=ds;REC.mic=mic;REC.ctx=ctx;REC.paused=false;REC.acc=0;REC.t0=Date.now();
+ REC.r=r;REC.ds=ds;REC.mic=mic;REC.ctx=ctx;REC.paused=false;REC.acc=0;REC.t0=Date.now();REC.na=na;REC.lv=0;REC.peak=0;REC.quiet=0;REC.warned=false;clearInterval(REC.lt);
+ if(REC.an){const buf=new Float32Array(REC.an.fftSize);REC.lt=setInterval(()=>{if(!REC.r||REC.paused)return;if(ctx&&ctx.state==="suspended")ctx.resume().catch(()=>{});REC.an.getFloatTimeDomainData(buf);let m=0;for(let i=0;i<buf.length;i++){const v=Math.abs(buf[i]);if(v>m)m=v}REC.lv=Math.max(m,REC.lv*.8);if(m>REC.peak)REC.peak=m;if(m>.01)REC.quiet=0;else REC.quiet+=.2;
+  if(REC.quiet>=12&&!REC.warned){REC.warned=true;toast("⚠ 12 giây rồi chưa nghe thấy tiếng nào. Cô kiểm tra micro (có bị tắt/tắt tiếng không) hoặc nói thử vài câu; nếu cần, dừng và ghi lại.")}if(m>.01&&REC.warned)REC.warned=false},200)}
  ds.getVideoTracks()[0].onended=()=>{if(REC.r)recStop()};
  r.start(4000);clearInterval(REC.tm);REC.tm=setInterval(recUI,1000);recUI();
  toast(!(na&1)?"Đang ghi. Chưa có âm thanh máy: lần sau chọn Tab hoặc Toàn màn hình và tích “Chia sẻ âm thanh”.":!(na&2)?"Đang ghi (không dùng được micro, chỉ có âm thanh máy).":"Đang ghi màn hình, tiếng micro và âm thanh máy. Nên đeo tai nghe để không bị vọng tiếng.")};
 ACT.recp=()=>{const r=REC.r;if(!r)return;if(r.state==="recording"){r.pause();REC.acc+=Date.now()-REC.t0;REC.paused=true}else if(r.state==="paused"){r.resume();REC.t0=Date.now();REC.paused=false}recUI()};
 function recStop(){return new Promise(res=>{const r=REC.r;if(!r){res();return}REC.fin=res;try{if(r.state!=="inactive")r.stop();else recFinish()}catch(e){recFinish()}})}
-async function recFinish(){const r=REC.r;if(!r)return;REC.r=null;clearInterval(REC.tm);const secs=recSecs();
+async function recFinish(){const r=REC.r;if(!r)return;REC.r=null;clearInterval(REC.tm);clearInterval(REC.lt);const secs=recSecs();
  [REC.ds,REC.mic].forEach(s=>{if(s)s.getTracks().forEach(x=>{try{x.onended=null;x.stop()}catch(e){}})});if(REC.ctx)try{REC.ctx.close()}catch(e){}
  recUI();let file=null,fh=REC.fh;
  try{await REC.q;if(REC.w){await REC.w.close();REC.w=null;file=await fh.getFile();if(REC.ch.length)file=new Blob([file,...REC.ch])}else if(REC.ch.length)file=new Blob(REC.ch)}catch(e){try{file=REC.ch.length?new Blob(REC.ch):null}catch(_){}}
  REC.ch=[];const type=(REC.mime||"video/webm").split(";")[0];
- if(file&&file.size>0){const out=new File([file],REC.name,{type});recDl(out,REC.name);toast("Đã lưu video "+recFmt(secs)+" ("+(file.size/1048576).toFixed(0)+" MB): "+REC.name+" trong thư mục Tải xuống.");
+ if(file&&file.size>0){const out=new File([file],REC.name,{type});recDl(out,REC.name);toast("Đã lưu video "+recFmt(secs)+" ("+(file.size/1048576).toFixed(0)+" MB): "+REC.name+" trong thư mục Tải xuống."+(REC.na&&REC.peak<=.01?" ⚠ Cả buổi không thu được tiếng nào.":""));
   if(fh){setTimeout(async()=>{try{const root=await recRoot();await root.removeEntry(fh.name)}catch(e){}},180000)}}
  else toast("Không có dữ liệu để lưu (ghi quá ngắn hoặc bị gián đoạn).");
  REC.fh=null;const f=REC.fin;REC.fin=null;if(f)f()}
@@ -1660,7 +1664,7 @@ ACT.authcode=async()=>{if(!needLic())return;const s=licState(),D=864e5,today=Mat
  const data=[s.plan||(IS_ADMIN?"admin":"ok"),u,exp,String(UID).slice(0,4)].join(",")+"|"+btoa(unescape(encodeURIComponent(JSON.stringify(bo)))),code=btoa(data).replace(/=+$/,"")+"."+await bgSign(data);
  modal(`<h2>🔑 Mã dùng trình soạn bài giảng AI</h2><p>Thầy/cô bấm <b>Sao chép mã</b>, mở trình soạn bài giảng AI rồi dán mã vào ô mở khóa.</p><textarea id="acode" readonly rows="3" style="width:100%;font-family:monospace">${code}</textarea><div class="row" style="margin-top:10px"><button id="acopy">Sao chép mã</button><a href="${AUTHOR_URL}" target="_blank" rel="noopener"><button type="button" class="sec">✨ Mở trình soạn</button></a><button class="sec" id="aclose">Đóng</button></div><p class="note">Mã dùng được đến ${fmtDay((exp+1)*D)} và chỉ dành cho tài khoản của thầy/cô. Hết hạn thì quay lại đây lấy mã mới.</p>`);
  $("aclose").onclick=()=>closeModal();$("acopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Đã sao chép mã.")}catch(e){$("acode").select();document.execCommand("copy");toast("Đã sao chép mã.")}}};
-const BUILD="1795453980";
+const BUILD="1795624728";
 function normEmail(e){e=String(e||"").trim().toLowerCase();let[l,d]=e.split("@");if(!d)return e.replace(/[^a-z0-9._@-]/g,"_");l=l.split("+")[0];if(d==="gmail.com"||d==="googlemail.com"){l=l.replace(/\./g,"");d="gmail.com"}return(l+"@"+d).replace(/[^a-z0-9._@-]/g,"_")}
 function chkVer(){if(location.protocol==="file:")return;fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=/const BUILD="(\d+)"/.exec(t);if(m&&m[1]!==BUILD&&!$("newv")){const d=document.createElement("div");d.id="newv";d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;box-shadow:0 4px 16px #0005;cursor:pointer;font-weight:700";d.textContent="🔄 Có bản mới – bấm để tải lại";d.onclick=()=>location.reload();document.body.appendChild(d)}}).catch(()=>{})}
 setInterval(chkVer,1800000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chkVer()});
