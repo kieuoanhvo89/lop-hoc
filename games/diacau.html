@@ -270,7 +270,7 @@ addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==
 let last=0;function frame(t){const dt=Math.min(.1,(t-last)/1000||0);last=t;let need=S.dirty;
  if(fly){fly.p=Math.min(1,fly.p+dt/1.1);const e=fly.p<.5?2*fly.p*fly.p:1-Math.pow(-2*fly.p+2,2)/2;S.lon=fly.f.lon+(fly.t.lon-fly.f.lon)*e;S.lat=fly.f.lat+(fly.t.lat-fly.f.lat)*e;S.zoom=fly.f.z*Math.pow(fly.t.z/fly.f.z,e);S.moving=fly.p<1?1:0;if(fly.p>=1){fly=null;S.idleAt=t}need=true}
  else if(inertia){S.lon+=vel[0];S.lat=Math.max(-85,Math.min(85,S.lat+vel[1]));vel=[vel[0]*.93,vel[1]*.93];if(Math.abs(vel[0])+Math.abs(vel[1])<.03){inertia=0;S.moving=0;S.idleAt=t}need=true}
- else if(S.auto&&!P.size){S.lon+=dt*8/Math.max(1,S.zoom*.6);S.moving=1;S.idleAt=t;need=true}
+ else if(S.auto&&!P.size){S.lon-=dt*8/Math.max(1,S.zoom*.6);S.moving=1;S.idleAt=t;need=true}
  if(S.mode==="day"&&S.play){S.hour+=dt*3;if(S.hour>=24){S.hour-=24;S.doy=S.doy%365+1;const r=$("rDay");if(r)r.value=S.doy}const r=$("rHour");if(r)r.value=S.hour;labels();need=true}
  if(S.flash&&S.flash.until<1e14&&S.flash.until<=t+16){S.flash=null;need=true}
  if(S.moving&&!P.size&&!fly&&!inertia&&!S.auto&&!(S.mode==="day"&&S.play)&&t-S.idleAt>180){S.moving=0;need=true}
