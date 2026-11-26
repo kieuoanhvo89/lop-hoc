@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Hệ Mặt Trời</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:#050816;color:#e8eefc;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#wrap{display:flex;flex-direction:column;height:100vh;height:100dvh}
+header{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0b1230;border-bottom:1px solid #223;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1;white-space:nowrap}
+.tab,.btn,.chip{border:0;border-radius:12px;background:#1b2750;color:#e8eefc;font-size:15px;font-weight:700;padding:0 12px;min-height:40px;cursor:pointer;font-family:inherit}
+.tab.on,.btn.on{background:#3b6cf0;color:#fff}
+.btn:active,.tab:active{filter:brightness(1.25)}
+#body{flex:1;min-height:0;display:flex;flex-direction:column}
+#stage{position:relative;flex:1;min-height:180px;min-width:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
+canvas.drag{cursor:grabbing}
+#hud{position:absolute;left:10px;top:8px;font-size:15px;font-weight:700;text-shadow:0 1px 3px #000;pointer-events:none;line-height:1.35}
+#hud small{display:block;font-weight:500;opacity:.75;font-size:12px}
+#ctl{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:6px 10px;background:#0b1230;border-top:1px solid #223}
+#ctl input[type=range]{width:130px}
+#chips{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;background:#0b1230;border-top:1px solid #223;scrollbar-width:thin}
+.chip{display:flex;align-items:center;gap:6px;white-space:nowrap;min-height:36px;font-size:14px}
+.chip i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.chip.on{background:#3b6cf0}
+#card{display:none;background:#0e1738;border-top:2px solid #3b6cf0;padding:10px 12px;overflow:auto;max-height:42vh;font-size:15px;line-height:1.45}
+#card h2{margin:0 0 4px;font-size:20px;display:flex;align-items:center;gap:8px}
+#card h2 .x{margin-left:auto;font-size:18px;background:#1b2750;border:0;color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer}
+#card .sub{opacity:.8;margin-bottom:6px}
+#card table{width:100%;border-collapse:collapse}
+#card td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1f2b57}
+#card td:first-child{opacity:.75;width:46%;padding-right:8px}
+#card .fact{background:#16224d;border-radius:10px;padding:8px 10px;margin:8px 0}
+#card .wt{background:#10321f;border-radius:10px;padding:8px 10px;margin:8px 0}
+#card .wt input{width:70px;font-size:16px;border-radius:8px;border:0;padding:4px 6px;text-align:center}
+#card .mini{opacity:.85;font-size:13.5px;margin-top:6px}
+.foot{font-size:12px;opacity:.6;padding:4px 12px 8px}
+@media(min-width:900px){
+ #body{flex-direction:row}
+ #card{max-height:none;width:360px;border-top:0;border-left:2px solid #3b6cf0}
+ #side{display:flex;flex-direction:column;min-width:0;flex:1}
+}
+@media(max-width:899px){#side{display:flex;flex-direction:column;flex:1;min-height:0}#card{max-height:36vh}}
+@media(max-width:600px){header{flex-wrap:nowrap;padding:5px 8px;gap:6px}header h1{font-size:16px}.tab,.btn{min-height:36px;padding:0 10px;font-size:14px}#fs{display:none}
+ #ctl{flex-wrap:nowrap;overflow-x:auto;padding:5px 8px;gap:6px;scrollbar-width:none}#ctl .btn,#spdL{flex:none}#ctl input[type=range]{width:84px;flex:none}#spdL{min-width:88px!important;font-size:12px!important}
+ #chips{padding:5px 8px}.chip{min-height:32px;font-size:13px}#card{padding:8px 10px;font-size:14px}#card h2{font-size:18px}#stage{min-height:200px}}
+</style></head>
+<body><div id="wrap">
+<header><h1>🪐 Hệ Mặt Trời</h1>
+<button class="tab on" id="vOrb">Quỹ đạo</button><button class="tab" id="vSize">Kích thước</button><button class="btn" id="fs" title="Toàn màn hình">⛶</button></header>
+<div id="body"><div id="side">
+<div id="stage"><canvas id="cv"></canvas><div id="hud"></div></div>
+<div id="ctl">
+ <button class="btn" id="play">⏸</button>
+ <input type="range" id="spd" min="0" max="6" value="1" aria-label="Tốc độ"><b id="spdL" style="min-width:104px;font-size:13px"></b>
+ <button class="btn" id="today">📅 Hôm nay</button>
+ <button class="btn on" id="tName">Tên</button><button class="btn on" id="tOrb">Quỹ đạo</button>
+ <button class="btn" id="zAll">🔭 Cả hệ</button><button class="btn" id="zIn">🌍 Gần Mặt Trời</button>
+</div>
+<div id="chips"></div>
+</div><div id="card"></div></div>
+</div>
+<script>
+"use strict";
+/* ===== Số liệu hành tinh: bảng NASA Planetary Fact Sheet (NSSDC); vệ tinh theo số liệu 2026, còn tăng ===== */
+const PL=[
+ {k:"mercury",vn:"Sao Thủy",d:4879,a:57.9,per:88.0,rot:"58,6 ngày",moons:"0",temp:"167 °C",g:3.7,tilt:"0,03°",kind:"Hành tinh đá",pal:["#d8d0c6","#a1978b","#4a443d"],
+  fact:"Gần Mặt Trời nhất nhưng không nóng nhất: Sao Kim nóng hơn vì có lớp khí quyển dày giữ nhiệt."},
+ {k:"venus",vn:"Sao Kim",d:12104,a:108.2,per:224.7,rot:"243 ngày (quay ngược chiều)",moons:"0",temp:"464 °C",g:8.9,tilt:"177,4°",kind:"Hành tinh đá",pal:["#fff0c8","#e6c27a","#7d5f2b"],
+  fact:"Quay quanh mình mất 243 ngày, lâu hơn cả một năm của nó (225 ngày), và quay ngược chiều với hầu hết các hành tinh."},
+ {k:"earth",vn:"Trái Đất",d:12756,a:149.6,per:365.25,rot:"23,9 giờ",moons:"1 (Mặt Trăng)",temp:"15 °C",g:9.8,tilt:"23,4°",kind:"Hành tinh đá",pal:["#9bd5ff","#2a6fd6","#0b2a66"],
+  fact:"Hành tinh duy nhất đã biết có sự sống. Khoảng 71% bề mặt được phủ bởi nước."},
+ {k:"mars",vn:"Sao Hỏa",d:6792,a:227.9,per:687.0,rot:"24,6 giờ",moons:"2",temp:"−65 °C",g:3.7,tilt:"25,2°",kind:"Hành tinh đá",pal:["#ffb590","#d1552f","#5a1d0e"],
+  fact:"Có màu đỏ vì bụi chứa oxit sắt (gỉ sắt). Núi lửa Olympus Mons cao khoảng 22 km, gần gấp 2,5 lần đỉnh Everest."},
+ {k:"jupiter",vn:"Sao Mộc",d:142984,a:778.6,per:4331,rot:"9,9 giờ",moons:"hơn 100 *",temp:"−110 °C (lớp mây)",g:23.1,tilt:"3,1°",kind:"Hành tinh khí khổng lồ",pal:["#f5e1c0","#c99a6c","#6b4a2e"],
+  fact:"Lớn nhất hệ Mặt Trời, đủ chứa hơn 1.300 Trái Đất. “Vết Đỏ Lớn” là một cơn bão khổng lồ đã quan sát được hàng trăm năm."},
+ {k:"saturn",vn:"Sao Thổ",d:120536,a:1433.5,per:10747,rot:"10,7 giờ",moons:"hơn 280 *",temp:"−140 °C (lớp mây)",g:9.0,tilt:"26,7°",kind:"Hành tinh khí khổng lồ",pal:["#fbeec4","#e0c585","#7a6430"],ring:1,
+  fact:"Có hệ vành đai nổi tiếng làm bằng băng và đá. Khối lượng riêng chỉ 0,69 g/cm³, nhỏ hơn nước."},
+ {k:"uranus",vn:"Sao Thiên Vương",d:51118,a:2872.5,per:30589,rot:"17,2 giờ (quay ngược chiều)",moons:"28–29 *",temp:"−195 °C (lớp mây)",g:8.7,tilt:"97,8°",kind:"Hành tinh băng khổng lồ",pal:["#d6f7f7","#7fd6d9","#2c6f78"],
+  fact:"Trục quay nghiêng gần 98°, nên nó như đang “lăn” quanh Mặt Trời. Được William Herschel tìm ra năm 1781."},
+ {k:"neptune",vn:"Sao Hải Vương",d:49528,a:4495.1,per:59800,rot:"16,1 giờ",moons:"16",temp:"−200 °C (lớp mây)",g:11.0,tilt:"28,3°",kind:"Hành tinh băng khổng lồ",pal:["#9bb8ff","#3d5fe0","#14226a"],
+  fact:"Xa Mặt Trời nhất trong 8 hành tinh, có gió gần 2.000 km/giờ. Vị trí của nó được tính bằng toán học trước khi người ta nhìn thấy (1846)."},
+ {k:"pluto",vn:"Sao Diêm Vương",d:2376,a:5906.4,per:90560,rot:"6,4 ngày (quay ngược chiều)",moons:"5",temp:"−225 °C",g:0.7,tilt:"122,5°",kind:"Hành tinh lùn",pal:["#ead6c2","#b58f72","#51392a"],dwarf:1,
+  fact:"Từng được xếp là hành tinh thứ 9 cho đến năm 2006, khi các nhà thiên văn xếp nó vào nhóm hành tinh lùn. Nó nhỏ hơn Mặt Trăng của Trái Đất."}
+];
+const SUN={k:"sun",vn:"Mặt Trời",d:1392700,pal:["#fff6c0","#ffc531","#e8590c"]};
+const BYK={};PL.forEach(p=>BYK[p.k]=p);BYK.sun=SUN;
+/* ===== Quỹ đạo: nguyên tố gần đúng (JPL, Standish), có kiểm tra với các ngày xung đối ===== */
+const EL={mercury:[0.38709927,0.20563593,7.00497902,252.25032350,77.45779628,48.33076593,149472.67411175],venus:[0.72333566,0.00677672,3.39467605,181.97909950,131.60246718,76.67984255,58517.81538729],earth:[1.00000261,0.01671123,-0.00001531,100.46457166,102.93768193,0,35999.37244981],mars:[1.52371034,0.09339410,1.84969142,-4.55343205,-23.94362959,49.55953891,19140.30268499],jupiter:[5.20288700,0.04838624,1.30439695,34.39644051,14.72847983,100.47390909,3034.74612775],saturn:[9.53667594,0.05386179,2.48599187,49.95424423,92.59887831,113.66242448,1222.49362201],uranus:[19.18916464,0.04725744,0.77263783,313.23810451,170.95427630,74.01692503,428.48202785],neptune:[30.06992276,0.00859048,1.77004347,-55.12002969,44.96476227,131.78422574,218.45945325],pluto:[39.48211675,0.24882730,17.14001206,238.92903833,224.06891629,110.30393684,145.20780515]};
+const D2R=Math.PI/180,J2000=946728000000,K=66,AU_KM=149.5979;
+const cmp=r=>K*Math.sqrt(r)/r;
+function planePos(el,nu,r){const om=(el[4]-el[5])*D2R,O=el[5]*D2R,i=el[2]*D2R,u=om+nu;
+ return[r*(Math.cos(O)*Math.cos(u)-Math.sin(O)*Math.sin(u)*Math.cos(i)),r*(Math.sin(O)*Math.cos(u)+Math.cos(O)*Math.sin(u)*Math.cos(i)),r*Math.sin(u)*Math.sin(i)]}
+function posAU(k,ms){const el=EL[k],T=(ms-J2000)/86400000/36525,L=el[3]+el[6]*T,M=(((L-el[4])%360)+540)%360-180,e=el[1];
+ let E=M*D2R+e*Math.sin(M*D2R);for(let i=0;i<25;i++)E-=(E-e*Math.sin(E)-M*D2R)/(1-e*Math.cos(E));
+ const xo=el[0]*(Math.cos(E)-e),yo=el[0]*Math.sqrt(1-e*e)*Math.sin(E),nu=Math.atan2(yo,xo),r=Math.hypot(xo,yo);const p=planePos(el,nu,r);return{x:p[0],y:p[1],z:p[2],r}}
+function scenePos(k,ms){const p=posAU(k,ms),s=cmp(p.r);return{x:p.x*s,y:p.y*s,z:p.z*s,r:p.r}}
+const ORB={};PL.forEach(p=>{const el=EL[p.k],pts=[];for(let j=0;j<=160;j++){const nu=j/160*2*Math.PI,r=el[0]*(1-el[1]*el[1])/(1+el[1]*Math.cos(nu)),q=planePos(el,nu,r),s=cmp(r);pts.push([q[0]*s,q[1]*s,q[2]*s])}ORB[p.k]=pts});
+/* vành đai tiểu hành tinh (minh họa): 450 điểm giữa Sao Hỏa và Sao Mộc */
+const BELT=(()=>{let s=7;const R=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};const a=[];for(let i=0;i<450;i++){const aa=2.15+R()*1.2,e=R()*.12;a.push({a:aa,e,ph:R()*6.283,z:(R()-.5)*.35,w:R()*6.283})}return a})();
+/* ===== Trạng thái ===== */
+const cv=document.getElementById("cv"),cx=cv.getContext("2d");let W=0,H=0,DPR=1,stars=null;
+const SPD=[[1,"1 ngày/giây"],[10,"10 ngày/giây"],[30,"1 tháng/giây"],[91,"3 tháng/giây"],[365.25,"1 năm/giây"],[1826,"5 năm/giây"],[7305,"20 năm/giây"]];
+const S={mode:"orb",yaw:-0.5,pitch:1.05,zoom:.4,tx:0,ty:0,tz:0,tzoom:.4,sel:null,ft:0,playing:true,spd:1,simMs:Date.now(),names:true,orbits:true,dirty:true,withSun:false,tgtOn:false};
+const $=id=>document.getElementById(id);
+const fmt=(n,d)=>n.toLocaleString("vi-VN",{maximumFractionDigits:d==null?0:d});
+function fitZoom(rScene){return Math.max(.1,Math.min(W,H)*.5*.9/rScene)}
+function resize(){const r=cv.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);W=Math.max(1,r.width);H=Math.max(1,r.height);cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+ let s=11;const R=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296};stars=[];const n=Math.round(W*H/2600);for(let i=0;i<n;i++)stars.push([R()*W,R()*H,R()*1.2+.3,R()*.6+.35]);
+ if(!S.sel&&S.mode==="orb"&&!S.zoomSet){S.zoom=S.tzoom=fitZoom(400)}S.dirty=true}
+function proj(x,y,z){const dx=x-S.tx,dy=y-S.ty,dz=z-S.tz,cy=Math.cos(S.yaw),sy=Math.sin(S.yaw),cp=Math.cos(S.pitch),sp=Math.sin(S.pitch);
+ const xr=dx*cy-dy*sy,yr=dx*sy+dy*cy;return{x:W/2+xr*S.zoom,y:H/2-(yr*sp+dz*cp)*S.zoom,d:dz*sp-yr*cp}}
+function rBase(b){return b===SUN?16:4.5*Math.pow(b.d/12756,.45)}
+function selR(b){const n=Math.max(.3,Math.min(1,Math.pow(b.d/142984,.4)));return b===SUN?60:14+26*n}
+function rScreen(b){const r0=Math.max(b===SUN?7:2.4,rBase(b)*Math.pow(S.zoom,.55));return S.sel===b.k?r0+(selR(b)-r0)*S.ft:r0}
+function bodies(){const a=[{b:SUN,x:0,y:0,z:0,r:0}];PL.forEach(p=>{const q=scenePos(p.k,S.simMs);a.push({b:p,x:q.x,y:q.y,z:q.z,r:q.r})});return a}
+/* ===== Vẽ ===== */
+function glow(x,y,r){const g=cx.createRadialGradient(x,y,r*.6,x,y,r*3.4);g.addColorStop(0,"rgba(255,200,60,.55)");g.addColorStop(.4,"rgba(255,150,30,.16)");g.addColorStop(1,"rgba(255,120,0,0)");cx.fillStyle=g;cx.beginPath();cx.arc(x,y,r*3.4,0,7);cx.fill()}
+function sphere(b,x,y,r,lx,ly){const p=b.pal,g=cx.createRadialGradient(x+lx*r*.45,y+ly*r*.45,r*.08,x+lx*r*.12,y+ly*r*.12,r*1.18);
+ g.addColorStop(0,p[0]);g.addColorStop(.55,p[1]);g.addColorStop(1,p[2]);cx.save();cx.beginPath();cx.arc(x,y,r,0,7);cx.fillStyle=g;cx.fill();cx.clip();
+ if(r>5){const k=b.k;
+  if(k==="jupiter"||k==="saturn"){const bands=k==="jupiter"?[-.78,-.55,-.34,-.12,.1,.3,.52,.74]:[-.7,-.45,-.2,.05,.3,.55];bands.forEach((t,i)=>{cx.fillStyle=i%2?"rgba(255,235,200,.14)":"rgba(90,50,20,.20)";cx.fillRect(x-r,y+t*r-r*.07,r*2,r*.14)});
+   if(k==="jupiter"){cx.fillStyle="rgba(200,70,40,.55)";cx.beginPath();cx.ellipse(x+r*.25,y+r*.34,r*.2,r*.1,0,0,7);cx.fill()}}
+  else if(k==="earth"){cx.fillStyle="rgba(70,170,90,.85)";[[-.3,-.1,.32,.22],[.28,.25,.22,.3],[.1,-.5,.2,.12],[-.45,.4,.14,.1]].forEach(c=>{cx.beginPath();cx.ellipse(x+c[0]*r,y+c[1]*r,c[2]*r,c[3]*r,.4,0,7);cx.fill()});cx.fillStyle="rgba(255,255,255,.55)";cx.beginPath();cx.ellipse(x,y-r*.88,r*.4,r*.14,0,0,7);cx.fill();cx.beginPath();cx.ellipse(x,y+r*.9,r*.4,r*.12,0,0,7);cx.fill()}
+  else if(k==="mars"){cx.fillStyle="rgba(255,255,255,.7)";cx.beginPath();cx.ellipse(x,y-r*.9,r*.35,r*.15,0,0,7);cx.fill();cx.fillStyle="rgba(90,30,10,.28)";cx.beginPath();cx.ellipse(x-r*.2,y+r*.1,r*.4,r*.18,.3,0,7);cx.fill()}
+  else if(k==="venus"){cx.fillStyle="rgba(255,255,255,.18)";[-.5,-.15,.25,.6].forEach(t=>{cx.beginPath();cx.ellipse(x,y+t*r,r*.95,r*.08,0,0,7);cx.fill()})}}
+ /* bóng đêm: phía xa Mặt Trời tối dần */
+ const sh=cx.createRadialGradient(x+lx*r*.2,y+ly*r*.2,r*.55,x-lx*r*.9,y-ly*r*.9,r*1.9);sh.addColorStop(0,"rgba(0,0,10,0)");sh.addColorStop(1,"rgba(0,0,14,.75)");cx.fillStyle=sh;cx.fillRect(x-r,y-r,r*2,r*2);cx.restore()}
+function ringPath(x,y,rx,ry,half){cx.beginPath();cx.ellipse(x,y,rx,ry,0,0,Math.PI*2)}
+function ringDraw(x,y,r,front){const sp=Math.sin(S.pitch),R2=r*2.3,R1=r*1.38;cx.save();if(front){cx.beginPath();cx.rect(x-R2-2,y,R2*2+4,R2+2);cx.clip()}
+ cx.beginPath();cx.ellipse(x,y,R2,Math.max(.5,R2*sp),0,0,7);cx.ellipse(x,y,R1,Math.max(.4,R1*sp),0,0,7);const g=cx.createRadialGradient(x,y,R1,x,y,R2);g.addColorStop(0,"rgba(190,160,110,.85)");g.addColorStop(.45,"rgba(240,220,170,.9)");g.addColorStop(.62,"rgba(60,50,30,.35)");g.addColorStop(.7,"rgba(235,215,165,.88)");g.addColorStop(1,"rgba(200,175,120,.6)");
+ cx.fillStyle=g;cx.fill("evenodd");cx.restore()}
+let LBL=[];
+function label(t,x,y,sel){cx.font=(sel?"700 15px ":"600 13px ")+"system-ui,Arial,sans-serif";const w=cx.measureText(t).width,r=[x-2,y-14,w+4,18];
+ if(!sel&&LBL.some(q=>r[0]<q[0]+q[2]&&r[0]+r[2]>q[0]&&r[1]<q[1]+q[3]&&r[1]+r[3]>q[1]))return;LBL.push(r);
+ cx.lineWidth=3;cx.strokeStyle="rgba(5,8,22,.85)";cx.strokeText(t,x,y);cx.fillStyle=sel?"#ffe08a":"#e8eefc";cx.fillText(t,x,y)}
+function drawBG(){cx.fillStyle="#050816";cx.fillRect(0,0,W,H);const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.7);g.addColorStop(0,"#0c1236");g.addColorStop(1,"#030510");cx.fillStyle=g;cx.fillRect(0,0,W,H);
+ for(const s of stars){cx.fillStyle="rgba(255,255,255,"+s[3]+")";cx.fillRect(s[0],s[1],s[2],s[2])}}
+function drawOrbit(){drawBG();const sel=S.sel;
+ if(S.orbits)PL.forEach(p=>{const pts=ORB[p.k];cx.beginPath();pts.forEach((q,i)=>{const s=proj(q[0],q[1],q[2]);i?cx.lineTo(s.x,s.y):cx.moveTo(s.x,s.y)});cx.strokeStyle=sel===p.k?"rgba(255,224,138,.95)":"rgba(150,175,255,"+(p.dwarf?.22:.34)+")";cx.lineWidth=sel===p.k?2:1;if(p.dwarf)cx.setLineDash([4,5]);cx.stroke();cx.setLineDash([])});
+ /* vành đai */
+ const t=(S.simMs-J2000)/86400000;cx.fillStyle="rgba(190,175,150,.75)";BELT.forEach(a=>{const n=2*Math.PI/(Math.pow(a.a,1.5)*365.25),M=a.ph+n*t,r=a.a*(1-a.e*Math.cos(M)),s=cmp(r),ang=M+a.w;const q=proj(Math.cos(ang)*r*s,Math.sin(ang)*r*s,a.z*s);cx.fillRect(q.x,q.y,1.3,1.3)});
+ const list=bodies().map(o=>{const q=proj(o.x,o.y,o.z);o.sx=q.x;o.sy=q.y;o.dp=q.d;o.rs=rScreen(o.b);return o});const sun=list[0];
+ list.sort((a,b)=>a.dp-b.dp);
+ for(const o of list){const b=o.b;let lx=sun.sx-o.sx,ly=sun.sy-o.sy;const L=Math.hypot(lx,ly)||1;lx/=L;ly/=L;
+  if(o.sx<-80||o.sx>W+80||o.sy<-80||o.sy>H+80){continue}
+  if(b===SUN){glow(o.sx,o.sy,o.rs);sphere({pal:SUN.pal,k:"sun"},o.sx,o.sy,o.rs,0,0);const g=cx.createRadialGradient(o.sx,o.sy,0,o.sx,o.sy,o.rs);g.addColorStop(0,"rgba(255,255,230,.9)");g.addColorStop(1,"rgba(255,200,60,0)");cx.fillStyle=g;cx.beginPath();cx.arc(o.sx,o.sy,o.rs,0,7);cx.fill()}
+  else{if(b.ring)ringDraw(o.sx,o.sy,o.rs,false);sphere(b,o.sx,o.sy,o.rs,lx,ly);if(b.ring)ringDraw(o.sx,o.sy,o.rs,true)}
+  o.lbl=1}
+ LBL=[];const pri=o=>S.sel===o.b.k?0:o.b.k==="earth"?1:o.b===SUN?2:3;[...list].sort((a,b)=>pri(a)-pri(b)||a.b.a-b.b.a).forEach(o=>{if(!o.lbl)return;const on=S.sel===o.b.k;if(S.names||on)label(o.b.vn,o.sx+o.rs+(o.b.ring?o.rs*1.3:0)+4,o.sy-o.rs*.6,on)});S.hits=list}
+function drawSize(){drawBG();const items=PL.slice(),sel=S.sel,pad=10,sunMode=S.withSun;let sc;const top=34,hh=H-top-30;
+ if(sunMode){const SD=Math.min(hh*.9,W*.5);sc=SD/SUN.d;const sx=-SD*.18,sy=top+hh/2;
+  glow(sx+SD/2,sy,SD/2*.5);sphere({pal:SUN.pal,k:"sun"},sx+SD/2,sy,SD/2,0,0);S.hits=[{b:SUN,sx:sx+SD/2,sy:sy,rs:SD/2}];
+  let x=sx+SD+30;const base=sy+SD*.18;items.forEach(p=>{const r=Math.max(1.2,p.d*sc/2);x+=r;const o={b:p,sx:x,sy:base,rs:r};S.hits.push(o);sphere(p,x,base,r,-1,-.3);if(r>8){cx.textAlign="center";cx.font="600 12px system-ui,Arial";cx.fillStyle="#e8eefc";cx.fillText(p.vn.replace("Sao ",""),x,base+r+15)}x+=r+Math.max(6,r*.4)});cx.textAlign="left";
+  cx.font="600 14px system-ui,Arial";cx.fillStyle="#e8eefc";cx.textAlign="left";cx.fillText("Các hành tinh cùng thang đo với Mặt Trời (xếp từ trái sang phải: Sao Thủy → Sao Diêm Vương)",pad,H-18);
+  cx.fillText("Mặt Trời rộng gấp khoảng 109 lần Trái Đất. Bấm vào Mặt Trời hoặc từng hành tinh để xem.",pad,H-36+0);
+  if(sel){const h=S.hits.find(o=>o.b.k===sel);if(h){cx.strokeStyle="#ffe08a";cx.lineWidth=2;cx.beginPath();cx.arc(h.sx,h.sy,h.rs+4,0,7);cx.stroke()}}return}
+ const two=W<700;const rowsDef=two?[items.slice(0,4).concat(items[8]),items.slice(4,8)]:[items];const SLOT0=two?74:104,gap=two?4:10;
+ const eff=p=>p.d*(p.ring?2.25:1);const slotOf=(row)=>Math.min(SLOT0,(W-2*pad-gap*(row.length-1))/row.length);const slotsW=(row,sc)=>{const sl=slotOf(row);return row.reduce((s,p)=>s+Math.max(eff(p)*sc,sl),0)+gap*(row.length-1)};
+ const rowH=two?hh/2:hh;const bigH=Math.max(...items.map(p=>p.d));sc=(rowH-46)/bigH;if(two)sc=Math.min(sc,(hh/2-46)/Math.max(...rowsDef[1].map(p=>p.d)));
+ let guard=0;while(guard++<200&&rowsDef.some(r=>slotsW(r,sc)>W-2*pad))sc*=.97;
+ S.hits=[];rowsDef.forEach((row,ri)=>{const tot=slotsW(row,sc);let x=(W-tot)/2;const base=two?top+rowH*(ri+1)-34:top+hh-34;
+  row.forEach(p=>{const r=Math.max(1.2,p.d*sc/2),slot=Math.max(eff(p)*sc,slotOf(row)),cxp=x+slot/2;if(p.ring)ringDrawSize(cxp,base-r,r,false);sphere(p,cxp,base-r,r,-.7,-.5);if(p.ring)ringDrawSize(cxp,base-r,r,true);
+   S.hits.push({b:p,sx:cxp,sy:base-r,rs:r});const on=sel===p.k;if(on){cx.strokeStyle="#ffe08a";cx.lineWidth=2;cx.beginPath();cx.arc(cxp,base-r,r+4+(p.ring?r*1.3:0),0,7);cx.stroke()}
+   cx.textAlign="center";cx.font=(on?"700 14px ":"600 13px ")+"system-ui,Arial";cx.fillStyle=on?"#ffe08a":"#e8eefc";cx.fillText(two?p.vn.replace("Sao ",""):p.vn,cxp,base+16);cx.font="12px system-ui,Arial";cx.fillStyle="#9fb0e8";cx.fillText("×"+fmt(p.d/12756,2),cxp,base+30);x+=slot+gap});});
+ cx.textAlign="left";cx.font="600 14px system-ui,Arial";cx.fillStyle="#e8eefc";cx.fillText("Kích thước thật so với nhau (số “×” là so với Trái Đất)",pad,22);
+ if(!two){cx.font="13px system-ui,Arial";cx.fillStyle="#9fb0e8";cx.fillText("Bấm “☀ Thêm Mặt Trời” để so với Mặt Trời.",pad,H-8)}}
+function ringDrawSize(x,y,r,front){const R2=r*2.2,R1=r*1.35,ry=.28;cx.save();if(front){cx.beginPath();cx.rect(x-R2-2,y,R2*2+4,R2+2);cx.clip()}cx.beginPath();cx.ellipse(x,y,R2,R2*ry,0,0,7);cx.ellipse(x,y,R1,R1*ry,0,0,7);cx.fillStyle="rgba(235,215,165,.85)";cx.fill("evenodd");cx.restore()}
+function draw(){cx.setTransform(DPR,0,0,DPR,0,0);cx.textAlign="left";if(S.mode==="orb")drawOrbit();else drawSize();hud()}
+function hud(){const d=new Date(S.simMs);const el=$("hud");if(S.mode==="size"){el.innerHTML="";return}
+ el.innerHTML="📅 "+d.toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"})+"<small>Vị trí tính theo ngày này (gần đúng)</small>"}
+/* ===== Vòng lặp ===== */
+let last=0;function frame(t){const dt=Math.min(.1,(t-last)/1000||0);last=t;let need=S.dirty;
+ if(S.playing&&S.mode==="orb"){S.simMs+=dt*SPD[S.spd][0]*86400000;need=true}
+ const k=Math.min(1,dt*7);
+ if(S.mode==="orb"){let gx=0,gy=0,gz=0;if(S.sel&&S.sel!=="sun"){const q=scenePos(S.sel,S.simMs);gx=q.x;gy=q.y;gz=q.z}
+  const e=Math.abs(S.tx-gx)+Math.abs(S.ty-gy)+Math.abs(S.tz-gz),ez=Math.abs(S.zoom-S.tzoom)/S.zoom;
+  if(e>.05||ez>.002||(S.sel&&S.ft<1)){S.tx+=(gx-S.tx)*k;S.ty+=(gy-S.ty)*k;S.tz+=(gz-S.tz)*k;S.zoom+=(S.tzoom-S.zoom)*k;need=true}
+  if(S.sel&&S.ft<1){S.ft=Math.min(1,S.ft+dt*3);need=true}else if(!S.sel&&S.ft>0){S.ft=Math.max(0,S.ft-dt*3);need=true}}
+ if(need){S.dirty=false;draw()}requestAnimationFrame(frame)}
+/* ===== Thẻ thông tin ===== */
+function lightTime(r){const s=r*499.005,m=Math.floor(s/60);return m+" phút "+Math.round(s-m*60)+" giây"}
+function miniScale(b){const k=1/SUN.d;return b===SUN?"":"Nếu Mặt Trời là quả bóng đường kính 1 m thì "+b.vn+" chỉ như "+(b.d*k*1000<10?"hạt":"quả")+" rộng khoảng "+(b.d*k*1000<10?fmt(b.d*k*1000,1)+" mm":b.d*k*100<100?fmt(b.d*k*100,1)+" cm":fmt(b.d*k,2)+" m")+" và cách bóng khoảng "+(b.a/1.3927>=1000?fmt(b.a/1.3927/1000,1)+" km":fmt(b.a/1.3927,0)+" m")+"."}
+let KG=30;
+function wt(b){return fmt(KG*b.g/9.8,1)}
+function card(){const c=$("card");const b=S.sel?BYK[S.sel]:null;if(!b){c.style.display="none";resizeSoon();return}c.style.display="block";let h;
+ const x=`<button class="x" id="cx" aria-label="Đóng">✕</button>`;
+ if(b===SUN){h=`<h2>☀ ${b.vn}${x}</h2><div class="sub">Ngôi sao ở trung tâm hệ Mặt Trời</div><table>
+ <tr><td>Đường kính</td><td>${fmt(b.d)} km (≈ 109 Trái Đất)</td></tr><tr><td>Nhiệt độ bề mặt</td><td>khoảng 5.500 °C</td></tr>
+ <tr><td>Ánh sáng tới Trái Đất</td><td>mất khoảng 8 phút 20 giây</td></tr><tr><td>Khối lượng</td><td>chiếm khoảng 99,86% cả hệ Mặt Trời</td></tr></table>
+ <div class="fact">💡 Mặt Trời là một quả cầu khí nóng sáng; năng lượng của nó đến từ phản ứng nhiệt hạch ở lõi, biến hydro thành heli.</div>
+ <div class="mini">Nếu Mặt Trời là quả bóng rộng 1 m thì Trái Đất chỉ là hạt rộng khoảng 9 mm, cách bóng khoảng 107 m.</div>`}
+ else{const o=S.hits&&S.hits.find(q=>q.b===b),rr=o&&o.r?o.r:posAU(b.k,S.simMs).r;const live=posAU(b.k,S.simMs).r;
+  h=`<h2><span style="width:16px;height:16px;border-radius:50%;background:${b.pal[1]};display:inline-block"></span>${b.vn}${x}</h2><div class="sub">${b.kind}</div><table>
+ <tr><td>Đường kính</td><td>${fmt(b.d)} km (${fmt(b.d/12756,2)} lần Trái Đất)</td></tr>
+ <tr><td>Cách Mặt Trời (trung bình)</td><td>${fmt(b.a,1)} triệu km (${fmt(b.a/AU_KM,2)} đơn vị thiên văn)</td></tr>
+ <tr><td>Cách Mặt Trời (ngày đang xem)</td><td>${fmt(live*AU_KM,1)} triệu km</td></tr>
+ <tr><td>Ánh sáng từ Mặt Trời đi mất</td><td>${lightTime(live)}</td></tr>
+ <tr><td>Một năm (quay quanh Mặt Trời)</td><td>${b.per>=700?fmt(b.per/365.25,b.per/365.25<30?1:0)+" năm Trái Đất":fmt(b.per,1)+" ngày Trái Đất"}</td></tr>
+ <tr><td>Quay quanh mình một vòng</td><td>${b.rot}</td></tr>
+ <tr><td>Số vệ tinh</td><td>${b.moons}</td></tr>
+ <tr><td>Nhiệt độ trung bình</td><td>${b.temp}</td></tr>
+ <tr><td>Trục quay nghiêng</td><td>${b.tilt}</td></tr></table>
+ <div class="fact">💡 ${b.fact}</div>
+ <div class="wt">⚖️ Em nặng <input type="number" id="kg" value="${KG}" min="1" max="200"> kg trên Trái Đất.${b.k==="earth"?'<br><small>Bấm một hành tinh khác để xem em nặng bao nhiêu ở đó.</small><b id="kgv" style="display:none"></b>':` Trên ${b.vn} em sẽ nặng khoảng <b id="kgv">${wt(b)}</b> kg`}${b.kind.indexOf("khổng lồ")>=0?"<br><small>(tính ở lớp mây, vì các hành tinh này không có mặt đất để đứng)</small>":""}</div>
+ <div class="mini">${miniScale(b)}</div>
+ ${/\*/.test(b.moons)?'<div class="mini">* Số vệ tinh được xác nhận vẫn tăng khi có phát hiện mới (số liệu 2026).</div>':""}`}
+ c.innerHTML=h+`<div class="foot">Số liệu: NASA Planetary Fact Sheet. Quỹ đạo vẽ không đúng tỉ lệ khoảng cách (được rút gọn để nhìn đủ cả hệ).</div>`;
+ $("cx").onclick=()=>select(null);const kg=$("kg");if(kg)kg.oninput=()=>{const v=parseFloat(kg.value);if(v>0&&v<=500){KG=v;if(b.k!=="earth")$("kgv").textContent=wt(b)}};resizeSoon()}
+let rt=0;function resizeSoon(){clearTimeout(rt);rt=setTimeout(()=>{resize()},30);setTimeout(resize,260)}
+function select(k){S.sel=k;S.dirty=true;
+ if(S.mode==="orb"){if(k){S.tzoom=k==="sun"?Math.max(S.zoom,.9):Math.max(S.zoom,k==="earth"||k==="venus"||k==="mercury"||k==="mars"?6:k==="jupiter"||k==="saturn"?3:1.6);S.zoomSet=1;if(k==="sun"){S.tx=S.ty=S.tz=0}}}
+ document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c.dataset.k===k));card()}
+/* ===== Điều khiển ===== */
+function buildChips(){const c=$("chips");c.innerHTML="";[SUN,...PL].forEach(b=>{const e=document.createElement("button");e.className="chip";e.dataset.k=b.k;e.innerHTML=`<i style="background:${b.pal[1]}"></i>${b.vn}`;e.onclick=()=>select(S.sel===b.k?null:b.k);c.appendChild(e)})}
+function setSpd(i){S.spd=i;$("spdL").textContent=SPD[i][1];$("spd").value=i;S.dirty=true}
+$("spd").oninput=e=>setSpd(+e.target.value);
+$("play").onclick=()=>{S.playing=!S.playing;$("play").textContent=S.playing?"⏸":"▶";S.dirty=true};
+$("today").onclick=()=>{S.simMs=Date.now();S.dirty=true};
+$("tName").onclick=()=>{S.names=!S.names;$("tName").classList.toggle("on",S.names);S.dirty=true};
+$("tOrb").onclick=()=>{S.orbits=!S.orbits;$("tOrb").classList.toggle("on",S.orbits);S.dirty=true};
+$("zAll").onclick=()=>{S.sel=null;S.tx=S.ty=S.tz=0;S.tzoom=fitZoom(400);S.zoomSet=0;S.dirty=true;select(null)};
+$("zIn").onclick=()=>{S.sel=null;S.tx=S.ty=S.tz=0;S.tzoom=fitZoom(90);S.zoomSet=1;S.dirty=true;select(null)};
+function setMode(m){S.mode=m;$("vOrb").classList.toggle("on",m==="orb");$("vSize").classList.toggle("on",m==="size");
+ ["play","spd","spdL","today","tName","tOrb","zAll","zIn"].forEach(i=>$(i).style.display=m==="orb"?"":"none");
+ let sb=$("sunBtn");if(m==="size"){if(!sb){sb=document.createElement("button");sb.id="sunBtn";sb.className="btn";sb.textContent="☀ Thêm Mặt Trời";sb.onclick=()=>{S.withSun=!S.withSun;sb.classList.toggle("on",S.withSun);sb.textContent=S.withSun?"☀ Bỏ Mặt Trời":"☀ Thêm Mặt Trời";S.dirty=true};$("ctl").appendChild(sb)}sb.style.display=""}else if(sb)sb.style.display="none";
+ S.dirty=true;card()}
+$("vOrb").onclick=()=>setMode("orb");$("vSize").onclick=()=>setMode("size");
+$("fs").onclick=()=>{const d=document,e=d.documentElement;if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d)}else{const f=e.requestFullscreen||e.webkitRequestFullscreen;if(f)f.call(e)}};
+/* kéo xoay, nhúm phóng to, bấm chọn */
+const P=new Map();let down=null;
+function pick(x,y){if(!S.hits)return null;let best=null,bd=1e9;for(const o of S.hits){const d=Math.hypot(o.sx-x,o.sy-y),lim=o.rs+(S.mode==="orb"?14:6)+(o.b.ring?o.rs:0);if(d<=lim&&d-o.rs<bd){bd=d-o.rs;best=o}}return best}
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);P.set(e.pointerId,[e.clientX,e.clientY]);down={x:e.clientX,y:e.clientY,t:performance.now(),m:0};cv.classList.add("drag")});
+cv.addEventListener("pointermove",e=>{if(!P.has(e.pointerId))return;const o=P.get(e.pointerId),nx=e.clientX,ny=e.clientY;
+ if(P.size===1&&S.mode==="orb"){S.yaw+=(nx-o[0])*.008;S.pitch=Math.max(.14,Math.min(Math.PI/2,S.pitch+(ny-o[1])*.006));S.dirty=true}
+ else if(P.size===2&&S.mode==="orb"){const ids=[...P.keys()],a=P.get(ids[0]),b=P.get(ids[1]);const d0=Math.hypot(a[0]-b[0],a[1]-b[1]);P.set(e.pointerId,[nx,ny]);const a2=P.get(ids[0]),b2=P.get(ids[1]),d1=Math.hypot(a2[0]-b2[0],a2[1]-b2[1]);if(d0>0){zoomBy(d1/d0)}down&&(down.m=99);return}
+ if(down)down.m+=Math.abs(nx-o[0])+Math.abs(ny-o[1]);P.set(e.pointerId,[nx,ny])});
+function zoomBy(f){S.zoom=Math.max(.12,Math.min(40,S.zoom*f));S.tzoom=S.zoom;S.zoomSet=1;S.dirty=true}
+function up(e){const was=P.has(e.pointerId);P.delete(e.pointerId);if(!P.size)cv.classList.remove("drag");
+ if(was&&down&&down.m<8&&performance.now()-down.t<500){const r=cv.getBoundingClientRect(),h=pick(e.clientX-r.left,e.clientY-r.top);if(h)select(S.sel===h.b.k&&S.mode==="size"?null:h.b.k)}
+ if(!P.size)down=null}
+cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+cv.addEventListener("wheel",e=>{if(S.mode!=="orb")return;e.preventDefault();zoomBy(e.deltaY<0?1.12:1/1.12)},{passive:false});
+addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"&&e.target.type==="number")return;const k=e.key;
+ if(k===" "){e.preventDefault();$("play").click()}else if(k==="Escape")select(null);else if(k==="ArrowLeft"){S.yaw-=.1;S.dirty=true}else if(k==="ArrowRight"){S.yaw+=.1;S.dirty=true}else if(k==="ArrowUp"){S.pitch=Math.min(Math.PI/2,S.pitch+.08);S.dirty=true}else if(k==="ArrowDown"){S.pitch=Math.max(.14,S.pitch-.08);S.dirty=true}else if(k==="+"||k==="="){zoomBy(1.2)}else if(k==="-"){zoomBy(1/1.2)}});
+addEventListener("resize",resize);
+/* khởi động; tham số ?p=earth hoặc ?v=size để mở sẵn */
+buildChips();setSpd(1);setMode("orb");resize();
+{const q=new URLSearchParams(location.search),p=q.get("p");if(q.get("v")==="size")setMode("size");if(p&&BYK[p])select(p);if(q.get("t")){const t=Date.parse(q.get("t"));if(t)S.simMs=t}}
+requestAnimationFrame(frame);
+window.__S=S;window.__posAU=posAU;
+</script></body></html>
