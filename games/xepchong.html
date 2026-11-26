@@ -301,7 +301,7 @@ function loop(now){
  if(dirty){dirty=false;draw()}requestAnimationFrame(loop)}
 // ---------- khởi động
 const q=new URLSearchParams(location.search);
-if(q.has('d')){const rows=parseRows(q.get('d'));if(rows.length){S.D=Math.min(MAXD,rows.length);S.W=Math.min(MAXW,Math.max(...rows.map(r=>r.length)));S.H=Array.from({length:S.D},(_,r)=>Array.from({length:S.W},(_,c)=>clampH((rows[r]||[])[c]||0)))}}
+if(q.has('d')||q.has('g')){const rows=q.has('d')?parseRows(q.get('d')):String(q.get('g')).split(/\r?\n|\/|;|~/).map(l=>l.replace(/\D/g,'').split('').map(x=>clampH(x))).filter(r=>r.length);if(rows.length){S.D=Math.min(MAXD,rows.length);S.W=Math.min(MAXW,Math.max(...rows.map(r=>r.length)));S.H=Array.from({length:S.D},(_,r)=>Array.from({length:S.W},(_,c)=>clampH((rows[r]||[])[c]||0)))}}
 if(q.get('paint')==='1'){S.cm='paint';document.querySelectorAll('[data-cm]').forEach(x=>x.classList.toggle('on',x.dataset.cm==='paint'))}
 if(q.get('view')==='4'){S.four=true;$('v4').classList.add('on')}
 S.layerAll=true;buildTbl();chRender();fit();changed(false);
